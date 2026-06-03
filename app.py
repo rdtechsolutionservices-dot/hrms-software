@@ -733,7 +733,17 @@ def init_db():
         port INTEGER DEFAULT 4370, password INTEGER DEFAULT 0,
         location TEXT, is_active INTEGER DEFAULT 1,
         last_sync TEXT, last_sync_count INTEGER DEFAULT 0,
+        serial_number TEXT,
+        connection_mode TEXT DEFAULT 'zk',
+        adms_last_seen TEXT,
         created_on TEXT)""")
+    # Migrate existing machines table
+    _m_cols = [r[1] for r in c.execute("PRAGMA table_info(machines)").fetchall()]
+    for _mc, _md in [("serial_number", "TEXT"), ("connection_mode", "TEXT DEFAULT 'zk'"),
+                     ("adms_last_seen", "TEXT")]:
+        if _mc not in _m_cols:
+            try: c.execute(f"ALTER TABLE machines ADD COLUMN {_mc} {_md}")
+            except: pass
 
     # ── Shifts ──
     c.execute("""CREATE TABLE IF NOT EXISTS shifts (
@@ -12591,9 +12601,22 @@ def increment_letter(emp_code):
 @app.route("/attendance/machines")
 @amgr
 def machines_list():
+    from datetime import datetime as _dt_m, timedelta as _td_m
     conn = get_db()
-    machines = conn.execute("SELECT * FROM machines ORDER BY machine_name").fetchall()
+    machines_raw = conn.execute("SELECT * FROM machines ORDER BY machine_name").fetchall()
     conn.close()
+    # Compute adms_online — True if adms_last_seen within last 20 minutes
+    machines = []
+    for m in machines_raw:
+        md = dict(m)
+        adms_online = False
+        if md.get("connection_mode") == "adms" and md.get("adms_last_seen"):
+            try:
+                last = _dt_m.strptime(md["adms_last_seen"], "%Y-%m-%d %H:%M")
+                adms_online = (_dt_m.now() - last).total_seconds() <= 1200  # 20 min
+            except: pass
+        md["adms_online"] = adms_online
+        machines.append(md)
     return render_template("machines.html", machines=machines,
         today_month=date.today().month, today_year=date.today().year,
         today_month_name=MONTHS[date.today().month-1])
@@ -12604,10 +12627,10 @@ def add_machine():
     d = request.json; conn = get_db()
     try:
         conn.execute("""INSERT INTO machines 
-            (machine_name,ip_address,port,password,location,is_active,created_on)
-            VALUES (?,?,?,?,?,1,date('now'))""",
+            (machine_name,ip_address,port,password,location,serial_number,is_active,created_on)
+            VALUES (?,?,?,?,?,?,1,date('now'))""",
             (d["machine_name"],d["ip_address"],int(d.get("port",4370)),
-             int(d.get("password",0)),d.get("location","")))
+             int(d.get("password",0)),d.get("location",""),d.get("serial_number","")))
         conn.commit()
         return jsonify({"success":True})
     except Exception as e:
@@ -12628,9 +12651,10 @@ def edit_machine(mid):
     d = request.json; conn = get_db()
     try:
         conn.execute("""UPDATE machines SET machine_name=?,ip_address=?,port=?,
-            password=?,location=?,is_active=? WHERE id=?""",
+            password=?,location=?,serial_number=?,is_active=? WHERE id=?""",
             (d["machine_name"],d["ip_address"],int(d.get("port",4370)),
              int(d.get("password",0)),d.get("location",""),
+             d.get("serial_number",""),
              1 if d.get("is_active") else 0, mid))
         conn.commit()
         return jsonify({"success":True})
@@ -15698,6 +15722,7 @@ def adms_cdata():
     if request.method == "GET":
         # Machine ko green signal do — connected!
         now = datetime.now()
+        now_str = now.strftime("%Y-%m-%d %H:%M")
         resp = (
             f"GET OPTION FROM: {sn}\n"
             f"ATTLOGStamp=9999\n"
@@ -15711,15 +15736,22 @@ def adms_cdata():
             f"Realtime=1\n"
             f"Encrypt=None\n"
         )
-        # Machine ka last_sync update karo
+        # SN se machine match karo — update adms_last_seen + connection_mode
         try:
             conn = get_db()
-            conn.execute("""UPDATE machines SET last_sync=? 
-                WHERE ip_address=? OR machine_name LIKE ?""",
-                (now.strftime("%Y-%m-%d %H:%M"), 
-                 request.remote_addr, f"%{sn}%"))
+            # Try SN match first
+            updated = conn.execute("""UPDATE machines SET 
+                adms_last_seen=?, connection_mode='adms', serial_number=?
+                WHERE serial_number=?""", (now_str, sn, sn)).rowcount
+            if not updated:
+                # Fallback: ip_address ya name se match
+                conn.execute("""UPDATE machines SET 
+                    adms_last_seen=?, connection_mode='adms', serial_number=COALESCE(NULLIF(serial_number,''),?)
+                    WHERE ip_address=? OR machine_name LIKE ?""",
+                    (now_str, sn, request.remote_addr, f"%{sn}%"))
             conn.commit(); conn.close()
         except: pass
+        print(f"[ADMS] Heartbeat from SN={sn} ({request.remote_addr})")
         return resp, 200, {"Content-Type": "text/plain"}
 
     elif request.method == "POST":
@@ -15845,7 +15877,25 @@ def adms_cdata():
         except: pass
         conn.close()
 
-        print(f"[ADMS] {request.remote_addr} → {imported} records saved")
+        # Update last_sync by SN
+        try:
+            sn_post = request.args.get("SN", "")
+            now_str2 = datetime.now().strftime("%Y-%m-%d %H:%M")
+            updated2 = conn.execute("""UPDATE machines SET 
+                last_sync=?, adms_last_seen=?, last_sync_count=last_sync_count+?,
+                connection_mode='adms'
+                WHERE serial_number=?""",
+                (now_str2, now_str2, imported, sn_post)).rowcount
+            if not updated2:
+                conn.execute("""UPDATE machines SET 
+                    last_sync=?, adms_last_seen=?, last_sync_count=last_sync_count+?,
+                    connection_mode='adms'
+                    WHERE ip_address=?""",
+                    (now_str2, now_str2, imported, request.remote_addr))
+            conn.commit()
+        except: pass
+        conn.close()
+        print(f"[ADMS] {request.remote_addr} SN={request.args.get('SN','')} → {imported} records saved")
         return "OK", 200, {"Content-Type": "text/plain"}
 
     return "OK", 200
