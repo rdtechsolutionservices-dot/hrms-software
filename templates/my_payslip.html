@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}My Payslips{% endblock %}
+{% block page_title %}My Salary Slips{% endblock %}
+{% block content %}
+<style>
+@page { size: A4 portrait; margin: 8mm 10mm; }
+#printArea { font-family:'Arial',sans-serif;font-size:10.5px;color:#1a1a1a;background:#fff;max-width:794px;margin:0 auto;border:1px solid #c8d0db; }
+.ps-lh-top  { width:100%;display:block;max-height:100px;object-fit:cover; }
+.ps-lh-bot  { width:100%;display:block;max-height:65px;object-fit:cover; }
+.ps-title-bar { background:linear-gradient(135deg,#003580,#0055b3);color:#fff;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #ffc107; }
+.ps-co-name { font-size:16px;font-weight:800;letter-spacing:.3px; }
+.ps-co-sub  { font-size:9px;opacity:.75;margin-top:2px; }
+.ps-slip-rhs { text-align:right; }
+.ps-slip-head { font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase; }
+.ps-slip-per  { font-size:10px;opacity:.82;margin-top:2px; }
+.ps-slip-ref  { font-size:8px;opacity:.6;margin-top:1px; }
+.ps-emp-grid { display:grid;grid-template-columns:1fr 1fr;border:1px solid #c8d0db;border-top:none; }
+.ps-emp-col  { padding:10px 16px; }
+.ps-emp-col:first-child { border-right:1px solid #c8d0db; }
+.ps-row  { display:flex;margin-bottom:5px;gap:5px;align-items:baseline; }
+.ps-lbl  { font-size:8.5px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;min-width:106px;flex-shrink:0; }
+.ps-val  { font-size:10.5px;font-weight:600;color:#111; }
+.ps-att  { display:grid;grid-template-columns:repeat(6,1fr);background:#f7f8fa;border:1px solid #c8d0db;border-top:none; }
+.ps-ac   { padding:8px 8px;text-align:center;border-right:1px solid #c8d0db; }
+.ps-ac:last-child { border-right:none; }
+.ps-al   { font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px; }
+.ps-av   { font-size:14px;font-weight:700; }
+.ps-sh   { padding:5px 16px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#374151;background:#edf2f7;border:1px solid #c8d0db;border-top:none; }
+.ps-body { display:grid;grid-template-columns:1fr 1fr;border:1px solid #c8d0db;border-top:none;min-height:195px; }
+.ps-earn { border-right:1px solid #c8d0db; }
+.ps-ch   { padding:5px 13px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #c8d0db;display:grid; }
+.ps-eh   { background:#ebf5ff;color:#003580;grid-template-columns:1fr 78px 88px; }
+.ps-dh   { background:#fff5f5;color:#b91c1c;grid-template-columns:1fr 88px; }
+.ps-t    { width:100%;border-collapse:collapse;font-size:10px; }
+.ps-t td { padding:5px 13px;border-bottom:1px solid #f0f2f5;vertical-align:middle; }
+.ps-d    { color:#374151; }
+.ps-m    { text-align:right;color:#6b7280;font-size:9.5px; }
+.ps-a    { text-align:right;font-weight:600; }
+.ps-da   { text-align:right;font-weight:600;color:#b91c1c; }
+.ps-sp   { height:14px;border:none !important; }
+.ps-tot td { background:#f0f4f8 !important;font-weight:700 !important;font-size:10.5px !important;border-top:2px solid #c8d0db !important;border-bottom:none !important;padding:7px 13px !important; }
+.ps-net  { background:linear-gradient(135deg,#003580,#0055b3);color:#fff;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #ffc107; }
+.ps-nl   { font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.9; }
+.ps-nw   { font-size:9px;opacity:.72;margin-top:4px;max-width:470px;font-style:italic; }
+.ps-nf   { font-size:25px;font-weight:800;letter-spacing:-.5px; }
+.ps-foot { display:flex;justify-content:space-between;align-items:flex-end;padding:11px 20px 9px;border:1px solid #c8d0db;border-top:none; }
+.ps-fn   { font-size:8.5px;color:#6b7280;line-height:1.7;max-width:56%; }
+.ps-sb   { text-align:center; }
+.ps-si   { width:70px;height:70px;object-fit:contain;display:block;margin:0 auto; }
+.ps-sl   { font-size:8.5px;color:#374151;font-weight:700;border-top:1px solid #9ca3af;padding-top:4px;margin-top:16px;min-width:128px; }
+.ps-sc   { font-size:8px;color:#6b7280;margin-bottom:2px; }
+.ps-disc { padding:5px 16px;background:#f9fafb;border:1px solid #c8d0db;border-top:none;font-size:8px;color:#9ca3af;text-align:center;font-style:italic; }
+</style>
+
+{% if error %}
+<div class="alert alert-danger" style="margin-bottom:16px;">⚠️ {{ error }}</div>
+{% endif %}
+
+{% if emp %}<div class="mini-card" style="margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="emp-av" style="width:52px;height:52px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#0052cc,#0096dc)">{{ (emp.emp_name or "?")[:2].upper() }}</div>
+    <div><div style="font-family:Syne,sans-serif;font-weight:800;font-size:17px">{{ emp.emp_name }}</div>
+    <div style="color:var(--muted);font-size:13px;margin-top:2px">{{ emp.emp_code }} · {{ emp.designation or 'Employee' }} · {{ emp.department or '—' }}</div>
+    <div style="margin-top:5px;"><span class="badge badge-{{ emp.category.lower() }}">{{ emp.category }}</span> <span class="badge badge-active">{{ emp.status }}</span></div></div>
+  </div>
+</div>{% endif %}
+
+<div class="table-card">
+  <div class="table-header"><span class="table-title">My Salary History</span></div>
+  <table><thead><tr><th>Month / Year</th><th>Gross</th><th>Deductions</th><th>Net Salary</th><th>Days Present</th><th>View</th></tr></thead>
+  <tbody>{% for r in records %}<tr>
+    <td style="font-weight:600">{{ ["January","February","March","April","May","June","July","August","September","October","November","December"][r.month-1] }} {{ r.year }}</td>
+    <td>&#8377;{{ "{:,.0f}".format(r.gross) }}</td>
+    <td style="color:var(--red)">&#8377;{{ "{:,.0f}".format(r.total_deductions) }}</td>
+    <td class="sal-text" style="color:var(--green)">&#8377;{{ "{:,.0f}".format(r.net_salary) }}</td>
+    <td style="text-align:center">{{ r.present_days }}/{{ r.working_days }}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="viewPS('{{ r.emp_code }}',{{ r.month }},{{ r.year }})">&#128065;&#65039; View</button></td>
+  </tr>{% endfor %}
+  {% if not records %}<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">No salary records yet</td></tr>{% endif %}
+  </tbody></table>
+</div>
+
+<div class="modal-overlay" id="psModal">
+  <div class="modal" style="width:860px;max-width:97vw;max-height:94vh;overflow-y:auto;padding:0;background:#fff;border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--card);border-radius:14px 14px 0 0;">
+      <span style="font-weight:700;font-size:13px;">Salary Slip — Preview</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="printPayslip()">&#128424;&#65039; Print / Save PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('psModal')">&#10005; Close</button>
+      </div>
+    </div>
+    <div id="printArea" style="background:#fff;">
+      <div id="ps_hdr_wrap"><img id="ps_header_img" class="ps-lh-top" src="{{ header_b64 or '/letters/header-image' }}" onerror="this.closest('#ps_hdr_wrap').style.display='none'"></div>
+      <div class="ps-title-bar">
+        <div>
+          <div class="ps-co-name">Vijayshri Packaging Ltd.</div>
+          <div class="ps-co-sub">Industrial Area, Dewas Road, Ujjain — Madhya Pradesh</div>
+        </div>
+        <div class="ps-slip-rhs">
+          <div class="ps-slip-head">Salary Slip</div>
+          <div class="ps-slip-per" id="ps_period">—</div>
+          <div class="ps-slip-ref" id="ps_payslip_code"></div>
+        </div>
+      </div>
+      <div class="ps-emp-grid">
+        <div class="ps-emp-col">
+          <div class="ps-row"><span class="ps-lbl">Employee Code</span><span class="ps-val" id="ps_id">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">Employee Name</span><span class="ps-val" id="ps_name">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">Department</span><span class="ps-val" id="ps_dept">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">Designation</span><span class="ps-val" id="ps_desig">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">Category</span><span class="ps-val" id="ps_cat">—</span></div>
+        </div>
+        <div class="ps-emp-col">
+          <div class="ps-row"><span class="ps-lbl">PF Account No.</span><span class="ps-val" id="ps_pf_no">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">UAN</span><span class="ps-val" id="ps_uan">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">ESIC No.</span><span class="ps-val" id="ps_esic_no">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">Bank Account</span><span class="ps-val" id="ps_bank">—</span></div>
+          <div class="ps-row"><span class="ps-lbl">IFSC Code</span><span class="ps-val" id="ps_ifsc">—</span></div>
+        </div>
+      </div>
+      <div class="ps-sh">Attendance Summary</div>
+      <div class="ps-att">
+        <div class="ps-ac"><div class="ps-al">Working Days</div><div class="ps-av" id="ps_wd">—</div></div>
+        <div class="ps-ac"><div class="ps-al">Days Present</div><div class="ps-av" style="color:#059669;" id="ps_present">—</div></div>
+        <div class="ps-ac"><div class="ps-al">Days Absent</div><div class="ps-av" style="color:#dc2626;" id="ps_absent">—</div></div>
+        <div class="ps-ac"><div class="ps-al">Paid Leave</div><div class="ps-av" id="ps_pl">—</div></div>
+        <div class="ps-ac"><div class="ps-al">Late Marks</div><div class="ps-av" style="color:#d97706;" id="ps_late">—</div></div>
+        <div class="ps-ac"><div class="ps-al">Payable Days</div><div class="ps-av" style="color:#003580;font-size:16px;" id="ps_payable">—</div></div>
+      </div>
+      <div class="ps-sh">Earnings &amp; Deductions</div>
+      <div class="ps-body">
+        <div class="ps-earn">
+          <div class="ps-ch ps-eh"><span>Earnings</span><span style="text-align:right">Monthly (&#8377;)</span><span style="text-align:right">Earned (&#8377;)</span></div>
+          <table class="ps-t">
+            <tr><td class="ps-d">Basic Salary</td><td class="ps-m" id="ps_basic_m">—</td><td class="ps-a" id="ps_basic">—</td></tr>
+            <tr><td class="ps-d">House Rent Allowance</td><td class="ps-m" id="ps_hra_m">—</td><td class="ps-a" id="ps_hra">—</td></tr>
+            <tr><td class="ps-d">Special Allowance</td><td class="ps-m" id="ps_special_m">—</td><td class="ps-a" id="ps_special">—</td></tr>
+            <tr id="ps_ot_row" style="display:none;"><td class="ps-d">Overtime Allowance</td><td class="ps-m">—</td><td class="ps-a" id="ps_ot">—</td></tr>
+            <tr id="ps_bonus_row" style="display:none;"><td class="ps-d">Bonus / Incentive</td><td class="ps-m">—</td><td class="ps-a" id="ps_bonus">—</td></tr>
+            <tr class="ps-sp"><td colspan="3"></td></tr>
+            <tr class="ps-sp"><td colspan="3"></td></tr>
+            <tr class="ps-sp"><td colspan="3"></td></tr>
+            <tr class="ps-tot"><td class="ps-d" style="color:#003580;">Gross Salary</td><td class="ps-m"></td><td class="ps-a" id="ps_gross" style="color:#003580;font-size:11px;">—</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="ps-ch ps-dh"><span>Deductions</span><span style="text-align:right">Amount (&#8377;)</span></div>
+          <table class="ps-t">
+            <tr><td class="ps-d">Provident Fund — Employee (12%)</td><td class="ps-da" id="ps_pf">—</td></tr>
+            <tr id="ps_epf_row" style="display:none;"><td class="ps-d" style="color:#6b7280;font-size:9px;">&nbsp;&nbsp;Employer PF (12%) — For Reference</td><td class="ps-m" id="ps_epf">—</td></tr>
+            <tr><td class="ps-d">ESIC — Employee (0.75%)</td><td class="ps-da" id="ps_esi">—</td></tr>
+            <tr id="ps_pt_row" style="display:none;"><td class="ps-d">Professional Tax</td><td class="ps-da" id="ps_pt">—</td></tr>
+            <tr id="ps_tds_row" style="display:none;"><td class="ps-d">Tax Deducted at Source (TDS)</td><td class="ps-da" id="ps_tds">—</td></tr>
+            <tr id="ps_loan_row" style="display:none;"><td class="ps-d">Loan / Advance Recovery</td><td class="ps-da" id="ps_loan">—</td></tr>
+            <tr id="ps_canteen_row" style="display:none;"><td class="ps-d">Canteen / Uniform / Other Deduction</td><td class="ps-da" id="ps_canteen">—</td></tr>
+            <tr id="ps_fine_row" style="display:none;"><td class="ps-d">Fine / Penalty</td><td class="ps-da" id="ps_fine">—</td></tr>
+            <tr id="ps_uniform_row" style="display:none;"><td class="ps-d">Other Deduction</td><td class="ps-da" id="ps_uniform">—</td></tr>
+            <tr class="ps-sp"><td colspan="2"></td></tr>
+            <tr class="ps-sp"><td colspan="2"></td></tr>
+            <tr class="ps-tot"><td class="ps-d" style="color:#b91c1c;">Total Deductions</td><td class="ps-da" id="ps_ded" style="color:#b91c1c;font-size:11px;">—</td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="ps-net">
+        <div><div class="ps-nl">Net Salary Payable</div><div class="ps-nw" id="ps_net_words">—</div></div>
+        <div class="ps-nf" id="ps_net">&#8377;0</div>
+      </div>
+      <div class="ps-foot">
+        <div class="ps-fn">
+          This is a system-generated salary slip and is valid without a physical signature.<br>
+          For any discrepancies, please contact the HR Department within 7 days of receipt.<br>
+          &copy; Vijayshri Packaging Ltd. — Strictly Confidential
+        </div>
+        <div class="ps-sb">
+          <div class="ps-sc">For Vijayshri Packaging Ltd.</div>
+          <div id="ps_seal_wrap"><img id="ps_seal_img" class="ps-si" src="{{ seal_b64 or '/letters/seal-image' }}" onerror="this.closest('#ps_seal_wrap').style.display='none'"></div>
+          <div class="ps-sl">Authorised Signatory</div>
+        </div>
+      </div>
+      <div id="ps_ftr_wrap"><img id="ps_footer_img" class="ps-lh-bot" src="{{ footer_b64 or '/letters/footer-image' }}" onerror="this.closest('#ps_ftr_wrap').style.display='none'"></div>
+      <div class="ps-disc">This document is confidential and intended solely for the named employee. &nbsp;|&nbsp; Vijayshri Packaging Ltd. &nbsp;|&nbsp; Generated by VPL PayRoll System</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function fmt(v){ return "\u20B9"+parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtN(v){ return parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function numToWords(n){
+  n=Math.round(n);
+  const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  if(n===0) return "Zero";
+  if(n<20) return a[n];
+  if(n<100) return b[Math.floor(n/10)]+(n%10?" "+a[n%10]:"");
+  if(n<1000) return a[Math.floor(n/100)]+" Hundred"+(n%100?" "+numToWords(n%100):"");
+  if(n<100000) return numToWords(Math.floor(n/1000))+" Thousand"+(n%1000?" "+numToWords(n%1000):"");
+  if(n<10000000) return numToWords(Math.floor(n/100000))+" Lakh"+(n%100000?" "+numToWords(n%100000):"");
+  return numToWords(Math.floor(n/10000000))+" Crore"+(n%10000000?" "+numToWords(n%10000000):"");
+}
+function setEl(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
+function showEl(id,v){ const e=document.getElementById(id); if(e) e.style.display=v?"":"none"; }
+async function viewPS(empId,month,year){
+  const d=await api(`/payslip/get/${empId}/${month}/${year}`);
+  if(!d||(!d.emp_code&&!d.emp_id)){showToast("Payslip not found. Process payroll first.","error");return;}
+  setEl("ps_period",`${MN[month-1]} ${year}`);
+  setEl("ps_payslip_code",d.payslip_code?`Ref: ${d.payslip_code}`:"");
+  setEl("ps_id",d.emp_code||empId); setEl("ps_name",d.emp_name||"\u2014");
+  setEl("ps_dept",d.department||"\u2014"); setEl("ps_desig",d.designation||"\u2014"); setEl("ps_cat",d.category||"\u2014");
+  setEl("ps_pf_no",d.pf_number||"\u2014"); setEl("ps_uan",d.uan_number||"\u2014"); setEl("ps_esic_no",d.esic_number||"\u2014");
+  setEl("ps_bank",(d.bank_account||"")+(d.bank_name?" \u2014 "+d.bank_name:"")); setEl("ps_ifsc",d.ifsc||"\u2014");
+  setEl("ps_wd",d.working_days||"\u2014"); setEl("ps_present",d.present_days??0); setEl("ps_absent",d.absent_days??0);
+  setEl("ps_pl",d.paid_leave_days??0); setEl("ps_late",d.late_marks??0);
+  setEl("ps_payable",parseFloat(d.payable_days||d.present_days||0).toFixed(1));
+  const wd=parseFloat(d.working_days||26), pay=Math.max(1,parseFloat(d.payable_days||d.present_days||1));
+  const be=parseFloat(d.basic_earned||0),he=parseFloat(d.hra_earned||0),se=parseFloat(d.special_earned||0);
+  setEl("ps_basic_m",fmtN(Math.round(be/pay*wd))); setEl("ps_basic",fmtN(be));
+  setEl("ps_hra_m",fmtN(Math.round(he/pay*wd)));   setEl("ps_hra",fmtN(he));
+  setEl("ps_special_m",fmtN(Math.round(se/pay*wd)));setEl("ps_special",fmtN(se));
+  setEl("ps_gross",fmtN(d.gross));
+  const ot=parseFloat(d.ot_amount||0),bonus=parseFloat(d.bonus||0);
+  showEl("ps_ot_row",ot>0);    if(ot>0)    setEl("ps_ot",fmtN(ot));
+  showEl("ps_bonus_row",bonus>0);if(bonus>0)setEl("ps_bonus",fmtN(bonus));
+  const pf=parseFloat(d.pf||0),esi=parseFloat(d.esi||0),pt=parseFloat(d.pt||0),tds=parseFloat(d.tds||0),epf=parseFloat(d.employer_pf||0);
+  setEl("ps_pf",pf>0?fmtN(pf):"Nil"); setEl("ps_esi",esi>0?fmtN(esi):"Nil");
+  showEl("ps_epf_row",epf>0);  if(epf>0)  setEl("ps_epf",fmtN(epf));
+  showEl("ps_pt_row",pt>0);    if(pt>0)   setEl("ps_pt",fmtN(pt));
+  showEl("ps_tds_row",tds>0);  if(tds>0)  setEl("ps_tds",fmtN(tds));
+  const loan=parseFloat(d.loan_deduction||0),canteen=parseFloat(d.canteen_deduction||0);
+  const fine=parseFloat(d.fine_deduction||0),adv=parseFloat(d.advance_deduction||0);
+  const other=Math.max(0,adv-loan-canteen-fine);
+  showEl("ps_loan_row",loan>0);       if(loan>0)      setEl("ps_loan",fmtN(loan));
+  showEl("ps_canteen_row",canteen>0); if(canteen>0)   setEl("ps_canteen",fmtN(canteen));
+  showEl("ps_fine_row",fine>0);       if(fine>0)      setEl("ps_fine",fmtN(fine));
+  showEl("ps_uniform_row",other>0.01);if(other>0.01)  setEl("ps_uniform",fmtN(other));
+  setEl("ps_ded",fmtN(d.total_deductions));
+  const net=parseFloat(d.net_salary||0);
+  setEl("ps_net",fmt(net)); setEl("ps_net_words",numToWords(Math.round(net))+" Rupees Only");
+  openModal("psModal");
+  const ts=Date.now();
+  const hi=document.getElementById("ps_header_img");if(hi)hi.src="/letters/header-image?t="+ts;
+  const fi=document.getElementById("ps_footer_img");if(fi)fi.src="/letters/footer-image?t="+ts;
+  const si=document.getElementById("ps_seal_img");  if(si)si.src="/letters/seal-image?t="+ts;
+}
+function printPayslip(){
+  const content=document.getElementById('printArea');
+  if(!content){window.print();return;}
+  const psStyles=Array.from(document.querySelectorAll('style')).map(s=>s.textContent).filter(t=>t.includes('ps-')||t.includes('printArea')||t.includes('@page')).join('\n');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Salary Slip</title><style>
+    @page{size:A4 portrait;margin:8mm 10mm;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;box-sizing:border-box;}
+    html,body{margin:0;padding:0;background:#fff!important;color:#1a1a1a!important;font-family:Arial,sans-serif;}
+    ${psStyles}
+    #printArea{font-family:Arial,sans-serif;font-size:10px;color:#1a1a1a;background:#fff;width:100%;max-width:100%;border:1px solid #c8d0db;}
+    .ps-body{min-height:auto!important;}
+    .ps-title-bar{background:linear-gradient(135deg,#003580,#0055b3)!important;color:#fff!important;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #ffc107;}
+    .ps-net{background:linear-gradient(135deg,#003580,#0055b3)!important;color:#fff!important;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #ffc107;}
+    .ps-co-name{font-size:16px;font-weight:800;letter-spacing:.3px;color:#fff!important;}
+    .ps-co-sub{font-size:9px;opacity:.85;color:#fff!important;}
+    .ps-slip-head{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#fff!important;}
+    .ps-slip-per,.ps-slip-ref{color:rgba(255,255,255,.85)!important;}
+    .ps-nl{color:#fff!important;font-size:9.5px;font-weight:700;text-transform:uppercase;}
+    .ps-nw{color:rgba(255,255,255,.8)!important;font-size:9px;}
+    .ps-nf{color:#fff!important;font-size:25px;font-weight:800;}
+    .ps-eh{background:#ebf5ff!important;color:#003580!important;}
+    .ps-dh{background:#fff5f5!important;color:#b91c1c!important;}
+    .ps-tot td{background:#f0f4f8!important;}
+    .ps-att{background:#f7f8fa!important;}
+    .ps-sh{background:#edf2f7!important;color:#374151!important;}
+    .ps-fn{color:#6b7280!important;}.ps-da{color:#b91c1c!important;}.ps-a{font-weight:600;}
+  </style></head><body>${content.outerHTML}<script>window.onload=function(){setTimeout(function(){window.print();window.onafterprint=function(){window.close();};},500);};<\/script></body></html>`;
+  const w=window.open('','_blank');
+  if(w){w.document.write(html);w.document.close();}
+  else showToast("Pop-up blocked. Allow pop-ups and try again.","error");
+}
+</script>{% endblock %}

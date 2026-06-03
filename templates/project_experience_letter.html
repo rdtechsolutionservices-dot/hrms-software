@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project Experience Letter — {{ emp.emp_name }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@400;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; }
+
+  @media print { *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} 
+    body { background: white; }
+    .no-print { display: none !important; }
+    .letter-page { box-shadow: none; margin: 0; border-radius: 0; }
+  }
+
+  .no-print {
+    background: #1a1a2e; padding: 12px 24px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .no-print button {
+    padding: 8px 20px; border-radius: 8px; border: none;
+    cursor: pointer; font-size: 14px; font-weight: 600;
+  }
+  .btn-print { background: #0052cc; color: white; }
+  .btn-close { background: rgba(255,255,255,.1); color: white; }
+
+  .letter-page {
+    width: 210mm; min-height: 297mm;
+    margin: 20px auto; background: white;
+    box-shadow: 0 4px 30px rgba(0,0,0,.15);
+    border-radius: 4px; overflow: hidden;
+    padding: 0;
+  }
+
+  /* Header Band */
+  .letter-header {
+    background: linear-gradient(135deg, #003399 0%, #0052cc 60%, #0077e6 100%);
+    padding: 28px 40px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .letter-header::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ffd700, #ffb300, #ffd700);
+  }
+  .company-name {
+    font-size: 22px; font-weight: 700; color: #ffffff;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .company-sub {
+    font-size: 11px; color: rgba(255,255,255,.75);
+    margin-top: 2px; letter-spacing: .5px;
+  }
+  .company-address {
+    font-size: 10.5px; color: rgba(255,255,255,.65);
+    margin-top: 6px; line-height: 1.5;
+  }
+  .letter-ref-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-top: 10px;
+  }
+  .ref-badge {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 4px; padding: 4px 12px;
+    font-size: 10px; color: rgba(255,255,255,.9); letter-spacing: .5px;
+  }
+  .letter-date {
+    font-size: 11px; color: rgba(255,255,255,.8);
+  }
+
+  /* Body */
+  .letter-body { padding: 32px 44px 28px; }
+
+  .letter-type-tag {
+    display: inline-block;
+    background: #e8f0fe; color: #003399;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 12px; border-radius: 20px;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 18px;
+    border: 1px solid #c5d5f5;
+  }
+
+  .letter-title {
+    font-size: 17px; font-weight: 700; color: #003399;
+    text-align: center; text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 22px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8f0fe;
+  }
+
+  /* Employee Info Box */
+  .emp-info-box {
+    background: #f8faff; border: 1px solid #d0ddf5;
+    border-left: 4px solid #0052cc;
+    border-radius: 6px; padding: 14px 18px; margin-bottom: 22px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px;
+  }
+  .info-row { display: flex; gap: 6px; font-size: 12px; }
+  .info-label { color: #555; min-width: 90px; }
+  .info-value { font-weight: 700; color: #111; }
+
+  /* Letter content */
+  .para {
+    font-size: 13px; line-height: 1.85; color: #222;
+    margin-bottom: 14px; text-align: justify;
+  }
+  .para-intro { margin-bottom: 18px; }
+
+  /* Projects Section */
+  .section-heading {
+    font-size: 12px; font-weight: 700; color: #003399;
+    text-transform: uppercase; letter-spacing: .8px;
+    margin: 20px 0 10px; padding-bottom: 4px;
+    border-bottom: 1px solid #d0ddf5;
+  }
+  .project-list {
+    margin: 0 0 16px 0; padding-left: 18px;
+    list-style-type: none;
+  }
+  .project-list li {
+    font-size: 13px; color: #222; line-height: 1.75;
+    margin-bottom: 6px; position: relative;
+    padding-left: 14px;
+  }
+  .project-list li::before {
+    content: '▸'; position: absolute; left: 0;
+    color: #0052cc; font-size: 11px; top: 2px;
+  }
+
+  /* Skills Tags */
+  .skills-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+  .skill-tag {
+    background: #e8f0fe; color: #003399;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 12px; border-radius: 20px;
+    border: 1px solid #c5d5f5;
+  }
+
+  /* Footer signature */
+  .signature-section {
+    margin-top: 32px; display: flex;
+    justify-content: space-between; align-items: flex-end;
+  }
+  .sig-block { text-align: center; }
+  .sig-line {
+    width: 160px; border-top: 1.5px solid #333;
+    margin: 0 auto 4px;
+  }
+  .sig-name { font-size: 12px; font-weight: 700; color: #111; }
+  .sig-role { font-size: 11px; color: #555; }
+  .sig-company { font-size: 10px; color: #777; }
+
+  .company-stamp {
+    width: 80px; height: 80px;
+    border: 2px solid #003399; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; color: #003399;
+    text-align: center; line-height: 1.3;
+    opacity: .4;
+  }
+
+  /* Footer band */
+  .letter-footer {
+    background: #f5f7fa; border-top: 2px solid #e8f0fe;
+    padding: 10px 44px; display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  .footer-text { font-size: 9.5px; color: #888; }
+  .footer-confidential {
+    font-size: 9px; font-weight: 700; color: #c00;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <button class="btn-print" onclick="window.print()">🖨️ Print Letter</button>
+  <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">Project Experience Letter — {{ emp.emp_name }}</span>
+</div>
+
+<div class="letter-page">
+
+  <!-- Header -->
+  <div class="letter-header">
+    <div class="company-name">Vijayshri Packaging Ltd.</div>
+    <div class="company-sub">AN ISO CERTIFIED PACKAGING MANUFACTURER</div>
+    <div class="company-address">
+      Industrial Area, Vijayshri Nagar &nbsp;|&nbsp; CIN: U25200XX2000PLC000000<br>
+      HR Department &nbsp;|&nbsp; hr@vijayshri.com &nbsp;|&nbsp; +91-XXXXXXXXXX
+    </div>
+    <div class="letter-ref-row">
+      <span class="ref-badge">Ref No: VPL/HR/PEL/{{ emp.emp_code }}/{{ issue_date.replace('-','') }}</span>
+      <span class="letter-date">Date: {{ issue_date_display }}</span>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="letter-body">
+
+    <div class="letter-type-tag">To Whom It May Concern</div>
+
+    <div class="letter-title">Project Experience Certificate</div>
+
+    <!-- Employee Info Box -->
+    <div class="emp-info-box">
+      <div class="info-row">
+        <span class="info-label">Employee Name</span>
+        <span class="info-value">{{ emp.emp_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Employee Code</span>
+        <span class="info-value">{{ emp.emp_code }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Department</span>
+        <span class="info-value">{{ emp.department or '—' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Designation</span>
+        <span class="info-value">{{ role_held or emp.designation or '—' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Date of Joining</span>
+        <span class="info-value">{{ emp.date_of_joining or '—' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Category</span>
+        <span class="info-value">{{ emp.category }}</span>
+      </div>
+    </div>
+
+    <!-- Opening Para -->
+    <p class="para para-intro">
+      This is to certify that <strong>{{ emp.emp_name }}</strong> (Employee Code: <strong>{{ emp.emp_code }}</strong>)
+      has been employed with <strong>Vijayshri Packaging Ltd.</strong> as
+      <strong>{{ role_held or emp.designation or 'an employee' }}</strong> in the
+      <strong>{{ emp.department or 'Production' }}</strong> department since
+      <strong>{{ emp.date_of_joining or 'the date of joining' }}</strong>.
+      During the course of employment, {{ emp.emp_name.split()[0] }} has demonstrated consistent
+      professionalism, technical competence, and dedication to organizational goals.
+    </p>
+
+    {% if projects_list %}
+    <!-- Projects Section -->
+    <div class="section-heading">Key Projects &amp; Responsibilities</div>
+    <ul class="project-list">
+      {% for proj in projects_list %}
+      <li>{{ proj }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if skills_list %}
+    <!-- Skills Section -->
+    <div class="section-heading">Core Competencies &amp; Skills</div>
+    <div class="skills-row">
+      {% for skill in skills_list %}
+      <span class="skill-tag">{{ skill }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Closing Para -->
+    <p class="para">
+      Throughout the tenure, <strong>{{ emp.emp_name.split()[0] }}</strong> has consistently
+      met performance expectations and upheld the values of Vijayshri Packaging Ltd.
+      We acknowledge the significant contributions made to the department and the company.
+    </p>
+    <p class="para">
+      We wish {{ emp.emp_name.split()[0] }} continued success in all future endeavours.
+      We have no hesitation in recommending {{ emp.emp_name.split()[0] }} for positions that
+      match the skills and experience described herein.
+    </p>
+
+    <!-- Signature -->
+    <div class="signature-section">
+      <div class="sig-block">
+        {% if has_hr_sign %}<img src="{{ hr_b64 or '/letters/hr-sign-image' }}" alt="HR Signature" style="max-height:50px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;">
+        {% elif has_signature %}<img src="{{ sign_b64 or '/letters/signature-image' }}" alt="Signature" style="max-height:50px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;">
+        {% else %}<div class="sig-line"></div>{% endif %}
+        <div class="sig-name">HR Manager</div>
+        <div class="sig-role">Human Resources Department</div>
+        <div class="sig-company">Vijayshri Packaging Ltd.</div>
+      </div>
+      <div class="company-stamp">VIJAYSHRI<br>PACKAGING<br>LTD.<br>OFFICIAL</div>
+      <div class="sig-block">
+        {% if has_director_sign %}<img src="{{ director_b64 or '/letters/director-sign-image' }}" alt="Director Signature" style="max-height:50px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;">
+        {% else %}<div class="sig-line"></div>{% endif %}
+        <div class="sig-name">Director / Authorized Signatory</div>
+        <div class="sig-role">Management</div>
+        <div class="sig-company">Vijayshri Packaging Ltd.</div>
+      </div>
+    </div>
+
+  </div><!-- /letter-body -->
+
+  <!-- Footer -->
+  <div class="letter-footer">
+    <span class="footer-text">This document is issued on company letterhead and is valid without a physical signature when bearing an official stamp.</span>
+    <span class="footer-confidential">Confidential</span>
+  </div>
+
+</div><!-- /letter-page -->
+</body>
+</html>

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Activity Log{% endblock %}
+{% block page_title %}📋 User Activity Log{% endblock %}
+{% block content %}
+
+<div class="table-card" style="padding:14px;margin-bottom:14px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">User</label>
+      <select class="form-select" id="f_uid" style="width:160px;">
+        <option value="">All Users</option>
+        {% for u in users %}<option value="{{ u.id }}" {% if u.id|string==uid %}selected{% endif %}>{{ u.username }} ({{ u.name }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Action</label>
+      <select class="form-select" id="f_action" style="width:140px;">
+        <option value="">All Actions</option>
+        <option value="Login" {% if action_f=='Login' %}selected{% endif %}>Login</option>
+        <option value="Page Visit" {% if action_f=='Page Visit' %}selected{% endif %}>Page Visit</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">From Date</label>
+      <input class="form-control" type="date" id="f_from" value="{{ from_d }}" style="width:140px;">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">To Date</label>
+      <input class="form-control" type="date" id="f_to" value="{{ to_d }}" style="width:140px;">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="applyFilter()">🔍 Search</button>
+    <a href="/users/activity-log" class="btn btn-ghost btn-sm">✕ Clear</a>
+    <span style="margin-left:auto;font-size:12px;color:var(--muted);">{{ logs|length }} records (latest 500)</span>
+  </div>
+</div>
+
+<div class="table-card" style="overflow-x:auto;">
+  <table id="tblActivity" style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;cursor:pointer;" onclick="sortTable('tblActivity',0)" data-sort-col="0">#<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="text-align:left;padding:8px;cursor:pointer;" onclick="sortTable('tblActivity',1)" data-sort-col="1">Username<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="padding:8px;cursor:pointer;" onclick="sortTable('tblActivity',2)" data-sort-col="2">Action<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="text-align:left;padding:8px;cursor:pointer;" onclick="sortTable('tblActivity',3)" data-sort-col="3">Page / Detail<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="padding:8px;cursor:pointer;" onclick="sortTable('tblActivity',4)" data-sort-col="4">IP Address<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="padding:8px;cursor:pointer;" onclick="sortTable('tblActivity',5)" data-sort-col="5">Date & Time<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+    </tr></thead>
+    <tbody>
+      {% for log in logs %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 12px;color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td style="padding:7px;font-weight:700;color:#0096dc;">{{ log.username or '—' }}</td>
+        <td style="padding:7px;text-align:center;">
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;
+            {% if log.action=='Login' %}background:rgba(16,185,129,.15);color:#10b981;
+            {% elif log.action=='Page Visit' %}background:rgba(0,150,220,.1);color:#0096dc;
+            {% else %}background:rgba(124,58,237,.15);color:#7c3aed;{% endif %}">
+            {{ log.action }}
+          </span>
+        </td>
+        <td style="padding:7px;font-size:11px;color:var(--text);">
+          {{ log.page or '—' }}
+          {% if log.details %}<div style="color:var(--muted);font-size:10px;">{{ log.details }}</div>{% endif %}
+        </td>
+        <td style="padding:7px;text-align:center;color:var(--muted);font-size:11px;">{{ log.ip_address or '—' }}</td>
+        <td style="padding:7px;text-align:center;color:var(--muted);font-size:11px;">{{ log.logged_at[:16] if log.logged_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not logs %}
+      <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted);">No activity found</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function applyFilter(){
+  const uid    = document.getElementById("f_uid").value;
+  const action = document.getElementById("f_action").value;
+  const from_d = document.getElementById("f_from").value;
+  const to_d   = document.getElementById("f_to").value;
+  const p      = new URLSearchParams({uid,action,from:from_d,to:to_d});
+  location.href = "/users/activity-log?" + p.toString();
+}
+</script>
+{% endblock %}

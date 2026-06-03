@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Admin Settings{% endblock %}
+{% block page_title %}⚙️ Admin Settings{% endblock %}
+{% block content %}
+
+{% if msg %}
+<div class="alert alert-{{ 'success' if 'updated' in msg else 'danger' }}" style="margin-bottom:14px;">
+  {{ '✅' if 'updated' in msg else '⚠️' }} {{ msg }}
+</div>
+{% endif %}
+
+<!-- Company Logo -->
+<div class="table-card" style="padding:20px;margin-bottom:16px;">
+  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🖼️ Company Logo</div>
+  
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+    <!-- Current Logo Preview -->
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">Current Logo</div>
+      <div style="background:var(--surface);border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;min-height:120px;display:flex;align-items:center;justify-content:center;" id="logoPreviewBox">
+        {% if settings.logo_filename %}
+        <div>
+          <img src="/admin/logo?t={{ settings.updated_on }}" style="max-height:100px;max-width:220px;object-fit:contain;" alt="Company Logo" id="currentLogo">
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;">{{ settings.logo_filename }}</div>
+        </div>
+        {% else %}
+        <div style="color:var(--muted);font-size:13px;" id="noLogoMsg">
+          <div style="font-size:32px;margin-bottom:8px;">🏭</div>
+          No logo uploaded<br>
+          <span style="font-size:11px;">Sidebar shows company name as text</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Upload Form -->
+    <div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">Upload New Logo</div>
+      <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label">Select Logo File</label>
+          <input type="file" name="logo" accept="image/*" class="form-control"
+            onchange="previewLogo(this)" style="margin-bottom:8px;">
+          <div style="font-size:10px;color:var(--muted);">Recommended: PNG with transparent background, min 200×60px</div>
+        </div>
+        <!-- Preview before upload -->
+        <div id="uploadPreview" style="display:none;margin:10px 0;text-align:center;">
+          <img id="previewImg" style="max-height:80px;max-width:200px;object-fit:contain;border:1px solid var(--border);border-radius:8px;padding:8px;">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button type="submit" class="btn btn-primary btn-sm">📤 Upload Logo</button>
+          {% if settings.logo_filename %}
+          <button type="button" class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteLogo()">🗑️ Remove Logo</button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div style="margin-top:16px;padding:12px;background:rgba(0,150,220,.08);border-radius:8px;font-size:12px;color:var(--muted);">
+    💡 The logo will appear in the sidebar (top-left) and on the login page. Refresh the page after uploading.
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function previewLogo(input){
+  const f=input.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById("previewImg").src=e.target.result;
+    document.getElementById("uploadPreview").style.display="block";
+  };
+  reader.readAsDataURL(f);
+}
+async function deleteLogo(){
+  if(!confirm("Remove company logo?")) return;
+  const r=await api("/admin/logo/delete","POST",{});
+  if(r.success){ showToast("Logo removed"); setTimeout(()=>location.reload(),1000); }
+  else showToast("Error","error");
+}
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Resignation Letter{% endblock %}
+{% block page_title %}📝 Resignation Letter{% endblock %}
+{% block content %}
+
+<div style="max-width:820px;margin:0 auto;">
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;">
+
+    <!-- Left: Form -->
+    <div>
+      <div class="mini-card">
+        <div class="mini-title">📝 Resignation Details</div>
+
+        {% if session.role != 'employee' %}
+        <div class="form-group">
+          <label class="form-label">Employee</label>
+          <select class="form-select" id="res_emp" onchange="loadEmpData()">
+            <option value="">— Select Employee —</option>
+            {% for e in employees %}
+            <option value="{{ e.emp_code }}" {% if emp and e.emp_code==emp.emp_code %}selected{% endif %}>
+              {{ e.emp_code }} — {{ e.emp_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <div class="form-group">
+          <label class="form-label">Employee</label>
+          <input class="form-control" value="{{ emp.emp_name if emp else '' }}" disabled>
+          <input type="hidden" id="res_emp" value="{{ emp.emp_code if emp else '' }}">
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">Resignation Date</label>
+          <input class="form-control" type="date" id="res_date" value="{{ today }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Working Day</label>
+          <input class="form-control" type="date" id="res_lwd">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notice Period</label>
+          <select class="form-select" id="res_notice" onchange="calcLWD()">
+            <option value="15">15 Days</option>
+            <option value="30" selected>1 Month (30 Days)</option>
+            <option value="60">2 Months</option>
+            <option value="90">3 Months</option>
+            <option value="0">Immediate</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason for Resignation</label>
+          <select class="form-select" id="res_reason_type" onchange="updateReason()">
+            <option value="Personal Reasons">Personal Reasons</option>
+            <option value="Better Career Opportunity">Better Career Opportunity</option>
+            <option value="Higher Studies">Higher Studies</option>
+            <option value="Health Issues">Health Issues</option>
+            <option value="Relocation">Relocation</option>
+            <option value="Family Responsibilities">Family Responsibilities</option>
+            <option value="Custom">Write Custom Reason...</option>
+          </select>
+        </div>
+        <div class="form-group" id="customReasonDiv" style="display:none;">
+          <label class="form-label">Custom Reason</label>
+          <textarea class="form-control" id="res_custom" rows="2" placeholder="Write your reason..."></textarea>
+        </div>
+
+        <div style="font-size:12px;color:var(--muted);margin:12px 0 8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Optional Custom Lines</div>
+        <div class="form-group">
+          <input class="form-control" id="extra1" placeholder="Add a custom line..." style="font-size:12px;">
+        </div>
+        <div class="form-group">
+          <input class="form-control" id="extra2" placeholder="e.g. I am grateful for the opportunities..." style="font-size:12px;">
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="generateResignation()">👁️ Preview Letter</button>
+        <button class="btn btn-danger" style="width:100%;" onclick="submitResignation()">📤 Submit Resignation</button>
+      </div>
+      <div id="submitResult" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Right: Preview -->
+    <div>
+      <div id="resPreview" style="background:white;border-radius:12px;padding:32px;min-height:500px;font-family:Arial,sans-serif;font-size:13px;color:#1a202c;line-height:1.7;border:1px solid var(--border);">
+        <div style="text-align:center;color:#64748b;padding:60px 0;">
+          Fill in details and click "Preview Letter"
+        </div>
+      </div>
+      <div style="text-align:right;margin-top:12px;">
+        <button class="btn btn-ghost" onclick="printLetter()">🖨️ Print Resignation Letter</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let empData = null;
+{% if emp %}
+empData = {{ emp | tojson }};
+{% endif %}
+
+function calcLWD(){
+  const resDate = document.getElementById("res_date").value;
+  const noticeDays = parseInt(document.getElementById("res_notice").value) || 0;
+  if(resDate){
+    const d = new Date(resDate);
+    d.setDate(d.getDate() + noticeDays);
+    document.getElementById("res_lwd").value = d.toISOString().split('T')[0];
+  }
+}
+
+function updateReason(){
+  const val = document.getElementById("res_reason_type").value;
+  document.getElementById("customReasonDiv").style.display = val === "Custom" ? "block" : "none";
+}
+
+async function loadEmpData(){
+  const code = document.getElementById("res_emp").value;
+  if(!code) return;
+  const r = await api("/letters/offer-data","POST",{emp_code:code});
+  if(r.success) empData = r.emp;
+}
+
+function getReason(){
+  const type = document.getElementById("res_reason_type").value;
+  if(type === "Custom") return document.getElementById("res_custom").value || "Personal Reasons";
+  return type;
+}
+
+function formatDate(d){
+  if(!d) return '—';
+  try{ return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}); }
+  catch{ return d; }
+}
+
+function generateResignation(){
+  const empCode = document.getElementById("res_emp").value || (empData ? empData.emp_code : "");
+  if(!empCode){ showToast("Select employee first!","error"); return; }
+
+  const resDate = document.getElementById("res_date").value;
+  const lwd = document.getElementById("res_lwd").value;
+  const reason = getReason();
+  const extra1 = document.getElementById("extra1").value.trim();
+  const extra2 = document.getElementById("extra2").value.trim();
+  const name = empData ? empData.emp_name : empCode;
+  const desig = empData ? empData.designation : "";
+  const dept  = empData ? empData.department : "";
+
+  const html = `
+    <div style="border:1px solid #e2e8f0;padding:24px;border-radius:8px;">
+      <!-- Header -->
+      <div style="text-align:center;border-bottom:2px solid #0052cc;padding-bottom:16px;margin-bottom:20px;">
+        <div style="font-size:20px;font-weight:800;color:#0052cc;">VIJAYSHRI PACKAGING LTD.</div>
+        <div style="font-size:11px;color:#64748b;">vijayshri.com</div>
+      </div>
+
+      <div style="text-align:right;font-size:12px;margin-bottom:16px;"><strong>Date:</strong> ${formatDate(resDate)}</div>
+
+      <div style="margin-bottom:16px;font-size:12px;">
+        <strong>To,</strong><br>
+        The HR Department<br>
+        <strong>Vijayshri Packaging Ltd.</strong>
+      </div>
+
+      <div style="font-size:15px;font-weight:700;text-align:center;margin:16px 0;color:#1a202c;text-decoration:underline;">
+        RESIGNATION LETTER
+      </div>
+
+      <div style="margin-bottom:14px;font-size:12px;">
+        Dear Sir/Madam,
+      </div>
+
+      <div style="margin-bottom:14px;font-size:12px;">
+        I, <strong>${name}</strong>${desig ? ', ' + desig : ''}${dept ? ', ' + dept + ' Department' : ''},
+        hereby tender my resignation from my position with effect from
+        <strong>${formatDate(resDate)}</strong>.
+      </div>
+
+      <div style="margin-bottom:14px;font-size:12px;">
+        The reason for my resignation is <strong>${reason}</strong>.
+        ${lwd ? `My last working day will be <strong>${formatDate(lwd)}</strong>.` : ''}
+      </div>
+
+      ${extra1 ? `<div style="margin-bottom:10px;font-size:12px;">${extra1}</div>` : ''}
+      ${extra2 ? `<div style="margin-bottom:10px;font-size:12px;">${extra2}</div>` : ''}
+
+      <div style="margin-bottom:14px;font-size:12px;">
+        I would like to thank the management and my colleagues for all the support and opportunities
+        provided during my tenure. I will ensure a smooth handover of my responsibilities during
+        the notice period.
+      </div>
+
+      <div style="margin-bottom:32px;font-size:12px;">
+        Thanking you,<br><br><br>
+        <strong>${name}</strong><br>
+        ${desig || ''}<br>
+        ${dept || ''}
+      </div>
+
+      <div style="font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>Received by: _________________<br><span style="color:#94a3b8">HR / Manager Signature</span></div>
+          <div>Date: _________________</div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById("resPreview").innerHTML = html;
+}
+
+async function submitResignation(){
+  const empCode = document.getElementById("res_emp").value || (empData ? empData.emp_code : "");
+  if(!empCode){ showToast("Select employee!","error"); return; }
+  const lwd = document.getElementById("res_lwd").value;
+  if(!lwd){ showToast("Enter Last Working Day!","error"); return; }
+
+  if(!confirm("Submit this resignation? This will update employee records.")) return;
+
+  const r = await api("/letters/resignation/submit","POST",{
+    emp_code: empCode,
+    resignation_date: document.getElementById("res_date").value,
+    last_working_day: lwd,
+    reason: getReason()
+  });
+  const div = document.getElementById("submitResult");
+  if(r.success){
+    div.innerHTML = '<div class="alert alert-success">✅ Resignation submitted successfully! Employee exit process updated.</div>';
+    showToast("Resignation submitted!");
+  } else {
+    div.innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+
+function printLetter(){
+  const content = document.getElementById("resPreview").innerHTML;
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Resignation Letter</title>
+    <style>body{font-family:Arial,sans-serif;margin:20px;color:#1a202c;} @media print{body{margin:0;}}</style>
+    </head><body>${content}</body></html>`);
+  w.document.close(); w.print();
+}
+
+// Auto calculate LWD when date changes
+document.getElementById("res_date") && document.getElementById("res_date").addEventListener("change", calcLWD);
+document.getElementById("res_notice") && document.getElementById("res_notice").addEventListener("change", calcLWD);
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vijayshri Packaging Ltd. — PayRoll Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Calibri,sans-serif;background:#050810;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(0,82,204,.15),transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(0,150,220,.1),transparent 50%);}
+.card{position:relative;z-index:10;background:rgba(14,20,34,.96);border:1px solid rgba(59,130,246,.2);border-radius:22px;padding:44px 40px;width:420px;box-shadow:0 40px 100px rgba(0,0,0,.6);}
+.logo-area{text-align:center;margin-bottom:32px;}
+.logo-box{width:90px;height:90px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 16px rgba(0,0,0,.2);overflow:hidden;border:none;}
+.logo-box img{width:80px;height:80px;object-fit:contain;}
+.logo-box span{font-family:Calibri,sans-serif;font-weight:800;font-size:26px;color:#0052cc;display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.company{font-family:Calibri,sans-serif;font-weight:800;font-size:16px;color:#e2e8f0;line-height:1.3;}
+.subtitle{font-size:11px;color:#64748b;margin-top:3px;text-transform:uppercase;letter-spacing:.05em;}
+h2{font-family:Calibri,sans-serif;font-weight:700;font-size:20px;color:#e2e8f0;margin-bottom:6px;}
+p{font-size:13px;color:#64748b;margin-bottom:24px;}
+.field{margin-bottom:16px;}
+label{display:block;font-size:11px;color:#94a3b8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+input{width:100%;background:#0a0f1c;border:1px solid #1e2a40;border-radius:11px;padding:12px 15px;color:#e2e8f0;font-size:14px;font-family:Calibri,sans-serif;outline:none;transition:border .2s;}
+input:focus{border-color:#0096dc;}
+.btn{width:100%;background:linear-gradient(135deg,#0052cc,#0096dc);color:white;border:none;border-radius:11px;padding:13px;font-family:Calibri,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;}
+.btn:hover{opacity:.9;}
+.error{background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.3);border-radius:9px;padding:11px 14px;color:#f43f5e;font-size:13px;margin-bottom:16px;}
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:22px;}
+.role-chip{background:#0a0f1c;border:1px solid #1e2a40;border-radius:9px;padding:9px 6px;text-align:center;}
+.role-chip .r{font-size:15px;margin-bottom:3px;}
+.role-chip .rn{font-size:11px;color:#94a3b8;font-weight:600;}
+.role-chip .rd{font-size:10px;color:#475569;margin-top:1px;}
+hr{border:none;border-top:1px solid #1e2a40;margin:18px 0;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="card">
+  <div class="logo-area">
+    <div class="logo-box">
+      <img src="/admin/logo" alt="VPL" style="width:100%;height:100%;object-fit:contain;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <span style="display:none;font-family:Calibri,sans-serif;font-weight:800;font-size:28px;color:#0052cc;align-items:center;justify-content:center;">VPL</span>
+    </div>
+    <div class="company">Vijayshri Packaging Ltd.</div>
+    <div class="subtitle">PayRoll Management System</div>
+  </div>
+  <h2>Welcome Back</h2>
+  <p>Sign in to your account to continue</p>
+  {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
+  <form method="POST">
+    <div class="field"><label>Username</label><input type="text" name="username" placeholder="Enter your username" required autofocus></div>
+    <div class="field"><label>Password</label><input type="password" name="password" placeholder="Enter your password" required></div>
+    <button type="submit" class="btn">Sign In →</button>
+  </form>
+
+</div>
+</body>
+</html>

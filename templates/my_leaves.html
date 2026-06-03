@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}My Leaves{% endblock %}
+{% block page_title %}🌴 My Leave Management{% endblock %}
+{% block content %}
+
+{% if emp %}
+<div class="mini-card" style="margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="emp-av" style="width:50px;height:50px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#0052cc,#0096dc)">{{ emp.emp_name[:2].upper() }}</div>
+    <div>
+      <div style="font-weight:800;font-size:17px">{{ emp.emp_name }}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:2px">{{ emp.emp_code }} · {{ emp.department or '' }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Leave Balance -->
+{% if balance %}
+<div style="margin-bottom:20px;">
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">📊 Leave Balance — {{ year }}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+    {% set cl_bal = (balance.cl_allotted or 0) - (balance.cl_used or 0) %}
+    {% set sl_bal = (balance.sl_allotted or 0) - (balance.sl_used or 0) %}
+    {% set el_bal = (balance.el_allotted or 0) + (balance.el_carried or 0) - (balance.el_used or 0) %}
+    <div style="background:rgba(0,82,204,.12);border:1px solid rgba(0,82,204,.25);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#0096dc;">{{ cl_bal }}</div>
+      <div style="font-size:12px;font-weight:700;margin-top:2px;">CL Available</div>
+      <div style="font-size:10px;color:var(--muted);">{{ balance.cl_used or 0 }} used / {{ balance.cl_allotted or 0 }} total</div>
+    </div>
+    <div style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#f43f5e;">{{ sl_bal }}</div>
+      <div style="font-size:12px;font-weight:700;margin-top:2px;">SL Available</div>
+      <div style="font-size:10px;color:var(--muted);">{{ balance.sl_used or 0 }} used / {{ balance.sl_allotted or 0 }} total</div>
+    </div>
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#10b981;">{{ el_bal }}</div>
+      <div style="font-size:12px;font-weight:700;margin-top:2px;">EL Available</div>
+      <div style="font-size:10px;color:var(--muted);">{{ balance.el_used or 0 }} used | {{ balance.el_carried or 0 }} carried</div>
+    </div>
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:#f59e0b;">{{ (balance.cl_allotted or 0) + (balance.sl_allotted or 0) + (balance.el_allotted or 0) + (balance.el_carried or 0) }}</div>
+      <div style="font-size:12px;font-weight:700;margin-top:2px;">Total Allotted</div>
+      <div style="font-size:10px;color:var(--muted);">Including carried forward</div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info" style="margin-bottom:16px;">📋 Leave balance not set yet. Please contact HR.</div>
+{% endif %}
+
+<!-- Apply Leave Button -->
+<div class="toolbar" style="margin-bottom:12px;">
+  <div style="font-weight:700;font-size:14px;">📋 Leave History</div>
+  <button class="btn btn-primary" onclick="openModal('applyModal')" style="margin-left:auto;">➕ Apply Leave</button>
+</div>
+
+<!-- Leave History Table -->
+<div class="table-card" style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Applied On</th>
+      <th style="padding:8px;">From</th>
+      <th style="padding:8px;">To</th>
+      <th style="padding:8px;">Days</th>
+      <th style="padding:8px;">Leave Type</th>
+      <th style="text-align:left;padding:8px;">Reason</th>
+      <th style="padding:8px;">Status</th>
+    </tr></thead>
+    <tbody>
+      {% for r in requests %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 12px;font-size:11px;color:var(--muted);">{{ r.applied_on[:10] if r.applied_on else '—' }}</td>
+        <td style="padding:7px;text-align:center;font-weight:600;">{{ r.from_date }}</td>
+        <td style="padding:7px;text-align:center;">{{ r.to_date }}</td>
+        <td style="padding:7px;text-align:center;font-weight:700;">{{ r.days }}{% if r.is_half_day %} <span style="font-size:9px;color:var(--muted);">(Half)</span>{% endif %}</td>
+        <td style="padding:7px;text-align:center;">
+          {% if r.leave_type == 'Pending' or not r.leave_type %}
+            <span style="font-size:10px;color:var(--muted);">Assigned on approval</span>
+          {% else %}
+            <span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(0,150,220,.15);color:#0096dc;">{{ r.leave_type }}</span>
+          {% endif %}
+        </td>
+        <td style="padding:7px;font-size:11px;color:var(--muted);">{{ r.reason or '—' }}</td>
+        <td style="padding:7px;text-align:center;">
+          {% if r.status == 'Pending' %}
+            <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Pending</span>
+          {% elif r.status == 'Approved' %}
+            <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
+            {% if r.approved_by %}<div style="font-size:9px;color:var(--muted);margin-top:2px;">by {{ r.approved_by }}</div>{% endif %}
+          {% else %}
+            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
+            {% if r.rejection_reason %}<div style="font-size:9px;color:var(--muted);margin-top:2px;">{{ r.rejection_reason }}</div>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not requests %}
+      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No leave requests yet</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Apply Leave Modal — NO leave type field, HR/Manager assigns it -->
+<div class="modal-overlay" id="applyModal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">➕ Apply for Leave</span>
+      <button class="modal-close" onclick="closeModal('applyModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="font-size:11px;margin-bottom:12px;">
+        ℹ️ Leave type (CL/EL/SL) will be assigned by HR/Manager when they approve your request.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Half Day?</label>
+          <select class="form-select" id="ap_half" onchange="toggleHalf()">
+            <option value="0">No — Full Day(s)</option>
+            <option value="1">Yes — Half Day</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">From Date *</label>
+          <input class="form-control" type="date" id="ap_from" onchange="calcDays()">
+        </div>
+        <div class="form-group" id="to_grp">
+          <label class="form-label">To Date *</label>
+          <input class="form-control" type="date" id="ap_to" onchange="calcDays()">
+        </div>
+        <div class="form-group" id="days_grp" style="display:none;">
+          <label class="form-label">Duration</label>
+          <div id="days_display" style="font-size:14px;font-weight:700;color:#0096dc;padding:8px 0;">—</div>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Reason *</label>
+          <textarea class="form-control" id="ap_reason" rows="2" placeholder="Reason for leave..."></textarea>
+        </div>
+      </div>
+      <div id="apRes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyLeave()">📋 Submit Request</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Set min date to today
+document.addEventListener("DOMContentLoaded", ()=>{
+  const today = new Date().toISOString().split("T")[0];
+  const fromEl = document.getElementById("ap_from");
+  const toEl   = document.getElementById("ap_to");
+  if(fromEl){ fromEl.min=today; fromEl.value=today; }
+  if(toEl){   toEl.min=today;   toEl.value=today; }
+  calcDays();
+});
+
+function toggleHalf(){
+  const h = document.getElementById("ap_half").value === "1";
+  document.getElementById("to_grp").style.display = h ? "none" : "block";
+  calcDays();
+}
+
+function calcDays(){
+  const half = document.getElementById("ap_half").value === "1";
+  const from = document.getElementById("ap_from").value;
+  const to   = document.getElementById("ap_to").value;
+  const dg   = document.getElementById("days_grp");
+  const dd   = document.getElementById("days_display");
+  if(!from){ if(dg) dg.style.display="none"; return; }
+  if(half){
+    if(dg) dg.style.display="block";
+    if(dd) dd.textContent="0.5 day";
+  } else if(to && from <= to){
+    const d = Math.round((new Date(to)-new Date(from))/(86400000))+1;
+    if(dg) dg.style.display="block";
+    if(dd) dd.textContent=d+" day"+(d>1?"s":"");
+  }
+}
+
+async function applyLeave(){
+  const half   = document.getElementById("ap_half").value === "1";
+  const from   = document.getElementById("ap_from").value;
+  const to     = half ? from : document.getElementById("ap_to").value;
+  const reason = document.getElementById("ap_reason").value.trim();
+  const div    = document.getElementById("apRes");
+
+  if(!from){ div.innerHTML='<div class="alert alert-danger">❌ Please select From Date</div>'; return; }
+  if(!half && !to){ div.innerHTML='<div class="alert alert-danger">❌ Please select To Date</div>'; return; }
+  if(!half && from > to){ div.innerHTML='<div class="alert alert-danger">❌ To date must be after From date</div>'; return; }
+  if(!reason){ div.innerHTML='<div class="alert alert-danger">❌ Please enter a reason</div>'; return; }
+
+  const r = await api("/leaves/apply","POST",{
+    from_date: from, to_date: to,
+    is_half_day: half, reason: reason
+  });
+
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">✅ Leave request submitted for ${r.days} day(s). HR/Manager will approve and assign leave type.</div>`;
+    setTimeout(()=>{ closeModal("applyModal"); location.reload(); }, 2000);
+  } else {
+    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+</script>
+{% endblock %}

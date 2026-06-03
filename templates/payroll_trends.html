@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Payroll Trends{% endblock %}
+{% block page_title %}📈 Payroll Analytics Trends{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div class="table-card" style="padding:14px;margin-bottom:14px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:10px;">Metric</label>
+      <select class="form-select" id="metric" onchange="loadChart()" style="width:160px;">
+        <option value="net_salary">💰 Net Salary (Payout)</option>
+        <option value="gross">📊 Gross Salary</option>
+        <option value="pf">🔒 PF Deduction</option>
+        <option value="esi">🏥 ESI Deduction</option>
+        <option value="present_days">📅 Present Days</option>
+        <option value="ot_hours">⏱️ OT Hours</option>
+        <option value="ot_amount">💵 OT Amount</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:10px;">Department</label>
+      <select class="form-select" id="tr_dept" onchange="loadChart()" style="width:150px;">
+        <option value="">All Departments</option>
+        {% for d in departments %}<option>{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:10px;">Category</label>
+      <select class="form-select" id="tr_cat" onchange="loadChart()" style="width:120px;">
+        <option value="">All</option>
+        <option value="Staff">Staff</option>
+        <option value="Associate">Associate</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:10px;">Gender</label>
+      <select class="form-select" id="tr_gender" onchange="loadChart()" style="width:110px;">
+        <option value="">All</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:10px;">Months</label>
+      <select class="form-select" id="tr_months" onchange="loadChart()" style="width:90px;">
+        <option value="6">6 Months</option>
+        <option value="12" selected>12 Months</option>
+        <option value="24">24 Months</option>
+      </select>
+    </div>
+    <!-- Period buttons (like share market) -->
+    <div style="display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;align-self:flex-end;margin-bottom:0px;">
+      <button onclick="setMonths(3)"  class="pbtn" style="font-size:11px;padding:5px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">3M</button>
+      <button onclick="setMonths(6)"  class="pbtn" style="font-size:11px;padding:5px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">6M</button>
+      <button onclick="setMonths(12)" class="pbtn active-btn" style="font-size:11px;padding:5px 10px;border:none;border-radius:6px;cursor:pointer;background:var(--primary);color:#fff;">1Y</button>
+      <button onclick="setMonths(24)" class="pbtn" style="font-size:11px;padding:5px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">2Y</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Chart -->
+<div class="table-card" style="padding:16px;margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-weight:800;font-size:14px;" id="chartTitle">💰 Net Salary Trend</div>
+      <div style="font-size:11px;color:var(--muted);" id="chartSubtitle">Month-wise payout trend</div>
+    </div>
+    <div style="display:flex;gap:12px;font-size:12px;" id="chartStats"></div>
+  </div>
+  <canvas id="mainChart" height="60"></canvas>
+</div>
+
+<!-- Bar Chart for comparison -->
+<div class="table-card" style="padding:16px;">
+  <div style="font-weight:700;font-size:13px;margin-bottom:12px;">📊 Month Comparison (Bar)</div>
+  <canvas id="barChart" height="50"></canvas>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+let _mainChart=null, _barChart=null;
+
+function setMonths(n){
+  document.getElementById('tr_months').value=n;
+  document.querySelectorAll('.pbtn').forEach(b=>{ b.style.background='transparent'; b.style.color='var(--muted)'; });
+  event.target.style.background='var(--primary)'; event.target.style.color='#fff';
+  loadChart();
+}
+
+const METRIC_LABELS = {
+  net_salary:'💰 Net Salary (Payout)', ot_hours:'⏱️ OT Hours', ot_amount:'💵 OT Amount',
+  gross:'📊 Gross Salary',
+  pf:'🔒 PF Deduction',
+  esi:'🏥 ESI Deduction',
+  present_days:'📅 Avg Present Days', ot_hours:'⏱️ Total OT Hours', ot_amount:'💵 Total OT Amount'
+};
+
+const METRIC_COLORS = {
+  net_salary:'#0096dc', gross:'#7c3aed', ot_hours:'#f59e0b', ot_amount:'#10b981',
+  pf:'#f59e0b', esi:'#10b981', present_days:'#ec4899'
+};
+
+async function loadChart(){
+  const metric  = document.getElementById('metric').value;
+  const dept    = document.getElementById('tr_dept').value;
+  const cat     = document.getElementById('tr_cat').value;
+  const gender  = document.getElementById('tr_gender').value;
+  const months  = document.getElementById('tr_months').value;
+
+  const r = await fetch(`/api/payroll-trend?metric=${metric}&dept=${encodeURIComponent(dept)}&cat=${encodeURIComponent(cat)}&gender=${encodeURIComponent(gender)}&months=${months}`).then(r=>r.json());
+  if(!r.success) return;
+
+  const color = METRIC_COLORS[metric]||'#0096dc';
+  const label = METRIC_LABELS[metric]||metric;
+
+  // Update title
+  document.getElementById('chartTitle').textContent = label;
+
+  // Stats
+  const vals = r.values.filter(v=>v>0);
+  if(vals.length){
+    const max=Math.max(...vals), min=Math.min(...vals), avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const isMoney = metric!=='present_days' && metric!=='ot_hours';
+    const fmt = v => isMoney ? '₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0}) : metric==='ot_hours' ? v.toFixed(1)+' hrs' : v.toFixed(1);
+    document.getElementById('chartStats').innerHTML=`
+      <span style="color:#10b981;">▲ Max: <strong>${fmt(max)}</strong></span>
+      <span style="color:#ef4444;">▼ Min: <strong>${fmt(min)}</strong></span>
+      <span style="color:var(--muted);">~ Avg: <strong>${fmt(avg)}</strong></span>
+    `;
+  }
+
+  // Line chart (main)
+  const ctx1 = document.getElementById('mainChart').getContext('2d');
+  if(_mainChart){ _mainChart.destroy(); _mainChart=null; }
+
+  const gradient = ctx1.createLinearGradient(0,0,0,300);
+  gradient.addColorStop(0, color+'40');
+  gradient.addColorStop(1, color+'04');
+
+  _mainChart = new Chart(ctx1, {
+    type:'line',
+    data:{
+      labels:r.labels,
+      datasets:[{
+        label:label,
+        data:r.values,
+        borderColor:color,
+        backgroundColor:gradient,
+        tension:0.35, fill:true,
+        pointRadius:4, pointHoverRadius:7,
+        pointBackgroundColor:color,
+        pointBorderColor:'#0f172a',
+        pointBorderWidth:2,
+        borderWidth:2.5
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(15,23,42,.95)',
+          titleColor:'#e2e8f0', bodyColor:'#94a3b8',
+          borderColor:'rgba(255,255,255,.1)', borderWidth:1,
+          padding:12, cornerRadius:8,
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{
+              const v=item.raw;
+              if(metric==='present_days') return `Present: ${v} days`;
+              if(metric==='ot_hours') return `${label}: ${v.toLocaleString('en-IN',{maximumFractionDigits:1})} hrs`;
+              return `${label}: ₹${v.toLocaleString('en-IN',{maximumFractionDigits:0})}`;
+            },
+            afterLabel:item=>{
+              const i=item.dataIndex;
+              if(i>0 && r.values[i-1]>0){
+                const pct=((r.values[i]-r.values[i-1])/r.values[i-1]*100).toFixed(1);
+                const sign=pct>=0?'▲':'▼';
+                return `${sign} ${Math.abs(pct)}% vs last month`;
+              }
+              return '';
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:10},maxRotation:30},grid:{color:'rgba(255,255,255,.03)'}},
+        y:{
+          ticks:{
+            color:'#64748b',font:{size:10},
+            callback:v=>metric==='present_days'||metric==='ot_hours'?(v>=1000?v.toFixed(0)+(metric==='ot_hours'?' hrs':''):v+(metric==='ot_hours'?' hrs':'')):v>=1e6?'₹'+(v/1e5).toFixed(0)+'L':v>=1000?'₹'+(v/1000).toFixed(0)+'K':'₹'+v
+          },
+          grid:{color:'rgba(255,255,255,.05)'},beginAtZero:false
+        }
+      }
+    }
+  });
+
+  // Bar chart (comparison)
+  const ctx2 = document.getElementById('barChart').getContext('2d');
+  if(_barChart){ _barChart.destroy(); _barChart=null; }
+
+  // Color bars by value (red = low, green = high)
+  const maxV=Math.max(...r.values)||1;
+  const barColors = r.values.map(v=>{
+    const pct=v/maxV;
+    if(pct>=0.8) return '#10b981';
+    if(pct>=0.5) return color;
+    return '#ef4444';
+  });
+
+  _barChart = new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:r.labels,
+      datasets:[{
+        label:label, data:r.values,
+        backgroundColor:barColors,
+        borderRadius:4, borderSkipped:false
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(15,23,42,.95)',
+          titleColor:'#e2e8f0', bodyColor:'#94a3b8',
+          callbacks:{
+            label:item=>metric==='present_days'?`Days: ${item.raw}`:metric==='ot_hours'?`${item.raw.toLocaleString('en-IN',{maximumFractionDigits:1})} hrs`:`₹${item.raw.toLocaleString('en-IN',{maximumFractionDigits:0})}`
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:9},maxRotation:30},grid:{display:false}},
+        y:{ticks:{color:'#64748b',font:{size:10},callback:v=>metric==='present_days'||metric==='ot_hours'?v.toLocaleString():v>=1e5?'₹'+(v/1e5).toFixed(0)+'L':'₹'+v.toLocaleString()},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', ()=>setTimeout(loadChart, 200));
+</script>
+{% endblock %}

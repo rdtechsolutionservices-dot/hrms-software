@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+{% block title %}Leave (Associate){% endblock %}
+{% block page_title %}💰 OT Payment — Associate OT Processing{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;background:var(--card);border-radius:12px;padding:10px 14px;flex-wrap:wrap;">
+  <select id="selM" class="form-select" style="width:130px;" onchange="reload()">
+    {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+  </select>
+  <select id="selY" class="form-select" style="width:95px;" onchange="reload()">
+    {% for y in range(2023,2029) %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+  </select>
+  <select id="selDept" class="form-select" style="width:160px;" onchange="reload()">
+    <option value="">All Departments</option>
+    {% for d in departments %}<option {% if d==selected_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+  </select>
+  <select id="selScheme" class="form-select" style="width:150px;" onchange="reload()">
+    <option value="">All Schemes</option>
+    {% for s in (schemes or []) %}<option {% if s==selected_scheme %}selected{% endif %}>{{ s }}</option>{% endfor %}
+  </select>
+  <input class="form-control" id="searchEmp" placeholder="🔍 Search..." oninput="filterTable()" style="width:160px;">
+  <a href="/payroll/leave-associate/export/{{ month }}/{{ year }}?dept={{ selected_dept }}&scheme={{ selected_scheme }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export</a>
+  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="saveSnapshot()" title="Save current approval state">💾 Save</button>
+  <button class="btn btn-ghost btn-sm" style="color:#f59e0b;" onclick="syncRecords()">🔄 Sync</button>
+  {% if session.role=='admin' %}
+  <button class="btn btn-ghost btn-sm" id="laLockBtn"
+    style="color:{% if is_locked %}#ef4444{% else %}#6b7280{% endif %};"
+    onclick="toggleLALock()">{% if is_locked %}🔒 Locked{% else %}🔓 Lock Month{% endif %}</button>
+  {% endif %}
+  <div style="margin-left:auto;font-size:11px;color:var(--muted);">
+    Default: All OT = Unauthorized (single rate) &nbsp;|&nbsp; ✅ Approve → Authorized OT (1.3× rate)
+  </div>
+</div>{% if is_locked %}<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#ef4444;font-weight:600;">🔒 Month Locked — Approvals frozen</div>{% endif %}
+
+<!-- KPI Cards -->
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px;">
+  <div style="background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Employees</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_emps }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#374151,#4b5563);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Total Unauthorized OT</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_unauth_ot }} <span style="font-size:12px;">hrs</span></div>
+  </div>
+  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Total Authorized OT</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_approved_ot }} <span style="font-size:12px;">hrs</span></div>
+  </div>
+  <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Approved</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_approved }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Rejected (Unauth)</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_rejected }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;padding:12px;color:#fff;">
+    <div style="font-size:10px;opacity:.8;">Net OT Pay</div>
+    <div style="font-size:16px;font-weight:800;">₹{{ "{:,.0f}".format(summary.total_ot_pay) }}</div>
+  </div>
+</div>
+
+<!-- Bulk Actions Bar -->
+<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-radius:10px;padding:8px 12px;">
+  <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()">☑️ Select All</button>
+  <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="bulkAction('Approved')">✅ Bulk Approve Selected</button>
+  <span id="selCount" style="font-size:12px;color:var(--muted);">0 selected</span>
+  <div style="margin-left:auto;font-size:11px;color:var(--muted);">Select date checkboxes below to approve/reject specific dates</div>
+</div>
+
+<!-- Employee Cards -->
+{% for emp in emp_list %}
+<div class="table-card" style="margin-bottom:14px;" id="ec_{{ emp.emp_code }}" data-name="{{ emp.emp_name|lower }}" data-code="{{ emp.emp_code }}">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-radius:10px 10px 0 0;flex-wrap:wrap;gap:8px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" class="emp-chk" value="{{ emp.emp_code }}" onchange="empCheckAll('{{ emp.emp_code }}',this.checked);updateCount()">
+      <div>
+        <span style="font-weight:800;color:#0096dc;">{{ emp.emp_code }}</span>
+        <span style="font-weight:700;margin-left:8px;">{{ emp.emp_name }}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:8px;">{{ emp.department }}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;">
+      <span>Total: <strong>{{ emp.total_absent }}</strong></span>
+      <span style="color:#10b981;">✅ {{ emp.approved }}</span>
+      <span style="color:#ef4444;">❌ {{ emp.rejected }}</span>
+      <span style="color:#f59e0b;">⏳ {{ emp.pending }}</span>
+    </div>
+  </div>
+
+  <!-- Date Chips -->
+  <div style="padding:10px 14px;border-bottom:1px solid var(--border);">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Absent Dates — check to select, then Approve/Reject:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;" id="dates_{{ emp.emp_code }}">
+      {% for d in emp.absent_dates %}
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;
+        background:{% if d.status=='Approved' %}rgba(16,185,129,.12){% elif d.status=='Rejected' %}rgba(239,68,68,.12){% else %}rgba(245,158,11,.08){% endif %};
+        border:1px solid {% if d.status=='Approved' %}rgba(16,185,129,.4){% elif d.status=='Rejected' %}rgba(239,68,68,.4){% else %}rgba(245,158,11,.3){% endif %};
+        border-radius:8px;padding:4px 10px;" title="{{ d.approved_by }}{% if d.remarks %} — {{ d.remarks }}{% endif %}">
+        <input type="checkbox" class="date-chk" data-emp="{{ emp.emp_code }}" value="{{ d.id }}" onchange="updateCount()">
+        <span style="font-size:11px;font-weight:600;">{{ d.date }}</span>
+        <span style="font-size:10px;">{% if d.status=='Approved' %}✅{% elif d.status=='Rejected' %}❌{% else %}⏳{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- OT Impact Panel -->
+  <div style="padding:10px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">
+    <div style="text-align:center;background:var(--surface);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Gross Base</div>
+      <div style="font-weight:700;font-size:12px;">₹{{ "{:,.0f}".format(emp.gross_base) }}</div>
+    </div>
+    <div style="text-align:center;background:var(--surface);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Actual OT Hrs</div>
+      <div style="font-weight:700;font-size:12px;color:#7c3aed;">{{ emp.actual_ot_hrs }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth Days</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_days }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth OT Hrs<br><span style="font-size:8px;">8×{{ emp.unauth_days }}</span></div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_ot_hrs }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Approved OT Hrs<br><span style="font-size:8px;">Actual−Unauth</span></div>
+      <div style="font-weight:700;font-size:12px;color:#10b981;">{{ emp.approved_ot_hrs }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Approved OT Pay</div>
+      <div style="font-weight:700;font-size:12px;color:#10b981;">₹{{ "{:,.0f}".format(emp.approved_ot_pay) }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth OT Pay</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.unauth_ot_pay) }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">ESIC (0.75%)</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_on_ot) }}</div>
+    </div>
+    <div style="text-align:center;background:linear-gradient(135deg,rgba(0,82,204,.2),rgba(0,150,220,.1));border-radius:8px;padding:8px 4px;border:1px solid rgba(0,150,220,.3);">
+      <div style="font-size:9px;color:var(--muted);">Net OT Pay</div>
+      <div style="font-weight:800;font-size:14px;color:#0096dc;">₹{{ "{:,.0f}".format(emp.net_ot_final) }}</div>
+    </div>
+  </div>
+
+  <!-- Per-employee Quick Actions -->
+  <div style="padding:6px 14px;display:flex;gap:6px;border-top:1px solid var(--border);">
+    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="quickApprove('{{ emp.emp_code }}')">✅ Approve All Pending</button>
+  </div>
+</div>
+{% endfor %}
+
+{% if not emp_list %}
+<div style="text-align:center;padding:60px;color:var(--muted);">
+  <div style="font-size:40px;">✅</div>
+  <div>No absent records for {{ month_name }} {{ year }}{% if selected_dept %} in {{ selected_dept }}{% endif %}</div>
+</div>
+{% endif %}
+
+<!-- Approve/Reject Modal -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="actionTitle">Approve Leave</span>
+      <button class="modal-close" onclick="closeModal('actionModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="actionInfo" style="font-size:13px;margin-bottom:12px;padding:10px;background:var(--surface);border-radius:8px;"></div>
+      <div class="form-group">
+        <label class="form-label">Remarks (optional)</label>
+        <input class="form-control" id="actionRemarks" placeholder="e.g. Medical leave approved by manager">
+      </div>
+      <div id="actionResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('actionModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmBtn" onclick="confirmAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let _action="Approved", _ids=[];
+
+function reload(){
+  const m=document.getElementById("selM").value;
+  const y=document.getElementById("selY").value;
+  const dept=encodeURIComponent(document.getElementById("selDept").value||"");
+  const scheme=encodeURIComponent((document.getElementById("selScheme")||{}).value||"");
+  location.href=`/payroll/leave-associate?month=${m}&year=${y}&dept=${dept}&scheme=${scheme}`;
+}
+
+function filterTable(){
+  const q=document.getElementById("searchEmp").value.toLowerCase();
+  document.querySelectorAll("[id^='ec_']").forEach(el=>{
+    el.style.display=(!q||el.dataset.name?.includes(q)||el.dataset.code?.includes(q))?"":"none";
+  });
+}
+
+// Select all visible date checkboxes
+function selectAllVisible(){
+  const checked=document.querySelectorAll(".date-chk:not([style*='none'])").length;
+  const allChks=document.querySelectorAll(".date-chk");
+  const anyUnchecked=[...allChks].some(c=>!c.checked);
+  allChks.forEach(c=>c.checked=anyUnchecked);
+  document.querySelectorAll(".emp-chk").forEach(c=>c.checked=anyUnchecked);
+  updateCount();
+}
+
+// Check/uncheck all dates for an employee
+function empCheckAll(ec,checked){
+  document.querySelectorAll(`.date-chk[data-emp="${ec}"]`).forEach(c=>c.checked=checked);
+  updateCount();
+}
+
+function updateCount(){
+  const cnt=[...document.querySelectorAll(".date-chk:checked")].length;
+  document.getElementById("selCount").textContent=`${cnt} date(s) selected`;
+}
+
+// Get all selected date IDs
+function getSelectedIds(){
+  return [...document.querySelectorAll(".date-chk:checked")].map(c=>parseInt(c.value));
+}
+
+// Quick approve/reject all pending for one employee
+function quickApprove(ec){
+  // Select all pending checkboxes for this employee
+  let cnt=0;
+  document.querySelectorAll(`.date-chk[data-emp="${ec}"]`).forEach(cb=>{
+    const lbl=cb.closest("label");
+    const isPending=lbl&&lbl.querySelector("span:last-child")?.textContent.includes("⏳");
+    cb.checked=isPending;
+    if(isPending) cnt++;
+  });
+  updateCount();
+  if(!cnt){showToast("No pending dates for this employee","error");return;}
+  bulkAction("Approved");
+}
+
+// Bulk action on selected checkboxes
+function bulkAction(action){
+  const ids=getSelectedIds();
+  if(!ids.length){showToast("Select at least one date","error");return;}
+  _action="Approved"; _ids=ids;
+  document.getElementById("actionTitle").textContent="✅ Approve Selected Dates";
+  document.getElementById("actionInfo").textContent=`${ids.length} date(s) will be marked Approved`;
+  document.getElementById("actionRemarks").value="";
+  document.getElementById("actionResult").innerHTML="";
+  const btn=document.getElementById("confirmBtn");
+  btn.style.background="#10b981";
+  btn.textContent="✅ Approve";
+  openModal("actionModal");
+}
+
+async function confirmAction(){
+  const r=await api("/payroll/leave-associate/approve","POST",{
+    ids:_ids, action:_action,
+    remarks:document.getElementById("actionRemarks").value
+  });
+  if(r.success){
+    showToast(r.message);
+    setTimeout(()=>{closeModal("actionModal");location.reload();},1000);
+  } else
+    document.getElementById("actionResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+
+async function syncRecords(){
+  if(!confirm("Sync will remove pending records that don't match actual attendance. Continue?")) return;
+  const m=document.getElementById("selM").value;
+  const y=document.getElementById("selY").value;
+  const r=await api("/payroll/leave-associate/sync","POST",{month:parseInt(m),year:parseInt(y)});
+  if(r.success){showToast(r.message);setTimeout(()=>location.reload(),1000);}
+  else showToast(r.error||"Error","error");
+}
+
+async function saveSnapshot(){
+  const m=document.getElementById("selM").value;
+  const y=document.getElementById("selY").value;
+  if(!confirm(`Save OT snapshot for ${document.getElementById("selM").options[m-1]?.text} ${y}?`)) return;
+  const r=await api("/payroll/leave-associate/save","POST",{month:parseInt(m),year:parseInt(y)});
+  if(r.success) showToast(r.message);
+  else showToast(r.error||"Error","error");
+}
+</script>
+<script>
+async function toggleLALock(){
+  const btn = document.getElementById('laLockBtn');
+  const isLocked = btn && btn.textContent.includes('Locked');
+  const action = isLocked ? 'unlock' : 'lock';
+  if(!confirm(`${isLocked?'Unlock':'Lock'} OT Payment for this month?`)) return;
+  const m = document.getElementById('selM').value;
+  const y = document.getElementById('selY').value;
+  const r = await api('/payroll/ot-lock','POST',{month:parseInt(m),year:parseInt(y),action:action});
+  if(r && r.success){ showToast(isLocked?'Month unlocked':'Month locked','success'); setTimeout(()=>location.reload(),800); }
+  else showToast((r&&r.error)||'Failed','error');
+}
+</script>
+{% endblock %}

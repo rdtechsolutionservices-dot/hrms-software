@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Full & Final Settlement{% endblock %}
+{% block page_title %}📋 Full & Final Settlement{% endblock %}
+{% block content %}
+<style>
+/* ── F&F Print Styles ── */
+@page { size: A4 portrait; margin: 12mm 15mm; }
+.ff-printable { font-family: Arial, sans-serif; }
+.ff-title-bar { background: linear-gradient(135deg,#7c3aed,#a855f7); color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #fbbf24; }
+.ff-co-name { font-size: 16px; font-weight: 800; }
+.ff-co-sub  { font-size: 9px; opacity: .75; margin-top: 2px; }
+.ff-head-rhs { text-align: right; }
+.ff-doc-head { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+.ff-doc-sub  { font-size: 10px; opacity: .82; margin-top: 2px; }
+.ff-emp-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #c8d0db; border-top: none; }
+.ff-emp-col  { padding: 10px 16px; }
+.ff-emp-col:first-child { border-right: 1px solid #c8d0db; }
+.ff-row  { display: flex; margin-bottom: 5px; gap: 5px; align-items: baseline; }
+.ff-lbl  { font-size: 8.5px; color: #6b7280; text-transform: uppercase; letter-spacing: .4px; min-width: 120px; flex-shrink: 0; }
+.ff-val  { font-size: 10.5px; font-weight: 600; color: #111; }
+.ff-sh   { padding: 5px 16px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .9px; color: #374151; background: #f3f0ff; border: 1px solid #c8d0db; border-top: none; }
+.ff-table-wrap { border: 1px solid #c8d0db; border-top: none; }
+.ff-tbl  { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.ff-tbl th { background: #f3f0ff; color: #5b21b6; font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 7px 14px; border-bottom: 1px solid #c8d0db; }
+.ff-tbl td { padding: 8px 14px; border-bottom: 1px solid #f0f2f5; }
+.ff-tbl tr:last-child td { border-bottom: none; }
+.ff-tbl .ff-total td { background: #f0f4f8 !important; font-weight: 800 !important; font-size: 11px !important; border-top: 2px solid #c8d0db !important; }
+.ff-net  { background: linear-gradient(135deg,#7c3aed,#a855f7); color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #fbbf24; }
+.ff-nl   { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; opacity: .9; }
+.ff-nf   { font-size: 22px; font-weight: 800; }
+.ff-foot { display: flex; justify-content: space-between; align-items: flex-end; padding: 11px 20px 9px; border: 1px solid #c8d0db; border-top: none; }
+.ff-fn   { font-size: 8.5px; color: #6b7280; line-height: 1.7; max-width: 56%; }
+.ff-sb   { text-align: center; }
+.ff-sl   { font-size: 8.5px; color: #374151; font-weight: 700; border-top: 1px solid #9ca3af; padding-top: 4px; margin-top: 16px; min-width: 128px; }
+.ff-sc   { font-size: 8px; color: #6b7280; margin-bottom: 2px; }
+.ff-disc { padding: 5px 16px; background: #f9fafb; border: 1px solid #c8d0db; border-top: none; font-size: 8px; color: #9ca3af; text-align: center; font-style: italic; }
+.ff-hdr-img { width: 100%; display: block; max-height: 100px; object-fit: cover; }
+.ff-ftr-img { width: 100%; display: block; max-height: 65px; object-fit: cover; }
+</style>
+
+<div style="max-width:700px;margin:0 auto;">
+  <!-- Employee Header Card -->
+  <div class="mini-card" style="margin-bottom:18px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div class="emp-av" style="width:50px;height:50px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#f43f5e,#fb923c)">{{ emp.emp_name[:2].upper() }}</div>
+      <div><div style="font-family:Syne,sans-serif;font-weight:800;font-size:17px;">{{ emp.emp_name }}</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:2px;">{{ emp.emp_code }} · {{ emp.designation }} · {{ emp.department }}</div>
+      <div style="margin-top:5px;"><span class="badge badge-inactive">{{ emp.status }}</span></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:13px;">
+      <div style="background:var(--surface);border-radius:9px;padding:10px;"><div style="color:var(--muted);font-size:11px;text-transform:uppercase;">Date of Joining</div><div style="font-weight:600;margin-top:3px;">{{ emp.date_of_joining or '—' }}</div></div>
+      <div style="background:var(--surface);border-radius:9px;padding:10px;"><div style="color:var(--muted);font-size:11px;text-transform:uppercase;">Last Working Day</div><div style="font-weight:600;margin-top:3px;">{{ emp.last_working_day or '—' }}</div></div>
+      <div style="background:var(--surface);border-radius:9px;padding:10px;"><div style="color:var(--muted);font-size:11px;text-transform:uppercase;">Years of Service</div><div style="font-weight:700;margin-top:3px;color:#0096dc;">{{ years }} Years</div></div>
+    </div>
+  </div>
+
+  <!-- F&F Calculation Card -->
+  <div class="mini-card" style="margin-bottom:18px;">
+    <div class="mini-title">💰 F&F Settlement Calculation</div>
+    <table id="tblFullFinal" style="width:100%">
+      <thead><tr>
+        <th style="cursor:pointer;" onclick="sortTable('tblFullFinal',0)" data-sort-col="0">Component<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        <th style="cursor:pointer;" onclick="sortTable('tblFullFinal',1)" data-sort-col="1">Amount<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        <th style="cursor:pointer;" onclick="sortTable('tblFullFinal',2)" data-sort-col="2">Notes<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="font-weight:600">Pending Salary</td><td class="sal-text" style="color:var(--green)">₹{{ "{:,.2f}".format(pending_salary) }}</td><td style="font-size:12px;color:var(--muted)">Last month salary</td></tr>
+        {% if years >= 5 %}
+        <tr><td style="font-weight:600">Gratuity</td><td class="sal-text" style="color:var(--green)">₹{{ "{:,.2f}".format(gratuity) }}</td><td style="font-size:12px;color:var(--muted)">Basic/26 × 15 × {{ years }} yrs</td></tr>
+        {% else %}
+        <tr><td style="font-weight:600">Gratuity</td><td style="color:var(--muted)">Not Applicable</td><td style="font-size:12px;color:var(--muted)">Min 5 years required ({{ years }} yrs)</td></tr>
+        {% endif %}
+        <tr style="border-top:2px solid var(--border);"><td style="font-weight:800;font-size:15px">TOTAL F&F</td><td class="sal-text" style="color:#0096dc;font-size:16px">₹{{ "{:,.2f}".format(pending_salary + gratuity) }}</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Documents Card -->
+  <div class="mini-card" style="margin-bottom:18px;">
+    <div class="mini-title">📄 Documents to Issue (Optional)</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/letters/experience/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">📄 Experience Letter</a>
+      <a href="/letters/relieving/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">📋 Relieving Letter</a>
+    </div>
+  </div>
+
+  <!-- Print Button -->
+  <div style="text-align:center;margin-top:16px;">
+    <button onclick="printFF()" class="btn btn-primary">🖨️ Print F&F Settlement</button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+function printFF(){
+  const ffData = {
+    emp_name: {{ emp.emp_name|tojson }},
+    emp_code: {{ emp.emp_code|tojson }},
+    department: {{ (emp.department or '')|tojson }},
+    designation: {{ (emp.designation or '')|tojson }},
+    date_of_joining: {{ (emp.date_of_joining or '')|tojson }},
+    last_working_day: {{ (emp.last_working_day or '')|tojson }},
+    years: {{ years }},
+    pending_salary: {{ pending_salary }},
+    gratuity: {{ gratuity }},
+    total_ff: {{ pending_salary + gratuity }},
+    status: {{ emp.status|tojson }},
+    bank_account: {{ (emp.bank_account or '')|tojson }},
+    bank_name: {{ (emp.bank_name or '')|tojson }},
+    ifsc: {{ (emp.ifsc or '')|tojson }},
+    exit_reason: {{ (emp.exit_reason or '')|tojson }}
+  };
+
+  function fmt(v){ return "₹"+parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function numToWords(n){
+    n=Math.round(n);
+    const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+    const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+    if(n===0) return "Zero";
+    if(n<20) return a[n];
+    if(n<100) return b[Math.floor(n/10)]+(n%10?" "+a[n%10]:"");
+    if(n<1000) return a[Math.floor(n/100)]+" Hundred"+(n%100?" "+numToWords(n%100):"");
+    if(n<100000) return numToWords(Math.floor(n/1000))+" Thousand"+(n%1000?" "+numToWords(n%1000):"");
+    if(n<10000000) return numToWords(Math.floor(n/100000))+" Lakh"+(n%100000?" "+numToWords(n%100000):"");
+    return numToWords(Math.floor(n/10000000))+" Crore"+(n%10000000?" "+numToWords(n%10000000):"");
+  }
+
+  const gratuityRow = ffData.years >= 5
+    ? `<tr><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;">Gratuity (Basic/26 × 15 × ${ffData.years} yrs)</td><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;text-align:right;font-weight:600;color:#059669;">${fmt(ffData.gratuity)}</td><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;font-size:9px;color:#6b7280;">Statutory entitlement</td></tr>`
+    : `<tr><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;">Gratuity</td><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;text-align:right;color:#9ca3af;">Not Applicable</td><td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;font-size:9px;color:#9ca3af;">Min 5 years required (${ffData.years} yrs)</td></tr>`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>F&F Settlement — ${ffData.emp_name}</title>
+<style>
+  @page { size: A4 portrait; margin: 12mm 15mm; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #1a1a1a; font-family: Arial, sans-serif; font-size: 10.5px; }
+  .ff-title-bar { background: linear-gradient(135deg,#7c3aed,#a855f7) !important; color: #fff !important; padding: 13px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #fbbf24; }
+  .ff-net { background: linear-gradient(135deg,#7c3aed,#a855f7) !important; color: #fff !important; padding: 13px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #fbbf24; }
+</style>
+</head>
+<body>
+<div id="ffPrint" style="border:1px solid #c8d0db;">
+  <div id="ff_hdr_wrap"><img class="ff-hdr-img" src="{{ header_b64 or '/letters/header-image' }}" style="width:100%;display:block;max-height:100px;object-fit:cover;" onerror="this.closest('#ff_hdr_wrap').style.display='none'"></div>
+  <div class="ff-title-bar">
+    <div>
+      <div style="font-size:16px;font-weight:800;letter-spacing:.3px;">Vijayshri Packaging Ltd.</div>
+      <div style="font-size:9px;opacity:.75;margin-top:2px;">Industrial Area, Dewas Road, Ujjain — Madhya Pradesh</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Full & Final Settlement</div>
+      <div style="font-size:10px;opacity:.82;margin-top:2px;">${ffData.last_working_day ? 'LWD: '+ffData.last_working_day : ''}</div>
+    </div>
+  </div>
+  <!-- Employee Details -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #c8d0db;border-top:none;">
+    <div style="padding:10px 16px;border-right:1px solid #c8d0db;">
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Employee Code</span><span style="font-weight:600;">${ffData.emp_code}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Employee Name</span><span style="font-weight:600;">${ffData.emp_name}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Department</span><span style="font-weight:600;">${ffData.department||'—'}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Designation</span><span style="font-weight:600;">${ffData.designation||'—'}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Exit Type</span><span style="font-weight:600;">${ffData.status||'—'}</span></div>
+    </div>
+    <div style="padding:10px 16px;">
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Date of Joining</span><span style="font-weight:600;">${ffData.date_of_joining||'—'}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Last Working Day</span><span style="font-weight:600;">${ffData.last_working_day||'—'}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Years of Service</span><span style="font-weight:600;color:#7c3aed;">${ffData.years} Years</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Bank Account</span><span style="font-weight:600;">${ffData.bank_account||'—'} ${ffData.bank_name?'('+ffData.bank_name+')':''}</span></div>
+      <div style="display:flex;margin-bottom:5px;gap:5px;"><span style="font-size:8.5px;color:#6b7280;text-transform:uppercase;min-width:120px;">Exit Reason</span><span style="font-weight:600;">${ffData.exit_reason||'—'}</span></div>
+    </div>
+  </div>
+  <!-- F&F Table -->
+  <div style="padding:5px 16px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#374151;background:#f3f0ff;border:1px solid #c8d0db;border-top:none;">Full & Final Settlement Breakup</div>
+  <div style="border:1px solid #c8d0db;border-top:none;">
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;">
+      <thead><tr>
+        <th style="background:#f3f0ff;color:#5b21b6;font-size:9px;font-weight:700;text-transform:uppercase;padding:7px 14px;border-bottom:1px solid #c8d0db;text-align:left;">Component</th>
+        <th style="background:#f3f0ff;color:#5b21b6;font-size:9px;font-weight:700;text-transform:uppercase;padding:7px 14px;border-bottom:1px solid #c8d0db;text-align:right;">Amount</th>
+        <th style="background:#f3f0ff;color:#5b21b6;font-size:9px;font-weight:700;text-transform:uppercase;padding:7px 14px;border-bottom:1px solid #c8d0db;text-align:left;">Notes</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;font-weight:600;">Pending Salary</td>
+          <td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;text-align:right;font-weight:600;color:#059669;">${fmt(ffData.pending_salary)}</td>
+          <td style="padding:8px 14px;border-bottom:1px solid #f0f2f5;font-size:9px;color:#6b7280;">Last month net salary</td>
+        </tr>
+        ${gratuityRow}
+        <tr style="background:#f0f4f8;">
+          <td style="padding:8px 14px;font-weight:800;font-size:11px;">TOTAL F&F AMOUNT</td>
+          <td style="padding:8px 14px;text-align:right;font-weight:800;font-size:13px;color:#7c3aed;">${fmt(ffData.total_ff)}</td>
+          <td style="padding:8px 14px;font-size:9px;color:#6b7280;">Payable to employee</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- Net Amount Bar -->
+  <div class="ff-net">
+    <div>
+      <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Total Amount Payable</div>
+      <div style="font-size:9px;opacity:.72;margin-top:4px;font-style:italic;">${numToWords(Math.round(ffData.total_ff))} Rupees Only</div>
+    </div>
+    <div style="font-size:22px;font-weight:800;">${fmt(ffData.total_ff)}</div>
+  </div>
+  <!-- Footer -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;padding:11px 20px 9px;border:1px solid #c8d0db;border-top:none;">
+    <div style="font-size:8.5px;color:#6b7280;line-height:1.7;max-width:56%;">
+      This F&F Settlement is subject to verification of all pending dues and clearances.<br>
+      The employee must return all company assets before release of the final payment.<br>
+      &copy; Vijayshri Packaging Ltd. — Strictly Confidential
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:8px;color:#6b7280;margin-bottom:2px;">For Vijayshri Packaging Ltd.</div>
+      <div id="ff_seal_wrap"><img src="{{ seal_b64 or '/letters/seal-image' }}" style="width:70px;height:70px;object-fit:contain;display:block;margin:0 auto;" onerror="this.closest('#ff_seal_wrap').style.display='none'"></div>
+      <div style="font-size:8.5px;color:#374151;font-weight:700;border-top:1px solid #9ca3af;padding-top:4px;margin-top:16px;min-width:128px;">Authorised Signatory</div>
+    </div>
+  </div>
+  <div id="ff_ftr_wrap"><img src="{{ footer_b64 or '/letters/footer-image' }}" style="width:100%;display:block;max-height:65px;object-fit:cover;" onerror="this.closest('#ff_ftr_wrap').style.display='none'"></div>
+  <div style="padding:5px 16px;background:#f9fafb;border:1px solid #c8d0db;border-top:none;font-size:8px;color:#9ca3af;text-align:center;font-style:italic;">Full & Final Settlement Statement — Vijayshri Packaging Ltd. — Generated by VPL PayRoll System</div>
+</div>
+<script>
+  window.onload = function(){
+    setTimeout(function(){
+      window.print();
+      window.onafterprint = function(){ window.close(); };
+    }, 600);
+  };
+<\/script>
+</body>
+</html>`;
+
+  const w = window.open('','_blank');
+  if(w){ w.document.write(html); w.document.close(); }
+  else { showToast("Pop-up blocked. Allow pop-ups and try again.", "error"); }
+}
+</script>{% endblock %}

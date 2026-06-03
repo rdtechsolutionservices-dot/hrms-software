@@ -1,0 +1,594 @@
+{% extends "base.html" %}
+{% block title %}Letters{% endblock %}
+{% block page_title %}📄 Letter Generator{% endblock %}
+{% block content %}
+<!-- Header/Footer/Signature Settings -->
+<div class="table-card" style="padding:14px;margin-bottom:14px;">
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">🖼️ Letter Header, Footer & Signatures</div>
+
+  <!-- Header + Footer Upload Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div>
+      <label class="form-label">Header Image (Company letterhead top)</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'header')" style="display:none;">
+        </label>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('header')">🗑️ Remove</button>
+        <span id="hdr_status" style="font-size:11px;color:var(--muted);">Not set</span>
+      </div>
+      <div id="hdr_preview" style="margin-top:6px;"></div>
+    </div>
+    <div>
+      <label class="form-label">Footer Image (Company letterhead bottom)</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'footer')" style="display:none;">
+        </label>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('footer')">🗑️ Remove</button>
+        <span id="ftr_status" style="font-size:11px;color:var(--muted);">Not set</span>
+      </div>
+      <div id="ftr_preview" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Seal + Signatures -->
+  <div style="border-top:1px solid var(--border);padding-top:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">
+
+      <!-- Seal -->
+      <div>
+        <label class="form-label">🔏 Company Seal / Stamp</label>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'seal')" style="display:none;">
+          </label>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('seal')">🗑️ Remove</button>
+          <span id="seal_status" style="font-size:11px;color:var(--muted);">Not set</span>
+        </div>
+        <div id="seal_preview"></div>
+      </div>
+
+      <!-- Authorised Signatory — Digital Signature -->
+      <div>
+        <label class="form-label">✍️ Authorised Signatory — Digital Signature</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Draw or upload. Shown on all letters.</div>
+        <div id="sign_canvas_wrap" style="display:none;background:#fff;border:2px solid #10b981;border-radius:8px;margin-bottom:6px;max-width:600px;">
+          <canvas id="signCanvas" width="580" height="160" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
+          <div style="display:flex;gap:6px;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+            <button onclick="clearSignCanvas('signCanvas')" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">🗑 Clear</button>
+            <input type="color" id="signColor" value="#000000" style="width:28px;height:24px;border:none;cursor:pointer;padding:0;" title="Pen color">
+            <input type="range" id="signWidth" min="1" max="5" value="2" style="width:60px;" title="Pen width">
+            <button onclick="saveCanvasSign('signCanvas','signature','sign_status','sign_preview','sign_canvas_wrap')" style="font-size:11px;padding:3px 10px;border:none;border-radius:4px;background:#10b981;color:#fff;cursor:pointer;margin-left:auto;">💾 Save</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+          <button class="btn btn-ghost btn-sm" style="border-color:#10b981;color:#10b981;" onclick="toggleCanvas('sign_canvas_wrap')">✍️ Draw</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'signature')" style="display:none;">
+          </label>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('signature')">🗑️ Remove</button>
+          <span id="sign_status" style="font-size:11px;color:var(--muted);">Not set</span>
+        </div>
+        <div id="sign_preview"></div>
+      </div>
+
+      <!-- Director Signature -->
+      <div>
+        <label class="form-label">👔 Director Signature</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">For official letters.</div>
+        <div id="dir_canvas_wrap" style="display:none;background:#fff;border:2px solid #6366f1;border-radius:8px;margin-bottom:6px;max-width:600px;">
+          <canvas id="dirCanvas" width="580" height="160" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
+          <div style="display:flex;gap:6px;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+            <button onclick="clearSignCanvas('dirCanvas')" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">🗑 Clear</button>
+            <input type="color" id="dirColor" value="#000000" style="width:28px;height:24px;border:none;cursor:pointer;padding:0;">
+            <input type="range" id="dirWidth" min="1" max="5" value="2" style="width:60px;">
+            <button onclick="saveCanvasSign('dirCanvas','director_sign','dir_sign_status','dir_sign_preview','dir_canvas_wrap')" style="font-size:11px;padding:3px 10px;border:none;border-radius:4px;background:#6366f1;color:#fff;cursor:pointer;margin-left:auto;">💾 Save</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+          <button class="btn btn-ghost btn-sm" style="border-color:#6366f1;color:#6366f1;" onclick="toggleCanvas('dir_canvas_wrap')">✍️ Draw</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'director_sign')" style="display:none;">
+          </label>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('director_sign')">🗑️ Remove</button>
+          <span id="dir_sign_status" style="font-size:11px;color:var(--muted);">Not set</span>
+        </div>
+        <div id="dir_sign_preview"></div>
+      </div>
+
+      <!-- HR Signature -->
+      <div>
+        <label class="form-label">🧑‍💼 HR Manager Signature</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">For offer/appointment letters.</div>
+        <div id="hr_canvas_wrap" style="display:none;background:#fff;border:2px solid #f59e0b;border-radius:8px;margin-bottom:6px;max-width:600px;">
+          <canvas id="hrCanvas" width="580" height="160" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
+          <div style="display:flex;gap:6px;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+            <button onclick="clearSignCanvas('hrCanvas')" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">🗑 Clear</button>
+            <input type="color" id="hrColor" value="#000000" style="width:28px;height:24px;border:none;cursor:pointer;padding:0;">
+            <input type="range" id="hrWidth" min="1" max="5" value="2" style="width:60px;">
+            <button onclick="saveCanvasSign('hrCanvas','hr_sign','hr_sign_status','hr_sign_preview','hr_canvas_wrap')" style="font-size:11px;padding:3px 10px;border:none;border-radius:4px;background:#f59e0b;color:#fff;cursor:pointer;margin-left:auto;">💾 Save</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;">
+          <button class="btn btn-ghost btn-sm" style="border-color:#f59e0b;color:#f59e0b;" onclick="toggleCanvas('hr_canvas_wrap')">✍️ Draw</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'hr_sign')" style="display:none;">
+          </label>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('hr_sign')">🗑️ Remove</button>
+          <span id="hr_sign_status" style="font-size:11px;color:var(--muted);">Not set</span>
+        </div>
+        <div id="hr_sign_preview"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+  <!-- Experience Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">📄</div>
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#a78bfa;margin-bottom:6px;">Experience Certificate</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Employee name, designation, department<br>
+      ✅ Date of joining & last working day<br>
+      ✅ Total duration of service<br>
+      ✅ Conduct remarks (Good/Excellent etc.)<br>
+      ✅ Add custom lines<br>
+      ✅ Print ready format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="exp_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('exp_emp',this.value)">
+      <select class="form-select" id="exp_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="exp_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Additional Lines (optional)</label>
+      <textarea class="form-input" id="exp_custom" rows="2" placeholder="Any additional lines to include in the letter..."></textarea>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;background:rgba(139,92,246,.15);color:#a78bfa;" onclick="openExpLetter()">📄 Generate Experience Letter</button>
+  </div>
+
+  <!-- Project Experience Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(16,185,129,.2);border-radius:16px;padding:24px;">
+    <div style="font-size:18px;margin-bottom:4px;">🏆</div>
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Project Experience Letter</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Describes employee's role, projects & contributions</div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="proj_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('proj_emp',this.value)">
+      <select class="form-select" id="proj_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="proj_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role / Position Held</label>
+      <input class="form-input" id="proj_role" placeholder="e.g. Senior Machine Operator">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Projects / Work Done</label>
+      <textarea class="form-input" id="proj_projects" rows="4"
+        placeholder="e.g.&#10;- Supervised production line for Hall-1 packaging&#10;- Managed quality checks for export orders&#10;- Trained 10 new operators in machine operations"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Key Skills / Strengths</label>
+      <input class="form-input" id="proj_skills" placeholder="e.g. Team Leadership, Quality Control, Machine Operations">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Additional Lines (optional)</label>
+      <textarea class="form-input" id="proj_custom" rows="2" placeholder="Any additional lines to include..."></textarea>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;background:rgba(16,185,129,.15);color:#10b981;" onclick="openProjLetter()">🏆 Generate Project Experience Letter</button>
+  </div>
+
+  <!-- Warning Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(220,38,38,.3);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+    <div style="font-weight:800;font-size:18px;color:#dc2626;margin-bottom:6px;">Warning Letter</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Formal disciplinary warning notice<br>
+      ✅ Incident / misconduct description<br>
+      ✅ Corrective action details<br>
+      ✅ Employee acknowledgement section<br>
+      ✅ Custom additional lines<br>
+      ✅ Print ready — professional format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="warn_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('warn_emp',this.value)">
+      <select class="form-select" id="warn_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="warn_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Incident Date</label>
+      <input class="form-input" type="date" id="warn_date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nature of Misconduct / Incident</label>
+      <textarea class="form-input" id="warn_incident" rows="3" placeholder="Describe the incident or misconduct in detail..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Corrective Action / Warning Details</label>
+      <textarea class="form-input" id="warn_action" rows="2" placeholder="e.g. Final written warning, 1-day suspension..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Additional Lines (optional)</label>
+      <textarea class="form-input" id="warn_custom" rows="2" placeholder="Any additional lines to include..."></textarea>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;background:rgba(220,38,38,.1);color:#dc2626;border-color:rgba(220,38,38,.3);" onclick="openWarnLetter()">⚠️ Generate Warning Letter</button>
+  </div>
+
+  <!-- Relieving Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(244,63,94,.2);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">📋</div>
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:var(--red);margin-bottom:6px;">Relieving Letter</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Employee details & exit information<br>
+      ✅ Last working day & relieving date<br>
+      ✅ Clearance status mention<br>
+      ✅ Exit type (Resignation/Retirement etc.)<br>
+      ✅ Add custom lines<br>
+      ✅ Print ready format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="rel_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('rel_emp',this.value)">
+      <select class="form-select" id="rel_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="rel_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <button class="btn btn-danger" style="width:100%;" onclick="openRelLetter()">📋 Generate Relieving Letter</button>
+  </div>
+
+  <!-- Offer Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">📋</div>
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:var(--green);margin-bottom:6px;">Offer Letter</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Joining Date & Probation Period<br>
+      ✅ Salary Breakup (Basic, HRA, Special Allow.)<br>
+      ✅ PF & ESI details<br>
+      ✅ Notice Period & Terms<br>
+      ✅ Add custom fields<br>
+      ✅ Print ready format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="offer_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('offer_emp',this.value)">
+      <select class="form-select" id="offer_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }} {{ e.department or '' }}">{{ e.emp_code }} — {{ e.emp_name }} ({{ e.department or 'N/A' }})</option>
+        {% endfor %}
+      </select>
+      <div id="offer_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <button class="btn btn-success" style="width:100%;" onclick="openOfferLetter()">📋 Generate Offer Letter</button>
+  </div>
+
+  <!-- Increment Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">📈</div>
+    <div style="font-weight:800;font-size:18px;color:#10b981;margin-bottom:6px;">Salary Increment Letter</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Old vs New salary comparison<br>
+      ✅ Increment percentage badge<br>
+      ✅ Effective date details<br>
+      ✅ Employee acknowledgement<br>
+      ✅ Custom additional lines<br>
+      ✅ Professional format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="inc_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('inc_emp',this.value)">
+      <select class="form-select" id="inc_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="inc_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Additional Lines (optional)</label>
+      <textarea class="form-input" id="inc_custom" rows="2" placeholder="Any additional lines to include..."></textarea>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;background:rgba(16,185,129,.15);color:#10b981;" onclick="openIncLetter()">📈 Generate Increment Letter</button>
+  </div>
+
+  <!-- Resignation Letter Card -->
+  <div style="background:var(--card);border:1px solid rgba(239,68,68,.2);border-radius:16px;padding:24px;">
+    <div style="font-size:32px;margin-bottom:12px;">📝</div>
+    <div style="font-weight:800;font-size:18px;color:#ef4444;margin-bottom:6px;">Resignation Acceptance</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8;">
+      ✅ Formal resignation acceptance<br>
+      ✅ Employee details &amp; last working day<br>
+      ✅ Exit formalities checklist<br>
+      ✅ Custom additional lines<br>
+      ✅ Seal &amp; header/footer<br>
+      ✅ Professional format
+    </div>
+    <div class="form-group">
+      <label class="form-label">Select Employee</label>
+      <input type="text" id="resign_emp_search" class="form-control" placeholder="Type name or code to search..." style="font-size:12px;margin-bottom:5px;" oninput="filterSel('resign_emp',this.value)">
+      <select class="form-select" id="resign_emp" size="5" style="height:auto;overflow-y:auto;">
+        <option value="">— Select Employee —</option>
+        {% for e in employees %}
+        <option value="{{ e.emp_code }}" data-lbl="{{ e.emp_code }} {{ e.emp_name }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+        {% endfor %}
+      </select>
+      <div id="resign_emp_sel" style="font-size:11px;color:#10b981;min-height:14px;margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Resignation Date</label>
+      <input class="form-input" type="date" id="resign_date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Last Working Day</label>
+      <input class="form-input" type="date" id="resign_lwd">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Custom Additional Lines (optional)</label>
+      <textarea class="form-input" id="resign_custom" rows="2" placeholder="Any additional lines to include..."></textarea>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.3);" onclick="openResignLetter()">📝 Generate Resignation Acceptance</button>
+  </div>
+
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// ── Searchable employee dropdowns (inline search) ──────────────
+function filterSel(selId, q){
+  q = q.toLowerCase();
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  Array.from(sel.options).forEach(opt=>{
+    if(!opt.value){ opt.style.display=""; return; }
+    const lbl = (opt.dataset.lbl || opt.text).toLowerCase();
+    opt.style.display = lbl.includes(q) ? "" : "none";
+  });
+}
+// On select change — show selected employee name below dropdown
+["exp_emp","proj_emp","warn_emp","rel_emp","offer_emp","inc_emp","resign_emp"].forEach(id=>{
+  document.addEventListener("DOMContentLoaded",()=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    sel.addEventListener("change",function(){
+      const div = document.getElementById(id+"_sel");
+      if(div) div.textContent = this.value ? "Selected: "+this.options[this.selectedIndex]?.text : "";
+    });
+  });
+});
+// ── Upload letter images ──────────────────────────────────────
+async function uploadLetterImg(input, type){
+  const f=input.files[0]; if(!f) return;
+  const fd=new FormData(); fd.append("file",f); fd.append("type",type);
+  showToast("Uploading...");
+  const r=await fetch("/letters/settings",{method:"POST",body:fd}).then(r=>r.json());
+  if(r.success){ showToast(type+" uploaded!","success"); checkLetterSettings(); }
+  else showToast("Upload failed","error");
+}
+
+async function removeLetterImg(type){
+  if(!confirm("Remove this image?")) return;
+  const r=await fetch("/letters/settings/remove",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type})}).then(r=>r.json());
+  if(r.success){
+    showToast("Removed","success");
+    // Clear preview and reset status immediately
+    const previewMap={
+      header:"hdr_preview", footer:"ftr_preview", seal:"seal_preview",
+      signature:"sign_preview", director_sign:"dir_sign_preview", hr_sign:"hr_sign_preview"
+    };
+    const statusMap={
+      header:"hdr_status", footer:"ftr_status", seal:"seal_status",
+      signature:"sign_status", director_sign:"dir_sign_status", hr_sign:"hr_sign_status"
+    };
+    const pEl=document.getElementById(previewMap[type]);
+    const sEl=document.getElementById(statusMap[type]);
+    if(pEl) pEl.innerHTML="";
+    if(sEl){ sEl.textContent="No image uploaded"; sEl.style.color="var(--muted)"; }
+    checkLetterSettings();
+  }
+  else showToast("Remove failed","error");
+}
+
+// ── Digital Signature Canvas ──────────────────────────────────
+function toggleCanvas(wrapId){
+  const el=document.getElementById(wrapId);
+  if(!el) return;
+  const showing=el.style.display!=="none";
+  el.style.display=showing?"none":"";
+  if(!showing){ initCanvas(el.querySelector("canvas")); }
+}
+
+const _drawing={};
+function initCanvas(canvas){
+  if(!canvas||_drawing[canvas.id]) return;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  let drawing=false, lx=0, ly=0;
+  const colorId=canvas.id.replace("Canvas","Color");
+  const widthId=canvas.id.replace("Canvas","Width");
+  const getPos=e=>{
+    const rect=canvas.getBoundingClientRect();
+    const scX=canvas.width/rect.width, scY=canvas.height/rect.height;
+    if(e.touches){ return {x:(e.touches[0].clientX-rect.left)*scX, y:(e.touches[0].clientY-rect.top)*scY}; }
+    return {x:(e.clientX-rect.left)*scX, y:(e.clientY-rect.top)*scY};
+  };
+  const start=e=>{
+    e.preventDefault(); drawing=true;
+    const p=getPos(e); lx=p.x; ly=p.y;
+    ctx.beginPath(); ctx.arc(lx,ly,0.5,0,Math.PI*2); ctx.fillStyle=document.getElementById(colorId)?.value||"#000"; ctx.fill();
+  };
+  const move=e=>{
+    if(!drawing) return; e.preventDefault();
+    const p=getPos(e);
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle=document.getElementById(colorId)?.value||"#000";
+    ctx.lineWidth=parseInt(document.getElementById(widthId)?.value||"2");
+    ctx.lineCap="round"; ctx.lineJoin="round"; ctx.stroke();
+    lx=p.x; ly=p.y;
+  };
+  const stop=()=>{ drawing=false; };
+  canvas.addEventListener("mousedown",start); canvas.addEventListener("mousemove",move);
+  canvas.addEventListener("mouseup",stop); canvas.addEventListener("mouseleave",stop);
+  canvas.addEventListener("touchstart",start,{passive:false}); canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",stop);
+  _drawing[canvas.id]=true;
+}
+
+function clearSignCanvas(canvasId){
+  const canvas=document.getElementById(canvasId); if(!canvas) return;
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+async function saveCanvasSign(canvasId, type, statusId, previewId, wrapId){
+  const canvas=document.getElementById(canvasId); if(!canvas) return;
+  // Crop to drawn content and center it before saving
+  const ctx=canvas.getContext("2d");
+  const w=canvas.width, h=canvas.height;
+  const imgData=ctx.getImageData(0,0,w,h);
+  const data=imgData.data;
+  let minX=w,maxX=0,minY=h,maxY=0;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx=(y*w+x)*4;
+      // Non-white pixel = drawn content
+      if(data[idx]<240||data[idx+1]<240||data[idx+2]<240){
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+  }
+  // If nothing drawn, alert
+  if(minX>maxX||minY>maxY){showToast("Canvas is empty — please draw signature first","error");return;}
+  // Add padding around content
+  const pad=12;
+  minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+  maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+  const cw=maxX-minX, ch=maxY-minY;
+  // Create output canvas: centered content on white background
+  const out=document.createElement("canvas");
+  out.width=Math.max(300,cw); out.height=Math.max(80,ch);
+  const octx=out.getContext("2d");
+  octx.fillStyle="#fff"; octx.fillRect(0,0,out.width,out.height);
+  const ox=Math.floor((out.width-cw)/2), oy=Math.floor((out.height-ch)/2);
+  octx.putImageData(ctx.getImageData(minX,minY,cw,ch),ox,oy);
+  out.toBlob(async blob=>{
+    const fd=new FormData(); fd.append("file",blob,"digital_signature.png"); fd.append("type",type);
+    showToast("Saving signature...");
+    const r=await fetch("/letters/settings",{method:"POST",body:fd}).then(r=>r.json());
+    if(r.success){
+      showToast("Digital signature saved!","success");
+      document.getElementById(wrapId).style.display="none";
+      checkLetterSettings();
+    } else showToast("Save failed","error");
+  },"image/png");
+}
+async function checkLetterSettings(){
+  try{
+    const r=await fetch("/letters/settings").then(r=>r.json());
+    const s=r.settings||{};
+    const setItem=(statusId,previewId,filename,imgUrl,maxH)=>{
+      const el=document.getElementById(statusId);
+      if(el){el.textContent="✅ "+filename;el.style.color="var(--green)";}
+      const pe=document.getElementById(previewId);
+      if(pe) pe.innerHTML=`<img src="${imgUrl}?t=${Date.now()}" style="max-height:${maxH}px;border:1px solid var(--border);border-radius:4px;">`;
+    };
+    const clearItem=(sId,pId,msg="No image uploaded")=>{
+      const el=document.getElementById(sId); if(el){el.textContent=msg;el.style.color="var(--muted)";}
+      const pe=document.getElementById(pId); if(pe) pe.innerHTML="";
+    };
+    if(s.header_filename)    setItem("hdr_status","hdr_preview",s.header_filename,"/letters/header-image",60);
+    else clearItem("hdr_status","hdr_preview");
+    if(s.footer_filename)    setItem("ftr_status","ftr_preview",s.footer_filename,"/letters/footer-image",60);
+    else clearItem("ftr_status","ftr_preview");
+    if(s.seal_filename)      setItem("seal_status","seal_preview",s.seal_filename,"/letters/seal-image",80);
+    else clearItem("seal_status","seal_preview");
+    if(s.signature_filename) setItem("sign_status","sign_preview",s.signature_filename,"/letters/signature-image",60);
+    else clearItem("sign_status","sign_preview","No signature uploaded");
+    if(s.director_sign_filename) setItem("dir_sign_status","dir_sign_preview",s.director_sign_filename,"/letters/director-sign-image",60);
+    else clearItem("dir_sign_status","dir_sign_preview","No signature uploaded");
+    if(s.hr_sign_filename)   setItem("hr_sign_status","hr_sign_preview",s.hr_sign_filename,"/letters/hr-sign-image",60);
+    else clearItem("hr_sign_status","hr_sign_preview","No signature uploaded");
+  }catch(e){}
+}
+document.addEventListener("DOMContentLoaded", checkLetterSettings);
+
+// ── Letter openers ────────────────────────────────────────────
+function openExpLetter(){
+  const code=document.getElementById("exp_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const custom=encodeURIComponent(document.getElementById("exp_custom")?.value||"");
+  window.open(`/letters/experience/${code}?custom_lines=${custom}`,'_blank');
+}
+function openProjLetter(){
+  const code=document.getElementById("proj_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const role=encodeURIComponent(document.getElementById("proj_role").value.trim());
+  const projects=encodeURIComponent(document.getElementById("proj_projects").value.trim());
+  const skills=encodeURIComponent(document.getElementById("proj_skills").value.trim());
+  const custom=encodeURIComponent(document.getElementById("proj_custom")?.value||"");
+  window.open(`/letters/project-experience/${code}?role=${role}&projects=${projects}&skills=${skills}&custom_lines=${custom}`,'_blank');
+}
+function openWarnLetter(){
+  const code=document.getElementById("warn_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const incident_date=document.getElementById("warn_date").value;
+  const incident=encodeURIComponent(document.getElementById("warn_incident").value.trim());
+  const action=encodeURIComponent(document.getElementById("warn_action").value.trim());
+  const custom=encodeURIComponent(document.getElementById("warn_custom")?.value||"");
+  window.open(`/letters/warning/${code}?incident_date=${incident_date}&incident=${incident}&action=${action}&custom_lines=${custom}`,'_blank');
+}
+function openRelLetter(){
+  const code=document.getElementById("rel_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const custom=encodeURIComponent(document.getElementById("rel_custom")?.value||"");
+  window.open(`/letters/relieving/${code}?custom_lines=${custom}`,'_blank');
+}
+function openOfferLetter(){
+  const code=document.getElementById("offer_emp")?.value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const custom=encodeURIComponent(document.getElementById("offer_custom")?.value||"");
+  window.open(`/letters/offer/${code}?custom_lines=${custom}`,'_blank');
+}
+function openIncLetter(){
+  const code=document.getElementById("inc_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const custom=encodeURIComponent(document.getElementById("inc_custom")?.value||"");
+  window.open(`/salary/increment-letter/${code}?custom_lines=${custom}`,'_blank');
+}
+function openResignLetter(){
+  const code=document.getElementById("resign_emp").value;
+  if(!code){showToast("Select employee first!","error");return;}
+  const resign_date=document.getElementById("resign_date").value;
+  const lwd=document.getElementById("resign_lwd").value;
+  const custom=encodeURIComponent(document.getElementById("resign_custom")?.value||"");
+  window.open(`/letters/resignation-print/${code}?resignation_date=${resign_date}&last_working_day=${lwd}&custom_lines=${custom}`,'_blank');
+}
+</script>
+{% endblock %}

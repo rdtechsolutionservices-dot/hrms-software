@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Leave Requests{% endblock %}
+{% block page_title %}Leave Management{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="openModal('applyModal')">➕ Apply Leave (for Employee)</button>
+  <div class="month-selector">
+    <label>Year:</label>
+    <select id="selYear" onchange="location.href='/leaves?year='+this.value+'&status={{ status_filter }}'">
+      {% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;gap:6px;">
+    {% for s,label,col in [('Pending','⏳ Pending','var(--yellow)'),('Approved','✅ Approved','var(--green)'),('Rejected','❌ Rejected','var(--red)'),('all','📋 All','')] %}
+    <a href="/leaves?year={{ year }}&status={{ s }}" class="btn btn-sm {% if status_filter==s %}btn-primary{% else %}btn-ghost{% endif %}" style="{% if status_filter==s and col %}color:white{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+    {% for row in summary %}
+    <span class="tbadge {% if row.status=='Pending' %}tbadge-yellow{% elif row.status=='Approved' %}tbadge-green{% else %}tbadge-blue{% endif %}">{{ row.status }}: {{ row.cnt }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header"><span class="table-title">Leave Requests — {{ year }}</span></div>
+  <table id="tblLeaves">
+    <thead><tr><th style="cursor:pointer;" onclick="sortTable('tblLeaves',0)" data-sort-col="0">Emp Code<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',1)" data-sort-col="1">Name<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',2)" data-sort-col="2">Dept<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',3)" data-sort-col="3">Leave Type<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',4)" data-sort-col="4">From<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',5)" data-sort-col="5">To<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',6)" data-sort-col="6">Days<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',7)" data-sort-col="7">Reason<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',8)" data-sort-col="8">Applied On<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',9)" data-sort-col="9">Status<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLeaves',10)" data-sort-col="10">Action<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th></tr></thead>
+    <tbody>
+      {% for r in requests %}
+      <tr>
+        <td style="color:#0096dc;font-weight:600">{{ r.emp_code }}</td>
+        <td style="font-weight:600">{{ r.emp_name }}</td>
+        <td style="font-size:12px;color:var(--muted)">{{ r.department }}</td>
+        <td>
+          <span class="badge" style="background:{% if r.leave_type=='CL' %}rgba(0,82,204,.15){% elif r.leave_type=='SL' %}rgba(244,63,94,.15){% elif r.leave_type=='EL' %}rgba(16,185,129,.15){% else %}rgba(245,158,11,.15){% endif %};color:{% if r.leave_type=='CL' %}#0096dc{% elif r.leave_type=='SL' %}var(--red){% elif r.leave_type=='EL' %}var(--green){% else %}var(--yellow){% endif %}">
+            {{ r.leave_type }}{% if r.is_half_day %} (Half){% endif %}
+          </span>
+        </td>
+        <td style="font-size:12px">{{ r.from_date }}</td>
+        <td style="font-size:12px">{{ r.to_date }}</td>
+        <td style="text-align:center;font-weight:700">{{ r.days }}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:150px">{{ r.reason or '—' }}</td>
+        <td style="font-size:11px;color:var(--muted)">{{ r.applied_on[:10] if r.applied_on else '—' }}</td>
+        <td>
+          {% if r.status=='Pending' %}<span class="badge" style="background:rgba(245,158,11,.15);color:var(--yellow)">⏳ Pending</span>
+          {% elif r.status=='Approved' %}<span class="badge badge-active">✅ Approved</span>
+          {% else %}<span class="badge badge-inactive">❌ Rejected</span>{% endif %}
+          {% if r.approved_by %}<div style="font-size:10px;color:var(--muted);margin-top:2px">by {{ r.approved_by }}</div>{% endif %}
+        </td>
+        <td>
+          {% if r.status=='Pending' %}
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-success btn-sm" onclick="approveLeave({{ r.id }})">✅</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectLeave({{ r.id }})">❌</button>
+          </div>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not requests %}<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">No leave requests found</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Year End Actions -->
+<div class="mini-card">
+  <div class="mini-title">📅 Year End Actions — EL Carry Forward / Encash</div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+    <div class="month-selector"><label>Process Year:</label>
+      <select id="yearEnd">{% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
+    </div>
+    <button class="btn btn-ghost" onclick="yearEnd('carry')" style="background:rgba(16,185,129,.15);color:var(--green);">🔄 Carry Forward Unused EL</button>
+    <button class="btn btn-ghost" onclick="yearEnd('encash')" style="background:rgba(245,158,11,.15);color:var(--yellow);">💰 Encash Unused EL</button>
+    <span id="yearEndRes" style="font-size:13px;"></span>
+  </div>
+</div>
+
+<!-- Apply Leave Modal (HR applying for employee) -->
+<div class="modal-overlay" id="applyModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">➕ Apply Leave</span><button class="modal-close" onclick="closeModal('applyModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group col-span-2"><label class="form-label">Employee Code</label><input class="form-control" id="ap_code" placeholder="VPL001"></div>
+        <div class="form-group"><label class="form-label">Leave Type</label>
+          <select class="form-select" id="ap_type">
+            <option value="CL">CL — Casual Leave</option>
+            <option value="SL">SL — Sick Leave</option>
+            <option value="EL">EL — Earned Leave</option>
+            <option value="HD">HD — Half Day</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Half Day?</label>
+          <select class="form-select" id="ap_half" onchange="toggleHalf()"><option value="0">No — Full Day</option><option value="1">Yes — Half Day</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">From Date</label><input class="form-control" type="date" id="ap_from"></div>
+        <div class="form-group" id="to_date_grp"><label class="form-label">To Date</label><input class="form-control" type="date" id="ap_to"></div>
+        <div class="form-group col-span-2"><label class="form-label">Reason</label><input class="form-control" id="ap_reason" placeholder="Reason for leave..."></div>
+      </div>
+      <div id="apResult"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button><button class="btn btn-primary" onclick="applyLeave()">📋 Apply Leave</button></div>
+  </div>
+</div>
+
+<!-- Reject Reason Modal -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header"><span class="modal-title">❌ Reject Leave</span><button class="modal-close" onclick="closeModal('rejectModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="rej_id">
+      <div class="form-group"><label class="form-label">Reason for Rejection</label><input class="form-control" id="rej_reason" placeholder="Short staffing, Incorrect dates..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('rejectModal')">Cancel</button><button class="btn btn-danger" onclick="confirmReject()">❌ Reject</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+function toggleHalf(){const h=document.getElementById("ap_half").value=="1";document.getElementById("to_date_grp").style.display=h?"none":"block";}
+async function applyLeave(){
+  const half=document.getElementById("ap_half").value=="1";
+  const r=await api("/leaves/apply","POST",{emp_code:document.getElementById("ap_code").value,leave_type:document.getElementById("ap_type").value,from_date:document.getElementById("ap_from").value,to_date:half?document.getElementById("ap_from").value:document.getElementById("ap_to").value,is_half_day:half,reason:document.getElementById("ap_reason").value});
+  const div=document.getElementById("apResult");
+  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ Leave applied for ${r.days} day(s)!</div>`;setTimeout(()=>{closeModal("applyModal");location.reload();},1500);}
+  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+async function approveLeave(id){
+  if(!confirm("Approve this leave?"))return;
+  const r=await api(`/leaves/approve/${id}`,"POST",{});
+  if(r.success){showToast("Leave Approved!");location.reload();}
+  else showToast(r.error||"Error!","error");
+}
+function rejectLeave(id){document.getElementById("rej_id").value=id;document.getElementById("rej_reason").value="";openModal("rejectModal");}
+async function confirmReject(){
+  const id=document.getElementById("rej_id").value;
+  const r=await api(`/leaves/reject/${id}`,"POST",{reason:document.getElementById("rej_reason").value});
+  if(r.success){showToast("Leave Rejected!");closeModal("rejectModal");location.reload();}
+  else showToast(r.error||"Error!","error");
+}
+async function yearEnd(action){
+  const yr=document.getElementById("yearEnd").value;
+  if(!confirm(`${action=='carry'?"Carry forward":"Encash"} unused EL for all employees for year ${yr}?`))return;
+  const r=await api("/leaves/year-end","POST",{year:yr,action});
+  const res=document.getElementById("yearEndRes");
+  if(r.success){res.textContent=`✅ Processed ${r.processed} employees!`;res.style.color="var(--green)";}
+  else{res.textContent="❌ "+r.error;res.style.color="var(--red)";}
+}
+</script>{% endblock %}

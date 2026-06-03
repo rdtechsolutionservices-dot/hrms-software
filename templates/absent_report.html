@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Absent Report{% endblock %}
+{% block page_title %}📋 Absent Report{% endblock %}
+{% block content %}
+
+<!-- Filters -->
+<div class="table-card" style="padding:16px;margin-bottom:16px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">From Date</label>
+      <input class="form-control" type="date" id="f_from" value="{{ from_date }}">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">To Date</label>
+      <input class="form-control" type="date" id="f_to" value="{{ to_date }}">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Employee</label>
+      <input class="form-control" id="f_emp" value="{{ emp_search }}" placeholder="Name or Code...">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Department</label>
+      <select class="form-select" id="f_dept">
+        <option value="">All Departments</option>
+        {% for d in departments %}<option {% if d==dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="f_cat">
+        <option value="">All</option>
+        <option {% if cat=='Staff' %}selected{% endif %}>Staff</option>
+        <option {% if cat=='Associate' %}selected{% endif %}>Associate</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-primary" onclick="applyFilter()">🔍 Search</button>
+      <button class="btn btn-ghost" onclick="clearFilter()">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Summary + Export -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+  <div style="display:flex;gap:12px;align-items:center;">
+    <span style="font-size:14px;font-weight:700;">Total Absent Records: <span style="color:#ef4444;">{{ total_absent }}</span></span>
+    <span style="font-size:12px;color:var(--muted);">{{ from_date or 'All' }} → {{ to_date or 'All' }}</span>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-ghost btn-sm" onclick="toggleView('detail')" id="btn_detail" style="color:#0096dc;">📋 Detail</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleView('summary')" id="btn_summary">👤 Employee Summary</button>
+    <a id="exportLink" href="/reports/absent-export?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&cat={{ cat }}&emp={{ emp_search }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export Excel</a>
+  </div>
+</div>
+
+<!-- Detail View -->
+<div id="view_detail" class="table-card" style="overflow-x:auto;">
+  <input class="form-control" id="tblSearch" placeholder="🔍 Filter table..." oninput="filterTable()" style="margin:10px;width:calc(100% - 20px);">
+  <table id="tblAbsent" style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;cursor:pointer;" onclick="sortTable('tblAbsent',0)" data-sort-col="0">Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="text-align:left;padding:8px;cursor:pointer;" onclick="sortTable('tblAbsent',1)" data-sort-col="1">Code<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="text-align:left;padding:8px;cursor:pointer;" onclick="sortTable('tblAbsent',2)" data-sort-col="2">Name<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="padding:8px;cursor:pointer;" onclick="sortTable('tblAbsent',3)" data-sort-col="3">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="padding:8px;cursor:pointer;" onclick="sortTable('tblAbsent',4)" data-sort-col="4">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+    </tr></thead>
+    <tbody id="detailTbody">
+      {% for r in rows %}
+      <tr class="data-row" style="border-bottom:1px solid var(--border);"
+          data-code="{{ r.emp_code|lower }}" data-name="{{ r.emp_name|lower }}" data-dept="{{ (r.department or '')|lower }}" data-cat="{{ r.category|lower }}">
+        <td style="padding:7px 12px;font-weight:600;color:#ef4444;">{{ r.att_date }}</td>
+        <td style="padding:7px;color:#0096dc;font-weight:600;">{{ r.emp_code }}</td>
+        <td style="padding:7px;font-weight:600;">{{ r.emp_name }}</td>
+        <td style="padding:7px;text-align:center;font-size:11px;color:var(--muted);">{{ r.department or '—' }}</td>
+        <td style="padding:7px;text-align:center;">
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;{% if r.category=='Staff' %}background:rgba(0,150,220,.15);color:#0096dc{% else %}background:rgba(16,185,129,.15);color:#10b981{% endif %}">{{ r.category }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not rows %}<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted);">No absent records found</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Summary View -->
+<div id="view_summary" class="table-card" style="overflow-x:auto;display:none;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Code</th>
+      <th style="text-align:left;padding:8px;">Name</th>
+      <th style="padding:8px;">Department</th>
+      <th style="padding:8px;">Category</th>
+      <th style="padding:8px;color:#ef4444;">Absent Days</th>
+      <th style="text-align:left;padding:8px;">Dates</th>
+    </tr></thead>
+    <tbody>
+      {% for ec, emp in emp_summary.items() %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 12px;color:#0096dc;font-weight:600;">{{ ec }}</td>
+        <td style="padding:7px;font-weight:600;">{{ emp.emp_name }}</td>
+        <td style="padding:7px;font-size:11px;color:var(--muted);">{{ emp.department or '—' }}</td>
+        <td style="padding:7px;text-align:center;">
+          <span style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;{% if emp.category=='Staff' %}background:rgba(0,150,220,.15);color:#0096dc{% else %}background:rgba(16,185,129,.15);color:#10b981{% endif %}">{{ emp.category }}</span>
+        </td>
+        <td style="padding:7px;text-align:center;font-weight:800;color:#ef4444;font-size:16px;">{{ emp.count }}</td>
+        <td style="padding:7px;font-size:11px;color:var(--muted);">{{ emp.dates | join(', ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function applyFilter(){
+  const p=new URLSearchParams({
+    from_date:document.getElementById("f_from").value,
+    to_date:document.getElementById("f_to").value,
+    emp:document.getElementById("f_emp").value,
+    dept:document.getElementById("f_dept").value,
+    cat:document.getElementById("f_cat").value
+  });
+  location.href="/reports/absent-report?"+p.toString();
+}
+function clearFilter(){location.href="/reports/absent-report";}
+
+function filterTable(){
+  const q=document.getElementById("tblSearch").value.toLowerCase();
+  document.querySelectorAll(".data-row").forEach(tr=>{
+    const show=!q||tr.dataset.code?.includes(q)||tr.dataset.name?.includes(q)||tr.dataset.dept?.includes(q);
+    tr.style.display=show?"":"none";
+  });
+}
+
+function toggleView(v){
+  document.getElementById("view_detail").style.display=v==="detail"?"block":"none";
+  document.getElementById("view_summary").style.display=v==="summary"?"block":"none";
+  document.getElementById("btn_detail").style.color=v==="detail"?"#0096dc":"var(--muted)";
+  document.getElementById("btn_summary").style.color=v==="summary"?"#0096dc":"var(--muted)";
+}
+</script>
+{% endblock %}

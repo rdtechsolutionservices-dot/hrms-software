@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Exit Management{% endblock %}
+{% block page_title %}🚪 Exit Management{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <button class="btn btn-danger" onclick="openModal('exitModal')">🚪 Process Exit</button>
+  <span style="font-size:13px;color:var(--muted);margin-left:auto;">{{ exited|length }} exited employees</span>
+</div>
+<div class="table-card">
+  <div class="table-header"><span class="table-title">Exited Employees</span></div>
+  <table id="tblExit"><thead><tr><th style="cursor:pointer;" onclick="sortTable('tblExit',0)" data-sort-col="0">Code<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',1)" data-sort-col="1">Name<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',2)" data-sort-col="2">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',3)" data-sort-col="3">Exit Type<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',4)" data-sort-col="4">Resignation Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',5)" data-sort-col="5">Last Working Day<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',6)" data-sort-col="6">Reason<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblExit',7)" data-sort-col="7">F&F Settlement<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th></tr></thead>
+  <tbody>{% for e in exited %}<tr>
+    <td style="color:#0096dc;font-weight:600">{{ e.emp_code }}</td>
+    <td><div class="emp-name">{{ e.emp_name }}</div><div class="emp-id">{{ e.designation }}</div></td>
+    <td>{{ e.department or '—' }}</td>
+    <td><span class="badge badge-inactive">{{ e.status }}</span></td>
+    <td>{{ e.resignation_date or '—' }}</td>
+    <td>{{ e.last_working_day or '—' }}</td>
+    <td style="font-size:12px;color:var(--muted)">{{ e.exit_reason or '—' }}</td>
+    <td><a href="/exit/ff/{{ e.emp_code }}" class="btn btn-ghost btn-sm">📋 F&F</a></td>
+  </tr>{% endfor %}
+  {% if not exited %}<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No exit records yet</td></tr>{% endif %}
+  </tbody></table>
+</div>
+<!-- Exit Modal -->
+<div class="modal-overlay" id="exitModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🚪 Process Employee Exit</span><button class="modal-close" onclick="closeModal('exitModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Employee Code</label><input class="form-control" id="ex_code" placeholder="VPL001" onblur="loadExitEmp()"></div>
+      <div id="ex_name_show" style="font-size:13px;color:var(--accent2);margin-bottom:12px;display:none;"></div>
+      <div class="form-group"><label class="form-label">Exit Type</label><select class="form-select" id="ex_type"><option value="Resigned">Resigned</option><option value="Terminated">Terminated</option><option value="Retired">Retired</option><option value="Absconded">Absconded</option></select></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Resignation Date</label><input class="form-control" type="date" id="ex_res_date"></div>
+        <div class="form-group"><label class="form-label">Last Working Day</label><input class="form-control" type="date" id="ex_lwd"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Reason</label><input class="form-control" id="ex_reason" placeholder="Better opportunity, Personal reasons..."></div>
+      <div id="ex_result" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('exitModal')">Cancel</button><button class="btn btn-danger" onclick="processExit()">🚪 Confirm Exit</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+async function loadExitEmp(){
+  const code=document.getElementById("ex_code").value.trim();if(!code)return;
+  const j=await api(`/employees/get/${code}`);
+  if(j.emp_code){document.getElementById("ex_name_show").style.display="block";document.getElementById("ex_name_show").textContent=`Employee: ${j.emp_name} | ${j.department} | ${j.category}`;}
+}
+async function processExit(){
+  const code=document.getElementById("ex_code").value.trim();
+  if(!code){showToast("Enter employee code!","error");return;}
+  const lwd=document.getElementById("ex_lwd").value;
+  if(!lwd){showToast("Enter last working day!","error");return;}
+  const r=await api("/exit/process","POST",{emp_code:code,exit_type:document.getElementById("ex_type").value,resignation_date:document.getElementById("ex_res_date").value,last_working_day:lwd,reason:document.getElementById("ex_reason").value});
+  const div=document.getElementById("ex_result");
+  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ Exit processed! Years of service: ${r.years_of_service} | Gratuity: ₹${r.gratuity.toLocaleString("en-IN")}</div>`;setTimeout(()=>{closeModal("exitModal");location.reload();},2500);}
+  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+</script>{% endblock %}

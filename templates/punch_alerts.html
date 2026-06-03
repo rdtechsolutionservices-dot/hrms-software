@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Punch Alerts{% endblock %}
+{% block page_title %}🚨 Punch Alerts — Last 3 Days{% endblock %}
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px;">
+  <div class="stat-card sc-red"><div class="stat-icon">🚨</div><div class="stat-value">{{ total }}</div><div class="stat-label">Total Alerts</div></div>
+  <div class="stat-card sc-yellow"><div class="stat-icon">⏳</div><div class="stat-value">{{ pending }}</div><div class="stat-label">Pending</div></div>
+  <div class="stat-card sc-blue"><div class="stat-icon">⬇️</div><div class="stat-value">{{ pin_miss }}</div><div class="stat-label">Punch IN Missing</div></div>
+  <div class="stat-card sc-purple"><div class="stat-icon">⬆️</div><div class="stat-value">{{ pout_miss }}</div><div class="stat-label">Punch OUT Missing</div></div>
+  <div class="stat-card sc-red" style="border-color:rgba(245,158,11,.3);"><div class="stat-icon">❓</div><div class="stat-value">{{ no_punch }}</div><div class="stat-label">No Punch — Verify</div></div>
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-ghost" onclick="refreshAlerts()">🔄 Refresh Alerts</button>
+  <button class="btn btn-success" onclick="resolveAll()">✅ Mark All Resolved</button>
+  <div style="display:flex;gap:6px;margin-left:auto;">
+    <button class="btn btn-ghost btn-sm filter-btn active" onclick="filterAlerts('all',this)">All</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterAlerts('PUNCH_IN_MISSING',this)" style="color:var(--red);">⬇️ IN Missing</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterAlerts('PUNCH_OUT_MISSING',this)" style="color:#a78bfa;">⬆️ OUT Missing</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterAlerts('Pending',this)" style="color:var(--yellow);">⏳ Pending</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterAlerts('Resolved',this)" style="color:var(--green);">✅ Resolved</button>
+    <button class="btn btn-ghost btn-sm filter-btn" onclick="filterAlerts('No Punch — Verify Attendance',this)" style="color:#f59e0b;">❓ No Punch</button>
+  </div>
+</div>
+
+<div id="refreshRes" style="display:none" class="alert alert-success"></div>
+
+{% if not alerts %}
+<div style="text-align:center;padding:60px;color:var(--muted);">
+  <div style="font-size:48px;margin-bottom:12px;">✅</div>
+  <div style="font-weight:600;font-size:16px;">No punch alerts for last 3 days!</div>
+  <div style="font-size:13px;margin-top:6px;">All employees have valid attendance</div>
+</div>
+{% else %}
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">Punch Alerts</span>
+    <span style="font-size:12px;color:var(--muted)">Last 3 days · {{ alerts|length }} alerts</span>
+  </div>
+  <table id="alertsTable">
+    <thead><tr>
+      <th style="cursor:pointer;" onclick="sortTable('alertsTable',0)" data-sort-col="0">Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',1)" data-sort-col="1">Employee<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',2)" data-sort-col="2">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',3)" data-sort-col="3">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th style="cursor:pointer;" onclick="sortTable('alertsTable',4)" data-sort-col="4">Shift<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',5)" data-sort-col="5">Alert Type<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',6)" data-sort-col="6">Details<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',7)" data-sort-col="7">Status<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('alertsTable',8)" data-sort-col="8">Action<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+    </tr></thead>
+    <tbody>
+      {% for a in alerts %}
+      <tr class="alert-row" data-type="{{ a.alert_type }}" data-status="{{ a.status }}" id="row_{{ a.id }}">
+        <td style="font-weight:600;font-size:13px;color:{% if a.alert_date == today %}#0096dc{% else %}var(--text){% endif %}">
+          {{ a.alert_date }}
+          {% if a.alert_date == today %}<span style="font-size:10px;color:#0096dc;display:block;">Today</span>{% endif %}
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">{{ a.emp_name }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ a.emp_code }}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted)">{{ a.department or '—' }}</td>
+        <td><span class="badge badge-{{ a.category.lower() }}" style="font-size:10px">{{ a.category[:4] }}</span></td>
+        <td style="font-size:12px;">
+          {% if a.emp_shift %}
+          <div style="font-weight:600;color:{% if a.category=='Staff' %}#0096dc{% else %}var(--yellow){% endif %}">{{ a.emp_shift }}</div>
+          <div style="font-size:10px;color:var(--muted)">{{ a.start_time }} – {{ a.end_time }}</div>
+          {% else %}
+          <span style="color:var(--red);font-size:11px">⚠️ No shift</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if a.alert_type == 'Missing Punch In' %}
+          <span style="background:rgba(244,63,94,.15);color:var(--red);border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;">⬇️ Punch IN Missing</span>
+          {% elif a.alert_type == 'Missing Punch Out' %}
+          <span style="background:rgba(139,92,246,.15);color:#a78bfa;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;">⬆️ Punch OUT Missing</span>
+          {% else %}
+          <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;">❓ No Punch — Verify</span>
+          {% endif %}
+        </td>
+        <td style="font-size:11px;color:var(--muted);max-width:200px;">{{ a.details or '—' }}</td>
+        <td>
+          {% if a.status == 'Pending' %}
+          <span style="background:rgba(245,158,11,.15);color:var(--yellow);border-radius:6px;padding:2px 8px;font-size:11px;">⏳ Pending</span>
+          {% else %}
+          <span style="background:rgba(16,185,129,.15);color:var(--green);border-radius:6px;padding:2px 8px;font-size:11px;">✅ Resolved</span>
+          {% if a.resolved_by %}<div style="font-size:10px;color:var(--muted);margin-top:2px;">by {{ a.resolved_by }}</div>{% endif %}
+          {% endif %}
+        </td>
+        <td>
+          {% if a.status == 'Pending' %}
+          <div style="display:flex;gap:4px;">
+            <button class="btn btn-success btn-sm" style="font-size:11px;padding:4px 8px;" onclick="resolveAlert({{ a.id }})">✅ Resolve</button>
+            <a href="/attendance/manual-add?emp_code={{ a.emp_code }}&date={{ a.alert_date }}" class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 8px;">✏️ Fix</a>
+          </div>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script>
+function filterAlerts(type,btn){
+  document.querySelectorAll(".filter-btn").forEach(b=>{b.classList.remove("active");b.style.background="";});
+  btn.classList.add("active");
+  document.querySelectorAll(".alert-row").forEach(row=>{
+    if(type==="all") row.style.display="";
+    else if(type==="Pending"||type==="Resolved") row.style.display=row.dataset.status===type?"":"none";
+    else row.style.display=row.dataset.type===type?"":"none";
+  });
+}
+async function resolveAlert(id){
+  const r=await api(`/punch-alerts/resolve/${id}`,"POST",{});
+  if(r.success){
+    const row=document.getElementById(`row_${id}`);
+    if(row) row.style.opacity="0.4";
+    showToast("Resolved!");
+  }
+}
+async function resolveAll(){
+  if(!confirm("Mark all pending alerts as resolved?"))return;
+  const r=await api("/punch-alerts/resolve-all","POST",{});
+  if(r.success){showToast("✅ All resolved!");setTimeout(()=>location.reload(),1500);}
+}
+async function refreshAlerts(){
+  location.reload();
+}
+</script>{% endblock %}

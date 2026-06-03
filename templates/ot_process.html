@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}OT Process{% endblock %}
+{% block page_title %}⏱️ OT Process{% endblock %}
+{% block content %}
+
+<!-- Month Selector -->
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;background:var(--card);border-radius:12px;padding:12px 16px;flex-wrap:wrap;">
+  <select id="selM" class="form-select" style="width:140px;" onchange="reload()">
+    {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+  </select>
+  <select id="selY" class="form-select" style="width:100px;" onchange="reload()">
+    {% for y in range(2023,2029) %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+  </select>
+  <a href="/payroll/ot-export/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#10b981;">📥 Export Excel</a>
+  <div style="margin-left:auto;font-size:12px;color:var(--muted);">
+    OT Rate: {% if ot_rate %}(Gross ÷ 208) × 1.3{% else %}Not configured{% endif %}
+  </div>
+</div>
+
+<!-- Summary -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.8;">Total Employees with OT</div>
+    <div style="font-size:28px;font-weight:800;">{{ ot_data|length }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.8;">Total OT Hours</div>
+    <div style="font-size:28px;font-weight:800;">
+      {% set total_min = ot_data|sum(attribute='total_ot_min') %}
+      {{ (total_min//60)|int }}:{{ '%02d'|format(total_min%60) }}
+    </div>
+  </div>
+  <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.8;">Total OT Amount</div>
+    <div style="font-size:24px;font-weight:800;">₹{{ "{:,.0f}".format(total_ot) }}</div>
+  </div>
+</div>
+
+<!-- OT Table -->
+<div class="table-card" style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Code</th>
+      <th style="text-align:left;padding:8px;">Name</th>
+      <th style="padding:8px;">Dept</th>
+      <th style="padding:8px;">Gross Base</th>
+      <th style="padding:8px;">OT Hours</th>
+      <th style="padding:8px;">WOP Days</th>
+      <th style="padding:8px;">HP Days</th>
+      <th style="padding:8px;">ESIC (0.75%)</th>
+      <th style="padding:8px;color:#10b981;font-weight:800;">Net OT</th>
+    </tr></thead>
+    <tbody>
+      {% for r in ot_data %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 12px;color:#0096dc;font-weight:600;">{{ r.emp_code }}</td>
+        <td style="padding:7px;font-weight:600;">{{ r.emp_name }}</td>
+        <td style="padding:7px;font-size:11px;color:var(--muted);">{{ r.department }}</td>
+        <td style="padding:7px;text-align:right;">₹{{ "{:,.0f}".format(r.gross_base) }}</td>
+        <td style="padding:7px;text-align:center;font-weight:700;color:#f59e0b;">{{ r.ot_hours }}</td>
+        <td style="padding:7px;text-align:center;">{{ r.wop_days or '—' }}</td>
+        <td style="padding:7px;text-align:center;">{{ r.hp_days or '—' }}</td>
+        <td style="padding:7px;text-align:right;color:#ef4444;">{% if r.esic_on_ot %}₹{{ "{:,.2f}".format(r.esic_on_ot) }}{% else %}—{% endif %}</td>
+        <td style="padding:7px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.2f}".format(r.ot_net) }}</td>
+      </tr>
+      {% endfor %}
+      {% if not ot_data %}
+      <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted);">No OT records for {{ month_name }} {{ year }}</td></tr>
+      {% endif %}
+    </tbody>
+    {% if ot_data %}
+    <tfoot>
+      <tr style="border-top:2px solid var(--border);background:var(--surface);">
+        <td colspan="8" style="padding:8px 12px;font-weight:700;">TOTAL</td>
+        <td style="padding:8px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.2f}".format(total_ot) }}</td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+<div style="margin-top:14px;background:rgba(0,82,204,.08);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);">
+  <strong style="color:#0096dc;">💡 OT Formula:</strong>
+  (Actual Gross ÷ 208) × 1.3 × OT Hours<br>
+  <strong>ESIC:</strong> 0.75% deducted from OT if Actual Gross ≤ ₹21,000<br><strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function reload(){
+  location.href=`/payroll/ot-process?month=${document.getElementById("selM").value}&year=${document.getElementById("selY").value}`;
+}
+</script>
+{% endblock %}
