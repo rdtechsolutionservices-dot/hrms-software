@@ -175,7 +175,7 @@
             <div id="admsSettingResult"></div>
             <div style="background:var(--surface);border-radius:8px;padding:10px;font-size:11px;line-height:2;">
               <strong>Machine me daalo:</strong><br>
-              Server Address: <strong style="color:#0096dc;" id="adms_display_ip">{{ adms_server_address or window.location.hostname }}</strong><br>
+              Server Address: <strong style="color:#0096dc;" id="adms_display_ip">{{ adms_server_address if adms_server_address else "—" }}</strong><br>
               Server Port: <strong style="color:#0096dc;" id="adms_display_port">{{ adms_server_port }}</strong><br>
               Server Mode: <strong style="color:#0096dc;">ADMS</strong>
             </div>

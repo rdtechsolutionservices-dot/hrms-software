@@ -12606,11 +12606,19 @@ def machines_list():
     from datetime import datetime as _dt_m, timedelta as _td_m
     conn = get_db()
     machines_raw = conn.execute("SELECT * FROM machines ORDER BY machine_name").fetchall()
-    # Get ADMS server address from settings
-    _adms_addr = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_address'").fetchone()
-    _adms_port = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_port'").fetchone()
-    adms_server_address = (_adms_addr["value"] if _adms_addr and _adms_addr["value"] else "")
-    adms_server_port    = (_adms_port["value"] if _adms_port and _adms_port["value"] else "5000")
+    # Get ADMS server address from settings — safe fallback
+    adms_server_address = ""
+    adms_server_port    = "5000"
+    try:
+        conn.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT)")
+        conn.execute("INSERT OR IGNORE INTO app_settings (key,value) VALUES ('adms_server_address','')"  )
+        conn.execute("INSERT OR IGNORE INTO app_settings (key,value) VALUES ('adms_server_port','5000')")
+        conn.commit()
+        _adms_addr = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_address'").fetchone()
+        _adms_port = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_port'").fetchone()
+        adms_server_address = (_adms_addr["value"] if _adms_addr and _adms_addr["value"] else "")
+        adms_server_port    = (_adms_port["value"] if _adms_port and _adms_port["value"] else "5000")
+    except: pass
     conn.close()
     # Compute adms_online — True if adms_last_seen within last 20 minutes
     machines = []
