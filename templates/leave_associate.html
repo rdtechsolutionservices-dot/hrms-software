@@ -29,7 +29,7 @@
     onclick="toggleLALock()">{% if is_locked %}🔒 Locked{% else %}🔓 Lock Month{% endif %}</button>
   {% endif %}
   <div style="margin-left:auto;font-size:11px;color:var(--muted);">
-    Default: All OT = Unauthorized (single rate) &nbsp;|&nbsp; ✅ Approve → Authorized OT (1.3× rate)
+    OT calculated at rate from OT Rate Master &nbsp;|&nbsp; ESIC: Emp 0.75% + Employer 3.25% deducted on OT amount
   </div>
 </div>{% if is_locked %}<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#ef4444;font-weight:600;">🔒 Month Locked — Approvals frozen</div>{% endif %}
 
@@ -40,12 +40,12 @@
     <div style="font-size:22px;font-weight:800;">{{ summary.total_emps }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#374151,#4b5563);border-radius:10px;padding:12px;color:#fff;">
-    <div style="font-size:10px;opacity:.8;">Total Unauthorized OT</div>
-    <div style="font-size:22px;font-weight:800;">{{ summary.total_unauth_ot }} <span style="font-size:12px;">hrs</span></div>
+    <div style="font-size:10px;opacity:.8;">Total OT Hours</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_actual_ot }} <span style="font-size:12px;">hrs</span></div>
   </div>
   <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;padding:12px;color:#fff;">
-    <div style="font-size:10px;opacity:.8;">Total Authorized OT</div>
-    <div style="font-size:22px;font-weight:800;">{{ summary.total_approved_ot }} <span style="font-size:12px;">hrs</span></div>
+    <div style="font-size:10px;opacity:.8;">Total OT Gross</div>
+    <div style="font-size:16px;font-weight:800;">₹{{ "{:,.0f}".format(summary.total_ot_gross) }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:10px;padding:12px;color:#fff;">
     <div style="font-size:10px;opacity:.8;">Approved</div>
@@ -118,29 +118,21 @@
       <div style="font-size:9px;color:var(--muted);">Actual OT Hrs</div>
       <div style="font-weight:700;font-size:12px;color:#7c3aed;">{{ emp.actual_ot_hrs }}</div>
     </div>
-    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Unauth Days</div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_days }}</div>
-    </div>
-    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Unauth OT Hrs<br><span style="font-size:8px;">8×{{ emp.unauth_days }}</span></div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_ot_hrs }}</div>
+    <div style="text-align:center;background:rgba(124,58,237,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">OT Rate ×</div>
+      <div style="font-weight:700;font-size:12px;color:#7c3aed;">{{ emp.ot_multiplier }}</div>
     </div>
     <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Approved OT Hrs<br><span style="font-size:8px;">Actual−Unauth</span></div>
-      <div style="font-weight:700;font-size:12px;color:#10b981;">{{ emp.approved_ot_hrs }}</div>
-    </div>
-    <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Approved OT Pay</div>
-      <div style="font-weight:700;font-size:12px;color:#10b981;">₹{{ "{:,.0f}".format(emp.approved_ot_pay) }}</div>
-    </div>
-    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Unauth OT Pay</div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.unauth_ot_pay) }}</div>
+      <div style="font-size:9px;color:var(--muted);">OT Gross</div>
+      <div style="font-weight:700;font-size:12px;color:#10b981;">₹{{ "{:,.0f}".format(emp.ot_gross) }}</div>
     </div>
     <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">ESIC (0.75%)</div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_on_ot) }}</div>
+      <div style="font-size:9px;color:var(--muted);">Emp ESIC (0.75%)</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_ee) }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Employer ESIC (3.25%)</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_er) }}</div>
     </div>
     <div style="text-align:center;background:linear-gradient(135deg,rgba(0,82,204,.2),rgba(0,150,220,.1));border-radius:8px;padding:8px 4px;border:1px solid rgba(0,150,220,.3);">
       <div style="font-size:9px;color:var(--muted);">Net OT Pay</div>

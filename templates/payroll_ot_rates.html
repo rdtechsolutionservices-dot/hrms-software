@@ -35,7 +35,7 @@
         <td style="text-align:center;padding:10px;">{{ '₹%.2f'|format(r.fixed_rate) if r.fixed_rate else '—' }}</td>
         <td style="padding:10px;font-size:12px;color:var(--muted);">{{ r.description or '—' }}</td>
         <td style="text-align:center;padding:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="editOT({{ r|tojson|e }})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editOT({{ r|tojson }})">✏️</button>
         </td>
       </tr>
       {% endfor %}

@@ -47,7 +47,7 @@
       <th style="padding:8px;">OT Hours</th>
       <th style="padding:8px;">WOP Days</th>
       <th style="padding:8px;">HP Days</th>
-      <th style="padding:8px;">ESIC (0.75%)</th>
+      <th style="padding:8px;">Emp ESIC (0.75%)</th><th style="padding:8px;">Employer ESIC (3.25%)</th>
       <th style="padding:8px;color:#10b981;font-weight:800;">Net OT</th>
     </tr></thead>
     <tbody>
@@ -61,6 +61,7 @@
         <td style="padding:7px;text-align:center;">{{ r.wop_days or '—' }}</td>
         <td style="padding:7px;text-align:center;">{{ r.hp_days or '—' }}</td>
         <td style="padding:7px;text-align:right;color:#ef4444;">{% if r.esic_on_ot %}₹{{ "{:,.2f}".format(r.esic_on_ot) }}{% else %}—{% endif %}</td>
+        <td style="padding:7px;text-align:right;color:#ef4444;">{% if r.esic_er %}₹{{ "{:,.2f}".format(r.esic_er) }}{% else %}—{% endif %}</td>
         <td style="padding:7px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.2f}".format(r.ot_net) }}</td>
       </tr>
       {% endfor %}
@@ -82,7 +83,7 @@
 <div style="margin-top:14px;background:rgba(0,82,204,.08);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);">
   <strong style="color:#0096dc;">💡 OT Formula:</strong>
   (Actual Gross ÷ 208) × 1.3 × OT Hours<br>
-  <strong>ESIC:</strong> 0.75% deducted from OT if Actual Gross ≤ ₹21,000<br><strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
+  <strong>ESIC:</strong> Employee 0.75% (deducted) + Employer 3.25% — on OT if Actual Gross ≤ ₹21,000<br><strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
 </div>
 
 {% endblock %}

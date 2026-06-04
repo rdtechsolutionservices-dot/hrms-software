@@ -67,7 +67,7 @@ def otfmt_filter(minutes):
     return f"{m//60:02d}:{m%60:02d}"
 DB = "vpl_payroll.db"
 
-COMPANY = "Vijayshri Packaging Ltd."
+COMPANY = "RD HRMS & Payroll"
 MONTHS  = ["January","February","March","April","May","June",
            "July","August","September","October","November","December"]
 
@@ -356,7 +356,7 @@ def init_db():
 
     c.execute("""CREATE TABLE IF NOT EXISTS payroll_settings (
         id INTEGER PRIMARY KEY DEFAULT 1,
-        company_name TEXT DEFAULT 'Vijayshri Packaging Ltd.',
+        company_name TEXT DEFAULT 'RD HRMS & Payroll',
         pf_employer_pct REAL DEFAULT 12.0,
         pf_employee_pct REAL DEFAULT 12.0,
         esic_employer_pct REAL DEFAULT 3.25,
@@ -467,7 +467,7 @@ def init_db():
         smtp_port INTEGER DEFAULT 587,
         email TEXT DEFAULT '',
         password TEXT DEFAULT '',
-        sender_name TEXT DEFAULT 'Vijayshri Packaging Ltd.',
+        sender_name TEXT DEFAULT 'RD HRMS & Payroll',
         is_active INTEGER DEFAULT 0)""")
     c.execute("""CREATE TABLE IF NOT EXISTS email_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -700,7 +700,7 @@ def init_db():
     # Company settings - logo etc
     c.execute("""CREATE TABLE IF NOT EXISTS company_settings (
         id INTEGER PRIMARY KEY,
-        company_name TEXT DEFAULT 'Vijayshri Packaging Ltd.',
+        company_name TEXT DEFAULT 'RD HRMS & Payroll',
         logo BLOB,
         logo_filename TEXT,
         updated_on TEXT)""")
@@ -1153,7 +1153,7 @@ def init_db():
     # Default machine
     # No default machine — user will add manually
 
-    # Pre-load Vijayshri Packaging company shifts (eSSL exact fields)
+    # Pre-load company shifts (eSSL exact fields)
     c.execute("SELECT COUNT(*) FROM shifts")
     if c.fetchone()[0] == 0:
         # name,code,cat,start,end,is_next_day,wh,grace,ot_formula,punch_begin_before,ai_start,ai_end
@@ -3595,20 +3595,31 @@ def payroll_trend_api():
         labels = [f"{mnames[(int(r['mn']) or 1)-1]} {r['yr']}" for r in ot_rows]
         if metric == "ot_hours":
             values = [round(float(r["total_ot"] or 0)/60, 1) for r in ot_rows]
-        else:  # ot_amount from salary_records — conn still open
+        else:  # ot_amount — from associate_ot_snapshot (OT Payment module)
+            try:
+                snap_rows = conn.execute("""
+                    SELECT month as mn, year as yr,
+                           SUM(COALESCE(net_ot_pay,0)) as total_ot_amt
+                    FROM associate_ot_snapshot
+                    WHERE net_ot_pay>0
+                    GROUP BY year, month
+                    ORDER BY year DESC, month DESC LIMIT ?
+                """, [months_back]).fetchall()
+                snap_rows = list(reversed(snap_rows))
+                snap_map = {f"{mnames[(r['mn'] or 1)-1]} {r['yr']}": float(r['total_ot_amt'] or 0) for r in snap_rows}
+            except: snap_map = {}
             sal_rows = conn.execute(f"""
                 SELECT s.month as mn, s.year as yr,
-                       SUM(COALESCE(s.ot_amount,0)) as total_ot_amt,
-                       COUNT(DISTINCT s.emp_code) as emp_c
+                       SUM(COALESCE(s.ot_amount,0)) as total_ot_amt
                 FROM salary_records s JOIN employees e ON s.emp_code=e.emp_code
                 WHERE s.ot_amount>0{extra}
                 GROUP BY s.year, s.month
                 ORDER BY s.year DESC, s.month DESC LIMIT ?
             """, params+[months_back]).fetchall()
             sal_rows = list(reversed(sal_rows))
-            sal_map = {f"{mnames[(r['mn'] or 1)-1]} {r['yr']}": float(r["total_ot_amt"] or 0)
-                       for r in sal_rows}
-            values = [round(sal_map.get(lbl, 0), 2) for lbl in labels]
+            sal_map = {f"{mnames[(r['mn'] or 1)-1]} {r['yr']}": float(r['total_ot_amt'] or 0) for r in sal_rows}
+            # Prefer OT Payment snapshot; supplement with salary_records
+            values = [round(snap_map.get(lbl, sal_map.get(lbl, 0)), 2) for lbl in labels]
         conn.close()
         emp_counts = [r["emp_count"] for r in ot_rows]
         return jsonify({"success":True,"labels":labels,"values":values,
@@ -6251,7 +6262,7 @@ def payroll_migrate():
 
     conn.execute("""CREATE TABLE IF NOT EXISTS payroll_settings (
         id INTEGER PRIMARY KEY DEFAULT 1,
-        company_name TEXT DEFAULT 'Vijayshri Packaging Ltd.',
+        company_name TEXT DEFAULT 'RD HRMS & Payroll',
         pf_employer_pct REAL DEFAULT 12.0,
         pf_employee_pct REAL DEFAULT 12.0,
         esic_employer_pct REAL DEFAULT 3.25,
@@ -6379,32 +6390,27 @@ def ot_process_page():
         gross_base = float(r["basic"] or 0) + float(r["hra"] or 0) + float(r["special_allowance"] or 0)
         ot_hrs = round((r["total_ot_min"] or 0) / 60, 2)
 
-        if ot_rate:
-            rt = ot_rate["rate_type"]
-            if rt == "gross_ot":
-                ot_amount = round((gross_base / 208) * 1.3 * ot_hrs, 2)
-            elif rt == "gross_single_ot":
-                ot_amount = round((gross_base / 208) * ot_hrs, 2)
-            elif rt == "formula":
-                ot_amount = round((float(r["basic"] or 0) / 26 / 8.5) * ot_hrs, 2)
-            else:
-                ot_amount = 0
-        else:
-            ot_amount = round((gross_base / 208) * 1.3 * ot_hrs, 2)
+        # Single rate from master multiplier
+        ot_multiplier = float(ot_rate["multiplier"]) if ot_rate else 1.3
+        ot_amount = round((gross_base / 208) * ot_multiplier * ot_hrs, 2)
 
-        # ESIC on OT — deduct if gross_base <= 21000
+        # ESIC on OT — Employee 0.75%, Employer 3.25%
         esic_on_ot = 0
+        esic_er    = 0
         if gross_base <= 21000 and ot_amount > 0:
-            esic_on_ot = round(ot_amount * 0.0075, 2)
+            esic_on_ot = round(ot_amount * 0.0075, 2)   # Employee
+            esic_er    = round(ot_amount * 0.0325, 2)   # Employer
 
         ot_net = round(ot_amount - esic_on_ot, 2)
 
         row = dict(r)
-        row["ot_hours"]    = ot_hrs
-        row["ot_amount"]   = ot_amount
-        row["esic_on_ot"]  = esic_on_ot
-        row["ot_net"]      = ot_net
-        row["gross_base"]  = gross_base
+        row["ot_hours"]      = ot_hrs
+        row["ot_amount"]     = ot_amount
+        row["esic_on_ot"]    = esic_on_ot
+        row["esic_er"]       = esic_er
+        row["ot_net"]        = ot_net
+        row["gross_base"]    = gross_base
+        row["ot_multiplier"] = ot_multiplier
         total_ot_amount   += ot_net
         ot_data.append(row)
 
@@ -6629,71 +6635,58 @@ def leave_associate_page():
     """, (f"{m:02d}", str(y))).fetchall()
     ot_by_emp = {r["emp_code"]: (r["total_ot_min"] or 0) for r in ot_rows}
 
-    # Step 6: OT rates
-    ot_rate_normal = conn.execute(
-        "SELECT * FROM ot_rate_master WHERE category='Associate' AND rate_type='gross_ot' AND is_active=1 LIMIT 1"
+    # Step 6: OT rate — single rate from OT Rate Master (multiplier column)
+    ot_rate_rec = conn.execute(
+        "SELECT * FROM ot_rate_master WHERE category='Associate' AND is_active=1 LIMIT 1"
     ).fetchone()
-    ot_rate_single = conn.execute(
-        "SELECT * FROM ot_rate_master WHERE category='Associate' AND rate_type='gross_single_ot' AND is_active=1 LIMIT 1"
-    ).fetchone()
+    # multiplier from master (e.g. 1.3); fallback = 1.3
+    ot_multiplier = float(ot_rate_rec["multiplier"]) if ot_rate_rec else 1.3
 
-    # Step 7: Calculate OT impact per employee
-    #
-    # DEFAULT: All OT goes to Unauth bucket until approved
-    # Approved leave → that day's OT shifts to Approved bucket
-    #
-    # Logic:
-    #   unauth_days  = total_absent - approved  (pending + rejected = unauth)
-    #   unauth_ot    = min(actual_ot, 8 × unauth_days)
-    #   approved_ot  = actual_ot - unauth_ot  (can be 0 if actual < unauth)
-    #
-    # Case 1: actual=100, unauth=2 → unauth_ot=16, approved_ot=84
-    # Case 2: actual=50,  unauth=7 → unauth_ot=50 (cap at actual), approved_ot=0
-    #
-    # Pay: approved_ot × (Gross/208×1.3) + unauth_ot × (Gross/208)
+    # Step 7: Calculate OT per employee
+    #   OT Gross = (Gross / 208) x multiplier x OT Hrs
+    #   ESIC if gross_base <= 21000:
+    #     Employee  0.75%  deducted from OT Gross
+    #     Employer  3.25%  (shown separately, not deducted from employee pay)
+    #   Net OT = OT Gross - Employee ESIC
 
     emp_list = []
     total_ot_pay = 0
     for ec, emp in emp_map.items():
         gross_base = emp["basic"] + emp["hra"] + emp["special_allowance"]
 
-        # Unauth = not approved (pending + rejected)
-        unauth_days   = emp["pending"] + emp["rejected"]
-        approved_days = emp["approved"]
-
         actual_ot_min = ot_by_emp.get(ec, 0)
         actual_ot_hrs = round(actual_ot_min / 60, 2)
 
-        # Unauth OT = 8 × unauth_days, capped at actual OT
-        unauth_ot_raw = 8 * unauth_days
-        unauth_ot_hrs = min(actual_ot_hrs, unauth_ot_raw)
+        # OT Gross using single rate from master
+        hourly_rate = gross_base / 208 if gross_base > 0 else 0
+        ot_gross    = round(hourly_rate * ot_multiplier * actual_ot_hrs, 2)
 
-        # Approved OT = remainder after unauth
-        approved_ot_hrs = max(0, round(actual_ot_hrs - unauth_ot_hrs, 2))
+        # ESIC deductions on OT (only if gross <= 21000)
+        if gross_base <= 21000:
+            esic_ee = round(ot_gross * 0.0075, 2)   # Employee 0.75%
+            esic_er = round(ot_gross * 0.0325, 2)   # Employer 3.25%
+        else:
+            esic_ee = 0
+            esic_er = 0
 
-        # Pay rates
-        ot_rate_val    = (gross_base / 208) * 1.3   # OT rate
-        single_rate_val = gross_base / 208            # Single OT rate
-
-        approved_ot_pay = round(ot_rate_val * approved_ot_hrs, 2)
-        unauth_ot_pay   = round(single_rate_val * unauth_ot_hrs, 2)
-        net_ot_pay      = round(approved_ot_pay + unauth_ot_pay, 2)
-
-        # ESIC on OT
-        esic_on_ot   = round(net_ot_pay * 0.0075, 2) if gross_base <= 21000 else 0
-        net_ot_final = round(net_ot_pay - esic_on_ot, 2)
+        net_ot_final = round(ot_gross - esic_ee, 2)
 
         emp["gross_base"]       = gross_base
         emp["actual_ot_hrs"]    = actual_ot_hrs
-        emp["approved_ot_hrs"]  = approved_ot_hrs
-        emp["approved_ot_pay"]  = approved_ot_pay
-        emp["unauth_days"]      = unauth_days
-        emp["unauth_ot_hrs"]    = unauth_ot_hrs
-        emp["unauth_ot_pay"]    = unauth_ot_pay
-        emp["net_ot_hrs"]       = round(approved_ot_hrs + unauth_ot_hrs, 2)
-        emp["net_ot_pay"]       = net_ot_pay
-        emp["esic_on_ot"]       = esic_on_ot
+        emp["ot_multiplier"]    = ot_multiplier
+        emp["ot_gross"]         = ot_gross
+        emp["esic_ee"]          = esic_ee
+        emp["esic_er"]          = esic_er
         emp["net_ot_final"]     = net_ot_final
+        # backward-compat aliases used in template/export
+        emp["net_ot_hrs"]       = actual_ot_hrs
+        emp["net_ot_pay"]       = ot_gross
+        emp["esic_on_ot"]       = esic_ee
+        emp["approved_ot_hrs"]  = actual_ot_hrs
+        emp["approved_ot_pay"]  = ot_gross
+        emp["unauth_days"]      = 0
+        emp["unauth_ot_hrs"]    = 0
+        emp["unauth_ot_pay"]    = 0
         total_ot_pay += net_ot_final
         emp_list.append(emp)
 
@@ -6707,6 +6700,7 @@ def leave_associate_page():
         "total_rejected":    sum(e["rejected"]        for e in emp_list),
         "total_pending":     sum(e["pending"]         for e in emp_list),
         "total_ot_pay":      total_ot_pay,
+        "total_ot_gross":    round(sum(e["ot_gross"]        for e in emp_list), 2),
         "total_actual_ot":   round(sum(e["actual_ot_hrs"]   for e in emp_list), 2),
         "total_approved_ot": round(sum(e["approved_ot_hrs"] for e in emp_list), 2),
         "total_unauth_ot":   round(sum(e["unauth_ot_hrs"]   for e in emp_list), 2),
@@ -6868,20 +6862,22 @@ def leave_associate_save():
         """, (f"{m:02d}", str(y))).fetchall()
         ot_by_emp = {r["emp_code"]: (r["total_ot_min"] or 0) for r in ot_rows}
 
+        # Get OT multiplier from master
+        ot_rate_rec2 = conn.execute(
+            "SELECT multiplier FROM ot_rate_master WHERE category='Associate' AND is_active=1 LIMIT 1"
+        ).fetchone()
+        ot_mult2 = float(ot_rate_rec2["multiplier"]) if ot_rate_rec2 else 1.3
+
         saved = 0
         now = datetime.now().strftime("%Y-%m-%d %H:%M")
         by  = session.get("name","HR")
         for r in records:
             gb = float(r["basic"] or 0)+float(r["hra"] or 0)+float(r["special_allowance"] or 0)
             act_ot_hrs = round(ot_by_emp.get(r["emp_code"],0)/60, 2)
-            unauth_days = r["unauth"]
-            unauth_ot_hrs = min(act_ot_hrs, 8*unauth_days)
-            approved_ot_hrs = max(0, round(act_ot_hrs - unauth_ot_hrs, 2))
-            approved_pay = round((gb/208)*1.3*approved_ot_hrs, 2)
-            unauth_pay   = round((gb/208)*unauth_ot_hrs, 2)
-            net_pay = round(approved_pay+unauth_pay, 2)
-            esic = round(net_pay*0.0075,2) if gb<=21000 else 0
-            net_final = round(net_pay-esic, 2)
+            # Single rate from master
+            ot_gross = round((gb/208) * ot_mult2 * act_ot_hrs, 2)
+            esic    = round(ot_gross*0.0075,2) if gb<=21000 else 0
+            net_final = round(ot_gross-esic, 2)
 
             conn.execute("""INSERT OR REPLACE INTO associate_ot_snapshot
                 (emp_code,emp_name,department,month,year,
@@ -6891,10 +6887,10 @@ def leave_associate_save():
                  net_ot_pay,esic,net_ot_final,saved_on,saved_by)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["emp_code"],r["emp_name"],r["department"],m,y,
-                 r["total_absent"],r["approved"],unauth_days,
-                 act_ot_hrs,approved_ot_hrs,unauth_ot_hrs,
-                 gb,approved_pay,unauth_pay,
-                 net_pay,esic,net_final,now,by))
+                 r["total_absent"],r["approved"],0,
+                 act_ot_hrs,act_ot_hrs,0,
+                 gb,ot_gross,0,
+                 ot_gross,esic,net_final,now,by))
             saved += 1
         conn.commit()
         conn.close()
@@ -10091,7 +10087,7 @@ def export_leave_balance():
     thin = Border(*[Side(style="thin")]*4)
     # Title
     ws.merge_cells("A1:L1")
-    t = ws["A1"]; t.value = f"Vijayshri Packaging Ltd. — Leave Balance Report {year}"
+    t = ws["A1"]; t.value = f"RD HRMS & Payroll — Leave Balance Report {year}"
     t.font = Font(bold=True, size=13, color="003580"); t.alignment = Alignment(horizontal="center")
     ws.row_dimensions[1].height = 20
     # Headers
@@ -10366,16 +10362,16 @@ def send_birthday_wishes():
     
     if wish_type == "birthday":
         subject = f"🎂 Happy Birthday {name}!"
-        msg_text = f"🎂 *Happy Birthday {name}!* 🎉\n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— Vijayshri Packaging Ltd. Family"
+        msg_text = f"🎂 *Happy Birthday {name}!* 🎉\n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— RD HRMS & Payroll Family"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
             <div style="font-size:48px;">🎂</div>
             <h2 style="color:#0052cc;">Happy Birthday, {name}!</h2>
             <p>Wishing you a wonderful birthday filled with joy and happiness!</p>
-            <p style="color:#64748b;font-size:12px;">— Vijayshri Packaging Ltd. Family</p>
+            <p style="color:#64748b;font-size:12px;">— RD HRMS & Payroll Family</p>
         </div>{make_email_footer()}"""
     else:
         subject = f"🎊 Happy Work Anniversary {name}!"
-        msg_text = f"🎊 *Happy Work Anniversary {name}!* 🌟\n\nThank you for your valuable contributions!\n\n— Vijayshri Packaging Ltd."
+        msg_text = f"🎊 *Happy Work Anniversary {name}!* 🌟\n\nThank you for your valuable contributions!\n\n— RD HRMS & Payroll"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
             <div style="font-size:48px;">🎊</div>
             <h2 style="color:#0052cc;">Happy Work Anniversary, {name}!</h2>
@@ -10837,7 +10833,7 @@ def export_dept_history():
     # Title row
     ws.merge_cells("A1:H1")
     t = ws["A1"]
-    t.value = "Vijayshri Packaging Ltd. — Employee Department Change History Report"
+    t.value = "RD HRMS & Payroll — Employee Department Change History Report"
     t.font = Font(bold=True, size=13, color="003580")
     t.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 22
@@ -10931,7 +10927,7 @@ def exp_employees():
     hdrs   = base_hdrs   + [cf["field_label"] for cf in custom_fields_export]
     widths = base_widths + [16]*len(custom_fields_export)
     ws.merge_cells(f"A1:{openpyxl.utils.get_column_letter(len(hdrs))}1")
-    ws["A1"] = f"Vijayshri Packaging Ltd. — Employee List ({label})"
+    ws["A1"] = f"RD HRMS & Payroll — Employee List ({label})"
     ws["A1"].font = Font(bold=True,size=13,color="FFFFFF",name="Arial")
     ws["A1"].fill = PatternFill("solid",fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -11086,14 +11082,14 @@ def send_email(to_email, subject, html_body, email_type="general"):
 def make_email_header():
     return """
     <div style="background:linear-gradient(135deg,#0052cc,#0096dc);padding:24px;text-align:center;border-radius:12px 12px 0 0;">
-        <div style="font-size:22px;font-weight:800;color:white;font-family:Arial,sans-serif;">Vijayshri Packaging Ltd.</div>
+        <div style="font-size:22px;font-weight:800;color:white;font-family:Arial,sans-serif;">RD HRMS & Payroll</div>
         <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">An End-to-end Packaging Solution</div>
     </div>"""
 
 def make_email_footer():
     return """
     <div style="background:#f0f4f8;padding:16px;text-align:center;border-radius:0 0 12px 12px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;">
-        This is an automated email from Vijayshri Packaging Ltd. PayRoll System.<br>
+        This is an automated email from RD HRMS & Payroll PayRoll System.<br>
         Please do not reply to this email.
     </div>"""
 
@@ -11116,7 +11112,7 @@ def email_settings():
         conn.execute("""UPDATE email_settings SET provider=?,smtp_host=?,smtp_port=?,
             email=?,password=?,sender_name=?,is_active=? WHERE id=1""",
             (provider,host,port,d.get("email",""),d.get("password",""),
-             d.get("sender_name","Vijayshri Packaging Ltd."),
+             d.get("sender_name","RD HRMS & Payroll"),
              1 if d.get("is_active") else 0))
         conn.commit()
         flash_msg = "Email settings saved!"
@@ -11149,7 +11145,7 @@ def save_whatsapp_settings():
 def test_whatsapp():
     d = request.json
     phone = d.get("phone","")
-    ok, msg = send_whatsapp(phone, "🎉 Test message from Vijayshri Packaging Ltd. PayRoll System!")
+    ok, msg = send_whatsapp(phone, "🎉 Test message from RD HRMS & Payroll PayRoll System!")
     return jsonify({"success":ok,"message":msg})
 
 @app.route("/email-settings/test", methods=["POST"])
@@ -11162,7 +11158,7 @@ def test_email():
         <div style="padding:24px;font-family:Arial,sans-serif;background:white;">
             <h3 style="color:#0052cc;">✅ Email Configuration Successful!</h3>
             <p>Your email settings are working correctly.</p>
-            <p style="color:#64748b;font-size:12px;">Sent from Vijayshri Packaging Ltd. PayRoll System</p>
+            <p style="color:#64748b;font-size:12px;">Sent from RD HRMS & Payroll PayRoll System</p>
         </div>{make_email_footer()}""", "test")
     return jsonify({"success":ok, "message":msg})
 
@@ -11207,7 +11203,7 @@ def send_payslip_email():
             </table>
             <p style="font-size:12px;color:#64748b;">Days Present: {r["present_days"]} / {r["working_days"]} | Bank: {r["bank_account"] or "N/A"} ({r["bank_name"] or ""})</p>
         </div>{make_email_footer()}"""
-        ok,_ = send_email(r["email"], f"Salary Slip — {mn} {year} | Vijayshri Packaging Ltd.", html, "payslip")
+        ok,_ = send_email(r["email"], f"Salary Slip — {mn} {year} | RD HRMS & Payroll", html, "payslip")
         if ok: sent+=1
         else: failed+=1
     return jsonify({"success":True,"sent":sent,"failed":failed,"no_email":no_email})
@@ -11229,7 +11225,7 @@ def send_birthday_wishes_bulk():
             <div style="font-size:48px;">🎂</div>
             <h2 style="color:#0052cc;">Happy Birthday, {e["emp_name"]}!</h2>
             <p>Wishing you a wonderful birthday filled with joy!</p>
-            <p style="color:#64748b;font-size:12px;">— Vijayshri Packaging Ltd. Family</p>
+            <p style="color:#64748b;font-size:12px;">— RD HRMS & Payroll Family</p>
         </div>{make_email_footer()}"""
         ok,_ = send_email(e["email"], f"Happy Birthday {e['emp_name']}! 🎂", html, "birthday")
         if ok: sent+=1
@@ -11260,7 +11256,7 @@ def send_anniversary():
                 <p style="font-size:32px;font-weight:800;color:#10b981;margin:0;">{years} Year{"s" if years>1 else ""}</p>
                 <p style="color:#64748b;margin:4px 0;">of Valuable Service</p>
             </div>
-            <p style="font-size:14px;color:#1a202c;">Thank you for your dedication and hard work. Your contribution to Vijayshri Packaging is truly valued!</p>
+            <p style="font-size:14px;color:#1a202c;">Thank you for your dedication and hard work. Your contribution to RD HRMS & Payroll is truly valued!</p>
             <p style="font-size:13px;color:#64748b;">Here's to many more years of success together!</p>
         </div>{make_email_footer()}"""
         ok,_ = send_email(e["email"], f"Happy Work Anniversary {e['emp_name']}! 🎊 {years} Year(s)", html, "anniversary")
@@ -11333,9 +11329,9 @@ def send_monthly_summary():
                 </tr>
             </tfoot>
         </table>
-        <p style="font-size:11px;color:#94a3b8;">Generated by Vijayshri Packaging Ltd. PayRoll System on {datetime.now().strftime("%d %B %Y %I:%M %p")}</p>
+        <p style="font-size:11px;color:#94a3b8;">Generated by RD HRMS & Payroll PayRoll System on {datetime.now().strftime("%d %B %Y %I:%M %p")}</p>
     </div>{make_email_footer()}"""
-    ok, msg = send_email(to_email, f"Salary Summary — {mn} {year} | Vijayshri Packaging", html, "summary")
+    ok, msg = send_email(to_email, f"Salary Summary — {mn} {year} | RD HRMS & Payroll", html, "summary")
     return jsonify({"success":ok,"message":msg})
 
 @app.route("/email/notify-leave", methods=["POST"])
@@ -11365,7 +11361,7 @@ def notify_leave_email():
         </div>
         {"<p style='color:#64748b;'>Your leave request has been approved. Enjoy your time off!</p>" if action=="approved" else f"<p style='color:#64748b;'>Reason: {leave.get('rejection_reason','N/A')}</p>"}
     </div>{make_email_footer()}"""
-    ok, msg = send_email(emp["email"], f"Leave {action.capitalize()} — {leave['leave_type']} | Vijayshri Packaging", html, "leave")
+    ok, msg = send_email(emp["email"], f"Leave {action.capitalize()} — {leave['leave_type']} | RD HRMS & Payroll", html, "leave")
     return jsonify({"success":ok,"message":msg})
 
 
@@ -11790,7 +11786,7 @@ def export_deductions():
         hdr_font = Font(bold=True, color="FFFFFF", size=10)
         thin = Border(*[Side(style="thin") for _ in range(4)])
         ws.merge_cells("A1:L1")
-        t = ws["A1"]; t.value = f"Vijayshri Packaging Ltd. — Deductions Report"
+        t = ws["A1"]; t.value = f"RD HRMS & Payroll — Deductions Report"
         t.font = Font(bold=True, size=13, color="4C1D95"); t.alignment = Alignment(horizontal="center")
         ws.append([])
         hdrs = ["Emp Code","Name","Department","Category","Deduction Type",
@@ -11920,7 +11916,7 @@ def get_deduction(did):
 
 def generate_punch_alerts():
     """
-    Punch Alert Logic — VPL Vijayshri Packaging
+    Punch Alert Logic — RD HRMS & Payroll
     ═══════════════════════════════════════════════════════
 
     STAFF:
@@ -12501,7 +12497,7 @@ def export_salary_revision():
         hdr_font = Font(bold=True, color="FFFFFF", size=10)
         thin = Border(*[Side(style="thin") for _ in range(4)])
         ws.merge_cells("A1:J1")
-        t = ws["A1"]; t.value = "Vijayshri Packaging Ltd. — Salary Revision History"
+        t = ws["A1"]; t.value = "RD HRMS & Payroll — Salary Revision History"
         t.font = Font(bold=True, size=13, color="003580")
         t.alignment = Alignment(horizontal="center")
         ws.row_dimensions[1].height = 20
