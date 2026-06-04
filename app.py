@@ -953,6 +953,8 @@ def init_db():
     c.execute("""CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY, value TEXT)""")
     c.execute("INSERT OR IGNORE INTO app_settings (key,value) VALUES ('auto_import_time','08:00')")
+    c.execute("INSERT OR IGNORE INTO app_settings (key,value) VALUES ('adms_server_address','')")
+    c.execute("INSERT OR IGNORE INTO app_settings (key,value) VALUES ('adms_server_port','5000')")
 
     # Default salary settings
     c.execute("SELECT COUNT(*) FROM salary_settings")
@@ -12604,6 +12606,11 @@ def machines_list():
     from datetime import datetime as _dt_m, timedelta as _td_m
     conn = get_db()
     machines_raw = conn.execute("SELECT * FROM machines ORDER BY machine_name").fetchall()
+    # Get ADMS server address from settings
+    _adms_addr = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_address'").fetchone()
+    _adms_port = conn.execute("SELECT value FROM app_settings WHERE key='adms_server_port'").fetchone()
+    adms_server_address = (_adms_addr["value"] if _adms_addr and _adms_addr["value"] else "")
+    adms_server_port    = (_adms_port["value"] if _adms_port and _adms_port["value"] else "5000")
     conn.close()
     # Compute adms_online — True if adms_last_seen within last 20 minutes
     machines = []
@@ -12618,8 +12625,26 @@ def machines_list():
         md["adms_online"] = adms_online
         machines.append(md)
     return render_template("machines.html", machines=machines,
+        adms_server_address=adms_server_address,
+        adms_server_port=adms_server_port,
         today_month=date.today().month, today_year=date.today().year,
         today_month_name=MONTHS[date.today().month-1])
+
+@app.route("/machines/save-adms-settings", methods=["POST"])
+@amgr
+def save_adms_settings():
+    d = request.json; conn = get_db()
+    try:
+        conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES ('adms_server_address',?)",
+                     (d.get("adms_server_address",""),))
+        conn.execute("INSERT OR REPLACE INTO app_settings (key,value) VALUES ('adms_server_port',?)",
+                     (d.get("adms_server_port","5000"),))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally: conn.close()
+
 
 @app.route("/attendance/machines/add", methods=["POST"])
 @amgr
@@ -12627,10 +12652,11 @@ def add_machine():
     d = request.json; conn = get_db()
     try:
         conn.execute("""INSERT INTO machines 
-            (machine_name,ip_address,port,password,location,serial_number,is_active,created_on)
-            VALUES (?,?,?,?,?,?,1,date('now'))""",
+            (machine_name,ip_address,port,password,location,serial_number,connection_mode,is_active,created_on)
+            VALUES (?,?,?,?,?,?,?,1,date('now'))""",
             (d["machine_name"],d["ip_address"],int(d.get("port",4370)),
-             int(d.get("password",0)),d.get("location",""),d.get("serial_number","")))
+             int(d.get("password",0)),d.get("location",""),d.get("serial_number",""),
+             d.get("connection_mode","zk")))
         conn.commit()
         return jsonify({"success":True})
     except Exception as e:
@@ -12651,10 +12677,10 @@ def edit_machine(mid):
     d = request.json; conn = get_db()
     try:
         conn.execute("""UPDATE machines SET machine_name=?,ip_address=?,port=?,
-            password=?,location=?,serial_number=?,is_active=? WHERE id=?""",
+            password=?,location=?,serial_number=?,connection_mode=?,is_active=? WHERE id=?""",
             (d["machine_name"],d["ip_address"],int(d.get("port",4370)),
              int(d.get("password",0)),d.get("location",""),
-             d.get("serial_number",""),
+             d.get("serial_number",""),d.get("connection_mode","zk"),
              1 if d.get("is_active") else 0, mid))
         conn.commit()
         return jsonify({"success":True})
