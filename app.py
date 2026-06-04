@@ -15745,6 +15745,7 @@ def auto_import_settings():
 # Machines page mein ADMS status bhi dikhega
 
 @app.route("/iclock/cdata", methods=["GET", "POST"])
+@app.route("/iclock/cdata.aspx", methods=["GET", "POST"])
 def adms_cdata():
     """
     ADMS Handshake — Machine pehle yahan connect karti hai
@@ -15936,12 +15937,14 @@ def adms_cdata():
 
 
 @app.route("/iclock/getrequest", methods=["GET"])
+@app.route("/iclock/getrequest.aspx", methods=["GET"])
 def adms_getrequest():
     """Machine commands fetch karti hai yahan se"""
     return "OK", 200, {"Content-Type": "text/plain"}
 
 
 @app.route("/iclock/devicecmd", methods=["POST"])
+@app.route("/iclock/devicecmd.aspx", methods=["POST"])
 def adms_devicecmd():
     """Machine command acknowledgment"""
     return "OK", 200, {"Content-Type": "text/plain"}
