@@ -1053,6 +1053,15 @@ def init_db():
     except: pass
     try: c.execute("ALTER TABLE payroll_settings ADD COLUMN short_time_per_halfday REAL DEFAULT 2.5")
     except: pass
+    # ── Deduction Rule toggles ────────────────────────────────
+    try: c.execute("ALTER TABLE payroll_settings ADD COLUMN ded_wop_break INTEGER DEFAULT 1")
+    except: pass
+    try: c.execute("ALTER TABLE payroll_settings ADD COLUMN ded_double_shift_break INTEGER DEFAULT 1")
+    except: pass
+    try: c.execute("ALTER TABLE payroll_settings ADD COLUMN ded_late_staff INTEGER DEFAULT 1")
+    except: pass
+    try: c.execute("ALTER TABLE payroll_settings ADD COLUMN ded_short_time_staff INTEGER DEFAULT 1")
+    except: pass
     # ── Late waiver flag ─────────────────────────────────────
     try: c.execute("ALTER TABLE attendance ADD COLUMN late_waived INTEGER DEFAULT 0")
     except: pass
@@ -1735,7 +1744,7 @@ def is_weekly_off_date(d, emp_code, conn=None):
         return weekday == get_emp_weekly_off_num(emp_code, conn)
     except: return False
 
-def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
+def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None, ps_ded_flags=None):
     """
     eSSL eTimeTrackLite — Exact Attendance Calculation Engine
 
@@ -1759,6 +1768,15 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         "working_minutes": 0,
         "is_night_shift":  0,
     }
+    # Deduction flags — read from DB if not passed by caller
+    if ps_ded_flags is None:
+        try:
+            _db = get_db()
+            _s  = _db.execute("SELECT ded_wop_break,ded_double_shift_break FROM payroll_settings WHERE id=1").fetchone()
+            _db.close()
+            ps_ded_flags = dict(_s) if _s else {}
+        except:
+            ps_ded_flags = {}
 
     if not in_t:
         # OUT punch exists but IN is missing → Miss Punch (not Absent)
@@ -1817,10 +1835,11 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         if pout is not None:
             if pout < pin: pout += 24*60  # cross midnight
             worked = min(pout - pin, 24*60)
-            # Deduct 30 min break for WOP/Holiday
-            worked_after_break = max(0, worked - 30)
+            # Deduct 30 min break for WOP/Holiday (if enabled in Deduction Rules)
+            wop_break = 30 if ps_ded_flags.get("ded_wop_break", 1) else 0
+            worked_after_break = max(0, worked - wop_break)
             r["working_minutes"] = worked
-            r["ot_minutes"]      = worked_after_break  # 30 min break deducted
+            r["ot_minutes"]      = worked_after_break  # break deducted if enabled
         return r
 
     # ── No OUT punch handling ────────────────────────────────────
@@ -1871,7 +1890,8 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
     # Normal shift: no break deduction in attendance (eSSL style)
     break_deduct = 0
     if worked >= 16 * 60:
-        break_deduct = 60  # 1 hour break for double shift/super OT
+        # 1 hour break for double shift/super OT (if enabled in Deduction Rules)
+        break_deduct = 60 if ps_ded_flags.get("ded_double_shift_break", 1) else 0
 
     worked_net = worked - break_deduct  # net worked after break
     r["working_minutes"] = worked_net
@@ -2099,7 +2119,9 @@ def get_payroll_settings(conn):
         "late_grace_minutes":15,"late_halfday_count":3,
         "late_free_days":2,"short_time_limit_hrs":5.0,
         "short_time_per_halfday":2.5,
-        "el_per_year":16,"cl_per_year":6
+        "el_per_year":16,"cl_per_year":6,
+        "ded_wop_break":1,"ded_double_shift_break":1,
+        "ded_late_staff":1,"ded_short_time_staff":1
     }
 
 def get_pt_amount(conn, gross, state="Madhya Pradesh"):
@@ -2324,22 +2346,24 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
         # - Associates: NO deduction (perfect as-is)
 
         if cat == "Staff":
-            # Late deduction: configurable free days, then 0.5 day per late
-            _late_free = int(ps.get("late_free_days", 2) or 2)
-            if late_marks > _late_free:
-                chargeable_lates = late_marks - _late_free
-                present_days = max(0, present_days - chargeable_lates * 0.5)
+            # Late deduction (only if enabled in Deduction Rules)
+            if int(ps.get("ded_late_staff", 1) or 1):
+                _late_free = int(ps.get("late_free_days", 2) or 2)
+                if late_marks > _late_free:
+                    chargeable_lates = late_marks - _late_free
+                    present_days = max(0, present_days - chargeable_lates * 0.5)
 
-            # Short time deduction: configurable allowance and rate
-            _short_limit_hrs = float(ps.get("short_time_limit_hrs", 5.0) or 5.0)
-            _short_allow_min = int(_short_limit_hrs * 60)
-            _short_per_hd_hrs = float(ps.get("short_time_per_halfday", 2.5) or 2.5)
-            _short_per_hd_min = max(1, int(_short_per_hd_hrs * 60))
-            if short_tot > _short_allow_min:
-                excess_min = short_tot - _short_allow_min
-                extra_halfdays = int(excess_min / _short_per_hd_min)
-                if extra_halfdays > 0:
-                    present_days = max(0, present_days - extra_halfdays * 0.5)
+            # Short time deduction (only if enabled in Deduction Rules)
+            if int(ps.get("ded_short_time_staff", 1) or 1):
+                _short_limit_hrs = float(ps.get("short_time_limit_hrs", 5.0) or 5.0)
+                _short_allow_min = int(_short_limit_hrs * 60)
+                _short_per_hd_hrs = float(ps.get("short_time_per_halfday", 2.5) or 2.5)
+                _short_per_hd_min = max(1, int(_short_per_hd_hrs * 60))
+                if short_tot > _short_allow_min:
+                    excess_min = short_tot - _short_allow_min
+                    extra_halfdays = int(excess_min / _short_per_hd_min)
+                    if extra_halfdays > 0:
+                        present_days = max(0, present_days - extra_halfdays * 0.5)
 
         # Payable days = Present + Paid Leave + Holidays (already in paid_leave_days)
         payable_days = present_days + paid_leave_days
@@ -2753,6 +2777,8 @@ def amgr(f):
             ("/employees/get",          ["emp_view", "emp_add_edit"]),
             ("/employees",              ["emp_view", "emp_add_edit"]),
             ("/masters/employee-fields",["masters"]),
+            ("/masters/deduction-rules",["masters"]),
+            ("/masters/deduction-rules/save",["masters"]),
             ("/masters",                ["masters"]),
             ("/manpower",               ["manpower"]),
             ("/exit",                   ["exit_mgmt"]),
@@ -15188,6 +15214,49 @@ def get_shift_roster_assignments():
 
 # ─── EMPLOYEE CUSTOM FIELDS MASTER ─────────────────────────
 
+
+@app.route("/masters/deduction-rules")
+@amgr
+def deduction_rules_get():
+    """Get current deduction rule settings"""
+    conn = get_db()
+    try:
+        s = conn.execute(
+            "SELECT ded_wop_break,ded_double_shift_break,ded_late_staff,ded_short_time_staff FROM payroll_settings WHERE id=1"
+        ).fetchone()
+        settings = dict(s) if s else {}
+        # Defaults if columns not yet added
+        defaults = {"ded_wop_break":1,"ded_double_shift_break":1,"ded_late_staff":1,"ded_short_time_staff":1}
+        for k,v in defaults.items():
+            if k not in settings: settings[k] = v
+        return jsonify({"success":True,"settings":settings})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)})
+    finally:
+        conn.close()
+
+@app.route("/masters/deduction-rules/save", methods=["POST"])
+@amgr
+def deduction_rules_save():
+    """Save deduction rule toggles to payroll_settings"""
+    d = request.json
+    conn = get_db()
+    try:
+        conn.execute("""UPDATE payroll_settings SET
+            ded_wop_break=?,ded_double_shift_break=?,
+            ded_late_staff=?,ded_short_time_staff=?,
+            updated_on=date('now') WHERE id=1""",
+            (1 if d.get("ded_wop_break",1) else 0,
+             1 if d.get("ded_double_shift_break",1) else 0,
+             1 if d.get("ded_late_staff",1) else 0,
+             1 if d.get("ded_short_time_staff",1) else 0))
+        conn.commit()
+        return jsonify({"success":True})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)})
+    finally:
+        conn.close()
+
 @app.route("/masters/employee-fields")
 @amgr
 def emp_custom_fields_page():
@@ -16221,6 +16290,553 @@ def run_auto_leave_earn():
         except Exception as e:
             print(f"[AUTO LEAVE] Error: {e}")
         time.sleep(3600)  # Check every hour
+
+
+
+# ════════════════════════════════════════════════════════════
+# MOBILE API — Employee Self-Service (React Native App)
+# ════════════════════════════════════════════════════════════
+import jwt as pyjwt
+import hashlib
+
+MOBILE_JWT_SECRET = "RD_HRMS_MOBILE_2025_SECRET_KEY_CHANGE_IN_PROD"
+MOBILE_JWT_EXP_DAYS = 30
+
+def mobile_jwt_create(payload):
+    payload["exp"] = datetime.utcnow() + timedelta(days=MOBILE_JWT_EXP_DAYS)
+    return pyjwt.encode(payload, MOBILE_JWT_SECRET, algorithm="HS256")
+
+def mobile_jwt_decode(token):
+    try:
+        return pyjwt.decode(token, MOBILE_JWT_SECRET, algorithms=["HS256"])
+    except:
+        return None
+
+def mobile_auth():
+    """Decorator helper — returns (payload, None) or (None, error_response)"""
+    auth = request.headers.get("Authorization","")
+    if not auth.startswith("Bearer "):
+        return None, (jsonify({"success":False,"error":"Unauthorized"}), 401)
+    payload = mobile_jwt_decode(auth[7:])
+    if not payload:
+        return None, (jsonify({"success":False,"error":"Token expired or invalid"}), 401)
+    return payload, None
+
+# ── Init outside_work_log table ──────────────────────────────
+def init_outside_work_log():
+    conn = get_db()
+    try:
+        conn.execute("""CREATE TABLE IF NOT EXISTS outside_work_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            emp_code TEXT NOT NULL,
+            log_date TEXT NOT NULL,
+            in_time TEXT,
+            out_time TEXT,
+            location TEXT,
+            purpose TEXT,
+            status TEXT DEFAULT 'Pending',
+            approved_by TEXT,
+            approved_on TEXT,
+            remarks TEXT,
+            submitted_on TEXT,
+            att_applied INTEGER DEFAULT 0)""")
+        conn.commit()
+    except: pass
+    finally: conn.close()
+
+# ── Mobile Login ────────────────────────────────────────────
+@app.route("/mobile/api/login", methods=["POST"])
+def mobile_login():
+    d = request.json or {}
+    username  = (d.get("username") or "").strip()
+    password  = (d.get("password") or "").strip()
+    company   = (d.get("company")  or "").strip()
+
+    if not username or not password:
+        return jsonify({"success":False,"error":"Username and password required"}), 400
+
+    conn = get_db()
+    try:
+        user = conn.execute(
+            "SELECT * FROM users WHERE username=? AND is_active=1", (username,)
+        ).fetchone()
+        if not user:
+            return jsonify({"success":False,"error":"Invalid credentials"}), 401
+
+        # Password check (plain or md5 hash)
+        pw_plain = password
+        pw_md5   = hashlib.md5(password.encode()).hexdigest()
+        if user["password"] not in (pw_plain, pw_md5, password):
+            return jsonify({"success":False,"error":"Invalid credentials"}), 401
+
+        # Get linked employee info
+        emp = None
+        if user["emp_id"]:
+            emp = conn.execute(
+                "SELECT * FROM employees WHERE emp_code=?", (user["emp_id"],)
+            ).fetchone()
+
+        # Company name from settings (for multi-tenant display)
+        settings = conn.execute(
+            "SELECT company_name FROM payroll_settings WHERE id=1"
+        ).fetchone()
+        db_company = (settings["company_name"] if settings else "RD HRMS & Payroll") or "RD HRMS & Payroll"
+
+        # Get permissions
+        perm_rows = conn.execute(
+            "SELECT permission FROM user_permissions WHERE user_id=?", (user["id"],)
+        ).fetchall()
+        perms = [r["permission"] for r in perm_rows] or ["my_payslip","my_leaves"]
+
+        token = mobile_jwt_create({
+            "user_id": user["id"],
+            "username": user["username"],
+            "emp_code": user["emp_id"] or "",
+            "name": user["name"] or user["username"],
+            "role": user["role"],
+            "company": db_company,
+            "perms": perms,
+        })
+
+        return jsonify({
+            "success": True,
+            "token": token,
+            "user": {
+                "username": user["username"],
+                "name": user["name"] or user["username"],
+                "role": user["role"],
+                "emp_code": user["emp_id"] or "",
+                "company": db_company,
+                "department": emp["department"] if emp else "",
+                "designation": emp["designation"] if emp else "",
+                "avatar_initials": (user["name"] or user["username"] or "?")[0].upper(),
+            }
+        })
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)}), 500
+    finally:
+        conn.close()
+
+# ── Profile ─────────────────────────────────────────────────
+@app.route("/mobile/api/profile")
+def mobile_profile():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        emp = conn.execute("SELECT * FROM employees WHERE emp_code=?",
+                           (payload["emp_code"],)).fetchone()
+        if not emp:
+            return jsonify({"success":False,"error":"Employee not found"}), 404
+        return jsonify({"success":True,"emp":dict(emp)})
+    finally:
+        conn.close()
+
+# ── Attendance (current month) ───────────────────────────────
+@app.route("/mobile/api/attendance")
+def mobile_attendance():
+    payload, err = mobile_auth()
+    if err: return err
+    emp_code = payload["emp_code"]
+    month = request.args.get("month", date.today().month, type=int)
+    year  = request.args.get("year",  date.today().year,  type=int)
+    conn = get_db()
+    try:
+        rows = conn.execute("""
+            SELECT att_date, status, in_time, out_time,
+                   working_minutes, ot_minutes, late_minutes,
+                   is_half_day, short_minutes
+            FROM attendance
+            WHERE emp_code=?
+              AND strftime('%m',att_date)=?
+              AND strftime('%Y',att_date)=?
+            ORDER BY att_date
+        """, (emp_code, f"{month:02d}", str(year))).fetchall()
+
+        data = []
+        for r in rows:
+            wm = r["working_minutes"] or 0
+            data.append({
+                "date":     r["att_date"],
+                "status":   r["status"],
+                "in_time":  r["in_time"] or "",
+                "out_time": r["out_time"] or "",
+                "working_hrs": f"{wm//60}h {wm%60}m",
+                "ot_mins":  r["ot_minutes"] or 0,
+                "late_mins":r["late_minutes"] or 0,
+                "is_half":  r["is_half_day"] or 0,
+            })
+
+        # Summary
+        total   = len(data)
+        present = sum(1 for d in data if d["status"] in ("Present","Miss Punch"))
+        absent  = sum(1 for d in data if d["status"] == "Absent")
+        leaves  = sum(1 for d in data if d["status"].startswith("Leave") or d["status"] == "Leave")
+        holidays= sum(1 for d in data if d["status"] == "Holiday")
+        wop     = sum(1 for d in data if d["status"] == "WOP")
+
+        return jsonify({"success":True,"records":data,
+            "summary":{"total":total,"present":present,"absent":absent,
+                       "leaves":leaves,"holidays":holidays,"wop":wop}})
+    finally:
+        conn.close()
+
+# ── Salary Records (payslip list) ───────────────────────────
+@app.route("/mobile/api/salary")
+def mobile_salary():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        recs = conn.execute("""
+            SELECT month,year,gross_salary,total_deductions,net_salary,
+                   payment_status,payment_date,basic_earned,hra_earned,
+                   special_earned,pf_emp,esi_emp,pt,absent_days,present_days,
+                   payable_days,working_days
+            FROM salary_records
+            WHERE emp_code=?
+            ORDER BY year DESC, month DESC LIMIT 24
+        """, (payload["emp_code"],)).fetchall()
+        mnames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        data = []
+        for r in recs:
+            d = dict(r)
+            d["month_name"] = mnames[(r["month"] or 1)-1]
+            data.append(d)
+        return jsonify({"success":True,"records":data})
+    finally:
+        conn.close()
+
+# ── Payslip Detail ───────────────────────────────────────────
+@app.route("/mobile/api/payslip/<int:year>/<int:month>")
+def mobile_payslip(year, month):
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        rec = conn.execute(
+            "SELECT * FROM salary_records WHERE emp_code=? AND year=? AND month=?",
+            (payload["emp_code"], year, month)
+        ).fetchone()
+        emp = conn.execute(
+            "SELECT * FROM employees WHERE emp_code=?", (payload["emp_code"],)
+        ).fetchone()
+        if not rec:
+            return jsonify({"success":False,"error":"Payslip not found"}), 404
+        mnames = ["January","February","March","April","May","June",
+                  "July","August","September","October","November","December"]
+        return jsonify({
+            "success": True,
+            "payslip": dict(rec),
+            "emp": dict(emp) if emp else {},
+            "month_name": mnames[(month or 1)-1],
+        })
+    finally:
+        conn.close()
+
+# ── Leave Balance ────────────────────────────────────────────
+@app.route("/mobile/api/leave/balance")
+def mobile_leave_balance():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        bal = conn.execute(
+            "SELECT * FROM leave_balance WHERE emp_code=?", (payload["emp_code"],)
+        ).fetchone()
+        return jsonify({"success":True,"balance":dict(bal) if bal else {}})
+    finally:
+        conn.close()
+
+# ── Leave Requests (list) ────────────────────────────────────
+@app.route("/mobile/api/leave/requests")
+def mobile_leave_requests():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        rows = conn.execute("""
+            SELECT id,leave_type,from_date,to_date,days,reason,status,
+                   applied_on,approved_by,approved_on,remarks
+            FROM leave_requests
+            WHERE emp_code=?
+            ORDER BY applied_on DESC LIMIT 30
+        """, (payload["emp_code"],)).fetchall()
+        return jsonify({"success":True,"requests":[dict(r) for r in rows]})
+    finally:
+        conn.close()
+
+# ── Leave Apply ──────────────────────────────────────────────
+@app.route("/mobile/api/leave/apply", methods=["POST"])
+def mobile_leave_apply():
+    payload, err = mobile_auth()
+    if err: return err
+    d = request.json or {}
+    emp_code   = payload["emp_code"]
+    leave_type = (d.get("leave_type") or "").strip()
+    from_date  = (d.get("from_date")  or "").strip()
+    to_date    = (d.get("to_date")    or "").strip()
+    reason     = (d.get("reason")     or "").strip()
+
+    if not all([leave_type, from_date, to_date]):
+        return jsonify({"success":False,"error":"Leave type, from date, to date required"}), 400
+
+    conn = get_db()
+    try:
+        # Calculate days
+        try:
+            fd = datetime.strptime(from_date, "%Y-%m-%d").date()
+            td = datetime.strptime(to_date,   "%Y-%m-%d").date()
+            days = max(1, (td - fd).days + 1)
+        except:
+            days = 1
+
+        emp = conn.execute("SELECT emp_name FROM employees WHERE emp_code=?",
+                           (emp_code,)).fetchone()
+        conn.execute("""
+            INSERT INTO leave_requests
+            (emp_code,emp_name,leave_type,from_date,to_date,days,reason,status,applied_on)
+            VALUES (?,?,?,?,?,?,?,'Pending',?)
+        """, (emp_code, emp["emp_name"] if emp else emp_code,
+              leave_type, from_date, to_date, days, reason,
+              datetime.now().strftime("%Y-%m-%d %H:%M")))
+        conn.commit()
+        return jsonify({"success":True,"message":"Leave applied successfully","days":days})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)}), 500
+    finally:
+        conn.close()
+
+# ── Outside Work Log — Submit ────────────────────────────────
+@app.route("/mobile/api/outside-work/submit", methods=["POST"])
+def mobile_outside_work_submit():
+    payload, err = mobile_auth()
+    if err: return err
+    d = request.json or {}
+    emp_code = payload["emp_code"]
+    log_date = (d.get("log_date") or date.today().isoformat())
+    in_time  = (d.get("in_time")  or "").strip()
+    out_time = (d.get("out_time") or "").strip()
+    location = (d.get("location") or "").strip()
+    purpose  = (d.get("purpose")  or "").strip()
+
+    if not in_time:
+        return jsonify({"success":False,"error":"IN time required"}), 400
+
+    conn = get_db()
+    try:
+        init_outside_work_log()
+        # Check if entry exists for same date
+        existing = conn.execute(
+            "SELECT id FROM outside_work_log WHERE emp_code=? AND log_date=?",
+            (emp_code, log_date)
+        ).fetchone()
+        if existing:
+            conn.execute("""UPDATE outside_work_log SET in_time=?,out_time=?,
+                location=?,purpose=?,status='Pending',submitted_on=? WHERE id=?""",
+                (in_time, out_time, location, purpose,
+                 datetime.now().strftime("%Y-%m-%d %H:%M"), existing["id"]))
+        else:
+            conn.execute("""INSERT INTO outside_work_log
+                (emp_code,log_date,in_time,out_time,location,purpose,status,submitted_on)
+                VALUES (?,?,?,?,?,?,'Pending',?)""",
+                (emp_code, log_date, in_time, out_time, location, purpose,
+                 datetime.now().strftime("%Y-%m-%d %H:%M")))
+        conn.commit()
+        return jsonify({"success":True,"message":"Outside work log submitted for approval"})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)}), 500
+    finally:
+        conn.close()
+
+# ── Outside Work Log — My Logs ───────────────────────────────
+@app.route("/mobile/api/outside-work/my-logs")
+def mobile_outside_work_my_logs():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        init_outside_work_log()
+        rows = conn.execute("""
+            SELECT * FROM outside_work_log
+            WHERE emp_code=?
+            ORDER BY log_date DESC LIMIT 30
+        """, (payload["emp_code"],)).fetchall()
+        return jsonify({"success":True,"logs":[dict(r) for r in rows]})
+    finally:
+        conn.close()
+
+# ── Outside Work Log — HR Pending (approve/reject) ──────────
+@app.route("/mobile/api/outside-work/pending")
+def mobile_outside_work_pending():
+    payload, err = mobile_auth()
+    if err: return err
+    if payload.get("role") not in ("admin","hr","manager","director"):
+        return jsonify({"success":False,"error":"Access denied"}), 403
+    conn = get_db()
+    try:
+        init_outside_work_log()
+        rows = conn.execute("""
+            SELECT o.*, e.emp_name, e.department
+            FROM outside_work_log o
+            JOIN employees e ON o.emp_code=e.emp_code
+            WHERE o.status='Pending'
+            ORDER BY o.log_date DESC
+        """).fetchall()
+        return jsonify({"success":True,"logs":[dict(r) for r in rows]})
+    finally:
+        conn.close()
+
+@app.route("/mobile/api/outside-work/approve", methods=["POST"])
+def mobile_outside_work_approve():
+    payload, err = mobile_auth()
+    if err: return err
+    if payload.get("role") not in ("admin","hr","manager","director"):
+        return jsonify({"success":False,"error":"Access denied"}), 403
+    d = request.json or {}
+    log_id = d.get("log_id")
+    action = d.get("action","approve")  # approve | reject
+    remarks = d.get("remarks","")
+
+    conn = get_db()
+    try:
+        init_outside_work_log()
+        log = conn.execute("SELECT * FROM outside_work_log WHERE id=?", (log_id,)).fetchone()
+        if not log:
+            return jsonify({"success":False,"error":"Log not found"}), 404
+
+        new_status = "Approved" if action == "approve" else "Rejected"
+        conn.execute("""UPDATE outside_work_log SET
+            status=?,approved_by=?,approved_on=?,remarks=? WHERE id=?""",
+            (new_status, payload["name"],
+             datetime.now().strftime("%Y-%m-%d %H:%M"), remarks, log_id))
+
+        # If approved → apply to attendance table
+        if action == "approve" and log["att_applied"] == 0:
+            emp_code = log["emp_code"]
+            log_date = log["log_date"]
+            in_t     = log["in_time"]
+            out_t    = log["out_time"]
+
+            existing_att = conn.execute(
+                "SELECT id FROM attendance WHERE emp_code=? AND att_date=?",
+                (emp_code, log_date)
+            ).fetchone()
+
+            if existing_att:
+                conn.execute("""UPDATE attendance SET
+                    in_time=?, out_time=?, is_manual=1,
+                    status='Present', punch_miss=0
+                    WHERE emp_code=? AND att_date=?""",
+                    (in_t, out_t, emp_code, log_date))
+            else:
+                conn.execute("""INSERT INTO attendance
+                    (emp_code, att_date, in_time, out_time, status, is_manual)
+                    VALUES (?,?,?,?,'Present',1)""",
+                    (emp_code, log_date, in_t, out_t))
+
+            conn.execute("UPDATE outside_work_log SET att_applied=1 WHERE id=?", (log_id,))
+
+        conn.commit()
+        return jsonify({"success":True,"message":f"Log {new_status.lower()} successfully"})
+    except Exception as e:
+        return jsonify({"success":False,"error":str(e)}), 500
+    finally:
+        conn.close()
+
+# ── Leave Types (for dropdown) ──────────────────────────────
+@app.route("/mobile/api/leave/types")
+def mobile_leave_types():
+    payload, err = mobile_auth()
+    if err: return err
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT leave_type,max_days FROM leave_master WHERE is_active=1 ORDER BY leave_type"
+        ).fetchall()
+        return jsonify({"success":True,"types":[dict(r) for r in rows]})
+    finally:
+        conn.close()
+
+# ── Dashboard Summary (home screen) ─────────────────────────
+@app.route("/mobile/api/dashboard")
+def mobile_dashboard():
+    payload, err = mobile_auth()
+    if err: return err
+    emp_code = payload["emp_code"]
+    conn = get_db()
+    try:
+        today = date.today()
+        m, y = today.month, today.year
+
+        # Today's attendance
+        att_today = conn.execute(
+            "SELECT * FROM attendance WHERE emp_code=? AND att_date=?",
+            (emp_code, today.isoformat())
+        ).fetchone()
+
+        # Month attendance summary
+        month_att = conn.execute("""
+            SELECT
+              COUNT(CASE WHEN status='Present' THEN 1 END) as present,
+              COUNT(CASE WHEN status='Absent'  THEN 1 END) as absent,
+              COUNT(CASE WHEN status LIKE '%Leave%' OR status='Leave' THEN 1 END) as leaves,
+              SUM(COALESCE(ot_minutes,0)) as total_ot_min
+            FROM attendance
+            WHERE emp_code=?
+              AND strftime('%m',att_date)=?
+              AND strftime('%Y',att_date)=?
+        """, (emp_code, f"{m:02d}", str(y))).fetchone()
+
+        # Leave balance
+        bal = conn.execute(
+            "SELECT * FROM leave_balance WHERE emp_code=?", (emp_code,)
+        ).fetchone()
+
+        # Latest salary
+        sal = conn.execute(
+            "SELECT month,year,net_salary,payment_status FROM salary_records WHERE emp_code=? ORDER BY year DESC,month DESC LIMIT 1",
+            (emp_code,)
+        ).fetchone()
+
+        # Pending leave requests
+        pending_leaves = conn.execute(
+            "SELECT COUNT(*) as cnt FROM leave_requests WHERE emp_code=? AND status='Pending'",
+            (emp_code,)
+        ).fetchone()
+
+        mnames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+        return jsonify({
+            "success": True,
+            "today": {
+                "date": today.isoformat(),
+                "in_time":  att_today["in_time"]  if att_today else None,
+                "out_time": att_today["out_time"] if att_today else None,
+                "status":   att_today["status"]   if att_today else "No Record",
+            },
+            "month_summary": {
+                "month": mnames[m-1],
+                "year":  y,
+                "present": month_att["present"] or 0,
+                "absent":  month_att["absent"]  or 0,
+                "leaves":  month_att["leaves"]  or 0,
+                "ot_hrs":  round((month_att["total_ot_min"] or 0)/60, 1),
+            },
+            "leave_balance": {
+                "el": bal["el_balance"] if bal else 0,
+                "cl": bal["cl_balance"] if bal else 0,
+            } if bal else {},
+            "latest_salary": {
+                "month":  mnames[(sal["month"] or 1)-1] if sal else "",
+                "year":   sal["year"] if sal else "",
+                "net":    sal["net_salary"] if sal else 0,
+                "status": sal["payment_status"] if sal else "",
+            } if sal else {},
+            "pending_leaves": pending_leaves["cnt"] if pending_leaves else 0,
+        })
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
