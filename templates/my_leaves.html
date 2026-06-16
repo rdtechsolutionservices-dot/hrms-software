@@ -19,27 +19,35 @@
 {% if balance %}
 <div style="margin-bottom:20px;">
   <div style="font-weight:700;font-size:13px;margin-bottom:10px;">📊 Leave Balance — {{ year }}</div>
+  {% set active_codes = active_leave_types|map(attribute='code')|list if (active_leave_types is defined and active_leave_types) else ['CL','EL','SL'] %}
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
-    {% set cl_bal = (balance.cl_allotted or 0) - (balance.cl_used or 0) %}
-    {% set sl_bal = (balance.sl_allotted or 0) - (balance.sl_used or 0) %}
-    {% set el_bal = (balance.el_allotted or 0) + (balance.el_carried or 0) - (balance.el_used or 0) %}
+    {% if 'CL' in active_codes %}
     <div style="background:rgba(0,82,204,.12);border:1px solid rgba(0,82,204,.25);border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:26px;font-weight:800;color:#0096dc;">{{ cl_bal }}</div>
+      <div style="font-size:26px;font-weight:800;color:#0096dc;">{{ ((balance.cl_allotted or 0) - (balance.cl_used or 0))|round(1) }}</div>
       <div style="font-size:12px;font-weight:700;margin-top:2px;">CL Available</div>
       <div style="font-size:10px;color:var(--muted);">{{ balance.cl_used or 0 }} used / {{ balance.cl_allotted or 0 }} total</div>
     </div>
+    {% endif %}
+    {% if 'SL' in active_codes %}
     <div style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:26px;font-weight:800;color:#f43f5e;">{{ sl_bal }}</div>
+      <div style="font-size:26px;font-weight:800;color:#f43f5e;">{{ ((balance.sl_allotted or 0) - (balance.sl_used or 0))|round(1) }}</div>
       <div style="font-size:12px;font-weight:700;margin-top:2px;">SL Available</div>
       <div style="font-size:10px;color:var(--muted);">{{ balance.sl_used or 0 }} used / {{ balance.sl_allotted or 0 }} total</div>
     </div>
+    {% endif %}
+    {% if 'EL' in active_codes %}
     <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:26px;font-weight:800;color:#10b981;">{{ el_bal }}</div>
+      <div style="font-size:26px;font-weight:800;color:#10b981;">{{ ((balance.el_allotted or 0) + (balance.el_carried or 0) - (balance.el_used or 0))|round(1) }}</div>
       <div style="font-size:12px;font-weight:700;margin-top:2px;">EL Available</div>
       <div style="font-size:10px;color:var(--muted);">{{ balance.el_used or 0 }} used | {{ balance.el_carried or 0 }} carried</div>
     </div>
+    {% endif %}
+    {% set ns = namespace(total=0) %}
+    {% if 'CL' in active_codes %}{% set ns.total = ns.total + (balance.cl_allotted or 0) %}{% endif %}
+    {% if 'SL' in active_codes %}{% set ns.total = ns.total + (balance.sl_allotted or 0) %}{% endif %}
+    {% if 'EL' in active_codes %}{% set ns.total = ns.total + (balance.el_allotted or 0) + (balance.el_carried or 0) %}{% endif %}
     <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:26px;font-weight:800;color:#f59e0b;">{{ (balance.cl_allotted or 0) + (balance.sl_allotted or 0) + (balance.el_allotted or 0) + (balance.el_carried or 0) }}</div>
+      <div style="font-size:26px;font-weight:800;color:#f59e0b;">{{ ns.total|round(1) }}</div>
       <div style="font-size:12px;font-weight:700;margin-top:2px;">Total Allotted</div>
       <div style="font-size:10px;color:var(--muted);">Including carried forward</div>
     </div>
@@ -51,68 +59,80 @@
 
 <!-- Apply Leave Button -->
 <div class="toolbar" style="margin-bottom:12px;">
-  <div style="font-weight:700;font-size:14px;">📋 Leave History</div>
+  <div style="font-weight:700;font-size:14px;">📋 Apply for Leave</div>
   <button class="btn btn-primary" onclick="openModal('applyModal')" style="margin-left:auto;">➕ Apply Leave</button>
 </div>
 
-<!-- Leave History Table -->
-<div class="table-card" style="overflow-x:auto;">
-  <table style="width:100%;border-collapse:collapse;font-size:12px;">
-    <thead><tr style="border-bottom:2px solid var(--border);">
-      <th style="text-align:left;padding:8px 12px;">Applied On</th>
-      <th style="padding:8px;">From</th>
-      <th style="padding:8px;">To</th>
-      <th style="padding:8px;">Days</th>
-      <th style="padding:8px;">Leave Type</th>
-      <th style="text-align:left;padding:8px;">Reason</th>
-      <th style="padding:8px;">Status</th>
-    </tr></thead>
-    <tbody>
-      {% for r in requests %}
-      <tr style="border-bottom:1px solid var(--border);">
-        <td style="padding:7px 12px;font-size:11px;color:var(--muted);">{{ r.applied_on[:10] if r.applied_on else '—' }}</td>
-        <td style="padding:7px;text-align:center;font-weight:600;">{{ r.from_date }}</td>
-        <td style="padding:7px;text-align:center;">{{ r.to_date }}</td>
-        <td style="padding:7px;text-align:center;font-weight:700;">{{ r.days }}{% if r.is_half_day %} <span style="font-size:9px;color:var(--muted);">(Half)</span>{% endif %}</td>
-        <td style="padding:7px;text-align:center;">
-          {% if r.leave_type == 'Pending' or not r.leave_type %}
-            <span style="font-size:10px;color:var(--muted);">Assigned on approval</span>
-          {% else %}
-            <span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(0,150,220,.15);color:#0096dc;">{{ r.leave_type }}</span>
-          {% endif %}
-        </td>
-        <td style="padding:7px;font-size:11px;color:var(--muted);">{{ r.reason or '—' }}</td>
-        <td style="padding:7px;text-align:center;">
-          {% if r.status == 'Pending' %}
-            <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Pending</span>
-          {% elif r.status == 'Approved' %}
-            <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
-            {% if r.approved_by %}<div style="font-size:9px;color:var(--muted);margin-top:2px;">by {{ r.approved_by }}</div>{% endif %}
-          {% else %}
-            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
-            {% if r.rejection_reason %}<div style="font-size:9px;color:var(--muted);margin-top:2px;">{{ r.rejection_reason }}</div>{% endif %}
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-      {% if not requests %}
-      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No leave requests yet</td></tr>
+<!-- Pending Requests -->
+{% if requests %}
+<div class="table-card" style="margin-bottom:18px;">
+  <div style="font-weight:700;font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);">⏳ Your Pending Requests</div>
+  <div style="padding:10px 14px;">
+    {% set pending_shown = [] %}
+    {% for r in requests %}
+      {% if r.status == 'Pending' %}
+        {% if pending_shown.append(1) %}{% endif %}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <div>
+            <span style="font-weight:700;">{{ r.from_date }}{% if r.from_date != r.to_date %} → {{ r.to_date }}{% endif %}</span>
+            <span style="color:var(--muted);margin-left:6px;">{{ r.days }} day{% if r.days != 1 %}s{% endif %}{% if r.is_half_day %} (Half){% endif %}</span>
+            {% if r.leave_type and r.leave_type != 'Pending' %}<span style="background:rgba(0,150,220,.15);color:#0096dc;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:4px;">{{ r.leave_type }}</span>{% endif %}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            {% if r.dept_head_status == 'Pending' %}
+              <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Awaiting Dept Head</span>
+            {% elif r.dept_head_status == 'Approved' %}
+              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Dept Head OK — Awaiting Director</span>
+            {% elif r.dept_head_status == 'Rejected' %}
+              <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected by Dept Head</span>
+            {% endif %}
+            <button onclick="cancelLeave({{ r.id }})" style="background:none;border:1px solid rgba(244,63,94,.4);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Cancel</button>
+          </div>
+        </div>
       {% endif %}
-    </tbody>
-  </table>
+    {% endfor %}
+    {% if not pending_shown %}
+      <div style="color:var(--muted);font-size:12px;padding:8px 0;">No pending requests</div>
+    {% endif %}
+  </div>
 </div>
+{% endif %}
 
-<!-- Apply Leave Modal — NO leave type field, HR/Manager assigns it -->
+<!-- Apply Leave Modal -->
 <div class="modal-overlay" id="applyModal">
-  <div class="modal" style="width:460px;">
+  <div class="modal" style="width:480px;">
     <div class="modal-header">
       <span class="modal-title">➕ Apply for Leave</span>
       <button class="modal-close" onclick="closeModal('applyModal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="font-size:11px;margin-bottom:12px;">
-        ℹ️ Leave type (CL/EL/SL) will be assigned by HR/Manager when they approve your request.
+      <div class="alert alert-info" style="font-size:11px;margin-bottom:14px;">
+        ℹ️ Your request will go to your Department Head for approval, then to Director for final approval.
       </div>
+
+      <!-- Leave Type -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Leave Type *</label>
+        <select class="form-select" id="ap_type" onchange="onLeaveTypeChange()">
+          <option value="">— Select Leave Type —</option>
+          {% for lt in active_leave_types %}
+          <option value="{{ lt.code }}">{{ lt.code }} — {{ lt.name }}{% if not lt.is_paid %} (Unpaid){% endif %}</option>
+          {% endfor %}
+        </select>
+        <!-- CL rule hint -->
+        <div id="cl_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(0,150,220,.08);border-radius:6px;color:#0096dc;">
+          📌 Casual Leave: Min 0.5 day, Max 2 days. For longer periods, please apply for Earned Leave (EL).
+        </div>
+        <!-- LWP rule hint -->
+        <div id="lwp_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(244,63,94,.08);border-radius:6px;color:#f43f5e;">
+          ⚠️ Leave Without Pay: This leave is unpaid. Salary will be deducted for these days.
+        </div>
+        <!-- EL balance hint -->
+        <div id="el_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(16,185,129,.08);border-radius:6px;color:#10b981;">
+          📊 Earned Leave available: <strong id="el_bal_disp">{{ balance_el|round(1) if balance_el is defined else 0 }}</strong> day(s)
+        </div>
+      </div>
+
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Half Day?</label>
@@ -130,8 +150,9 @@
           <input class="form-control" type="date" id="ap_to" onchange="calcDays()">
         </div>
         <div class="form-group" id="days_grp" style="display:none;">
-          <label class="form-label">Duration</label>
-          <div id="days_display" style="font-size:14px;font-weight:700;color:#0096dc;padding:8px 0;">—</div>
+          <label class="form-label">Working Days</label>
+          <div id="days_display" style="font-size:16px;font-weight:800;color:#0096dc;padding:8px 0;">—</div>
+          <div id="days_note" style="font-size:10px;color:var(--muted);">Sundays & holidays excluded</div>
         </div>
         <div class="form-group col-span-2">
           <label class="form-label">Reason *</label>
@@ -150,15 +171,57 @@
 {% endblock %}
 {% block scripts %}
 <script>
-// Set min date to today
+// ── Data from server ───────────────────────────────────
+const HOLIDAY_DATES = new Set({{ holiday_dates|tojson if holiday_dates is defined else '[]' }});
+const WEEKLY_OFF    = "{{ weekly_off if weekly_off is defined else 'Sunday' }}";
+const BAL_CL = {{ balance_cl if balance_cl is defined else 0 }};
+const BAL_EL = {{ balance_el if balance_el is defined else 0 }};
+const WO_MAP = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:0};
+// JS getDay(): 0=Sun,1=Mon,...,6=Sat
+const WO_JSDAY = WO_MAP[WEEKLY_OFF] !== undefined ? WO_MAP[WEEKLY_OFF] : 0;
+
+function isWeeklyOff(dateStr){
+  return new Date(dateStr).getDay() === WO_JSDAY;
+}
+function isHoliday(dateStr){
+  return HOLIDAY_DATES.has(dateStr);
+}
+function isNonWorking(dateStr){
+  return isWeeklyOff(dateStr) || isHoliday(dateStr);
+}
+
+// Count working days between two date strings (inclusive), skipping weekly off + holidays
+function countWorkingDays(fromStr, toStr){
+  const fd = new Date(fromStr), td = new Date(toStr);
+  let count = 0, cur = new Date(fd);
+  while(cur <= td){
+    const ds = cur.toISOString().split("T")[0];
+    if(!isNonWorking(ds)) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+
 document.addEventListener("DOMContentLoaded", ()=>{
   const today = new Date().toISOString().split("T")[0];
-  const fromEl = document.getElementById("ap_from");
-  const toEl   = document.getElementById("ap_to");
-  if(fromEl){ fromEl.min=today; fromEl.value=today; }
-  if(toEl){   toEl.min=today;   toEl.value=today; }
+  const minDate = new Date(); minDate.setDate(minDate.getDate()-2);
+  const minStr  = minDate.toISOString().split("T")[0];
+  const fromEl  = document.getElementById("ap_from");
+  const toEl    = document.getElementById("ap_to");
+  if(fromEl){ fromEl.min=minStr; fromEl.value=today; }
+  if(toEl){   toEl.min=minStr;   toEl.value=today; }
+
+  // Style non-working days in date inputs (supported in some browsers)
   calcDays();
 });
+
+function onLeaveTypeChange(){
+  const t = document.getElementById("ap_type").value;
+  document.getElementById("cl_hint").style.display  = (t==="CL")  ? "block":"none";
+  document.getElementById("lwp_hint").style.display = (t==="LWP") ? "block":"none";
+  document.getElementById("el_hint").style.display  = (t==="EL")  ? "block":"none";
+  calcDays();
+}
 
 function toggleHalf(){
   const h = document.getElementById("ap_half").value === "1";
@@ -172,40 +235,79 @@ function calcDays(){
   const to   = document.getElementById("ap_to").value;
   const dg   = document.getElementById("days_grp");
   const dd   = document.getElementById("days_display");
+  const dn   = document.getElementById("days_note");
+
   if(!from){ if(dg) dg.style.display="none"; return; }
+
   if(half){
     if(dg) dg.style.display="block";
-    if(dd) dd.textContent="0.5 day";
+    if(isNonWorking(from)){
+      dd.textContent="⚠️ Non-working day";
+      dd.style.color="#ef4444";
+      dn.textContent = isHoliday(from) ? "This date is a holiday" : `This date is your ${WEEKLY_OFF}`;
+    } else {
+      dd.textContent="0.5 day";
+      dd.style.color="#0096dc";
+      dn.textContent="Half day leave";
+    }
   } else if(to && from <= to){
-    const d = Math.round((new Date(to)-new Date(from))/(86400000))+1;
+    const wdays = countWorkingDays(from, to);
     if(dg) dg.style.display="block";
-    if(dd) dd.textContent=d+" day"+(d>1?"s":"");
+    if(wdays === 0){
+      dd.textContent="0 working days";
+      dd.style.color="#ef4444";
+      dn.textContent="All days are weekly off / holidays";
+    } else {
+      const total = (new Date(to)-new Date(from))/86400000+1;
+      const skipped = total - wdays;
+      dd.textContent = wdays + " day" + (wdays>1?"s":"");
+      dd.style.color="#0096dc";
+      dn.textContent = skipped>0 ? `${skipped} day(s) excluded (weekly off / holidays)` : "All working days";
+    }
   }
 }
 
 async function applyLeave(){
+  const lt     = document.getElementById("ap_type").value;
   const half   = document.getElementById("ap_half").value === "1";
   const from   = document.getElementById("ap_from").value;
   const to     = half ? from : document.getElementById("ap_to").value;
   const reason = document.getElementById("ap_reason").value.trim();
   const div    = document.getElementById("apRes");
 
-  if(!from){ div.innerHTML='<div class="alert alert-danger">❌ Please select From Date</div>'; return; }
-  if(!half && !to){ div.innerHTML='<div class="alert alert-danger">❌ Please select To Date</div>'; return; }
-  if(!half && from > to){ div.innerHTML='<div class="alert alert-danger">❌ To date must be after From date</div>'; return; }
-  if(!reason){ div.innerHTML='<div class="alert alert-danger">❌ Please enter a reason</div>'; return; }
+  if(!lt){   div.innerHTML='<div class="alert alert-danger">❌ Please select a Leave Type.</div>'; return; }
+  if(!from){ div.innerHTML='<div class="alert alert-danger">❌ Please select From Date.</div>';   return; }
+  if(!half && !to){ div.innerHTML='<div class="alert alert-danger">❌ Please select To Date.</div>'; return; }
+  if(!half && from > to){ div.innerHTML='<div class="alert alert-danger">❌ To date must be after From date.</div>'; return; }
+  if(!reason){ div.innerHTML='<div class="alert alert-danger">❌ Please enter a reason.</div>'; return; }
 
+  // Client-side non-working day check
+  if(isNonWorking(from)){
+    const reason2 = isHoliday(from) ? "a holiday" : `your ${WEEKLY_OFF} (weekly off)`;
+    div.innerHTML=`<div class="alert alert-danger">❌ ${from} is ${reason2}. Please select a working day.</div>`;
+    return;
+  }
+
+  div.innerHTML='<div class="alert alert-info">⏳ Submitting...</div>';
   const r = await api("/leaves/apply","POST",{
     from_date: from, to_date: to,
-    is_half_day: half, reason: reason
+    is_half_day: half, reason: reason,
+    leave_type: lt
   });
 
   if(r.success){
-    div.innerHTML=`<div class="alert alert-success">✅ Leave request submitted for ${r.days} day(s). HR/Manager will approve and assign leave type.</div>`;
-    setTimeout(()=>{ closeModal("applyModal"); location.reload(); }, 2000);
+    div.innerHTML=`<div class="alert alert-success">✅ ${r.leave_type} leave request submitted for ${r.days} day(s). It will be reviewed by your Department Head.</div>`;
+    setTimeout(()=>{ closeModal("applyModal"); location.reload(); }, 2400);
   } else {
     div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
   }
+}
+
+async function cancelLeave(lid){
+  if(!confirm("Cancel this leave request?")) return;
+  const r = await api("/leaves/cancel/"+lid,"POST",{});
+  if(r.success){ location.reload(); }
+  else { alert("Error: "+r.error); }
 }
 </script>
 {% endblock %}

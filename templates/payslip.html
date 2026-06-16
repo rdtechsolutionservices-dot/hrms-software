@@ -100,11 +100,17 @@
 <div class="table-card no-print">
   <div class="table-header" style="flex-wrap:wrap;gap:8px;">
     <span class="table-title">{{ month_name }} {{ year }} — Payslips</span>
-    <input type="text" id="psSearch" placeholder="Search by name or code..." class="form-control" style="width:220px;font-size:12px;" oninput="filterPS(this.value)">
+    <input type="text" id="psSearch" placeholder="Search by name or code..." class="form-control" style="width:200px;font-size:12px;" oninput="filterPS(this.value)">
     <span style="font-size:12px;color:var(--muted)">{{ records|length }} records</span>
+    <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleSelectAll()" id="selAllBtn" style="font-size:11px;">☑️ Select All</button>
+      <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;white-space:nowrap;" onclick="openBulkWA()">📱 WhatsApp Selected</button>
+      <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;white-space:nowrap;" onclick="openBulkWAAll()">📱 WhatsApp All</button>
+    </div>
   </div>
   <table>
     <thead><tr>
+      <th style="width:32px;text-align:center;"><input type="checkbox" id="masterCb" onchange="toggleAll(this)"></th>
       <th>Emp ID</th><th>Name</th><th>Category</th><th>Department</th>
       <th style="text-align:right">Gross</th>
       <th style="text-align:right">PF</th><th style="text-align:right">ESI</th>
@@ -113,10 +119,15 @@
       <th style="text-align:right;color:var(--red)">Total Ded.</th>
       <th style="text-align:right;color:var(--green)">Net Salary</th>
       <th style="text-align:center">Days</th>
+      <th style="text-align:center">WA</th>
     </tr></thead>
     <tbody>
       {% for r in records %}
-      <tr style="cursor:pointer" onclick="viewPS('{{ r.emp_code }}',{{ month }},{{ year }})">
+      <tr style="cursor:pointer" onclick="viewPS('{{ r.emp_code }}',{{ month }},{{ year }})"
+          data-code="{{ r.emp_code }}" data-name="{{ r.emp_name|lower }}" data-id="{{ r.emp_code|lower }}">
+        <td onclick="event.stopPropagation()" style="text-align:center;">
+          <input type="checkbox" class="ps-cb" value="{{ r.emp_code }}" onchange="updateSelCount()">
+        </td>
         <td style="color:#0096dc;font-weight:600">{{ r.emp_code }}</td>
         <td><div class="emp-name">{{ r.emp_name }}</div><div class="emp-id">{{ r.designation or '' }}</div></td>
         <td><span class="badge badge-{{ r.category.lower() }}">{{ r.category }}</span></td>
@@ -129,13 +140,20 @@
         <td style="text-align:right;font-weight:600;color:#ef4444">₹{{ "{:,.0f}".format(r.total_deductions or 0) }}</td>
         <td style="text-align:right;font-weight:800;color:var(--green)">₹{{ "{:,.0f}".format(r.net_salary or 0) }}</td>
         <td style="text-align:center">{{ r.present_days }}/{{ r.working_days }}</td>
+        <td onclick="event.stopPropagation()" style="text-align:center;">
+          <button onclick="sendSingleWA('{{ r.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;line-height:1;" title="Send WhatsApp to {{ r.emp_name }}">📱</button>
+        </td>
       </tr>
       {% endfor %}
       {% if not records %}
-      <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No salary records found. Process payroll first.</td></tr>
+      <tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No salary records found. Process payroll first.</td></tr>
       {% endif %}
     </tbody>
   </table>
+  <div id="selCount" style="padding:8px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);display:none;">
+    <span id="selCountText">0 selected</span>
+    <button class="btn btn-sm" style="margin-left:10px;background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" onclick="openBulkWA()">📱 Send WhatsApp to Selected</button>
+  </div>
 </div>
 
 <!-- PAYSLIP MODAL -->
@@ -395,4 +413,151 @@ function printPayslip(){
   pw.document.write(html);
   pw.document.close();
 }
-</script>{% endblock %}
+
+// ── WhatsApp Functions ──────────────────────────────
+function toggleAll(masterCb){
+  document.querySelectorAll(".ps-cb").forEach(cb=>{
+    const row = cb.closest("tr");
+    if(!row || row.style.display==="none") return; // skip hidden rows
+    cb.checked = masterCb.checked;
+  });
+  updateSelCount();
+}
+
+function toggleSelectAll(){
+  const cbs = [...document.querySelectorAll(".ps-cb")].filter(cb=>cb.closest("tr").style.display!=="none");
+  const allChecked = cbs.every(cb=>cb.checked);
+  cbs.forEach(cb=>cb.checked=!allChecked);
+  const master = document.getElementById("masterCb");
+  if(master) master.checked = !allChecked;
+  updateSelCount();
+}
+
+function updateSelCount(){
+  const sel = [...document.querySelectorAll(".ps-cb:checked")];
+  const div = document.getElementById("selCount");
+  const txt = document.getElementById("selCountText");
+  if(sel.length>0){ div.style.display="block"; txt.textContent=sel.length+" selected"; }
+  else { div.style.display="none"; }
+  const master = document.getElementById("masterCb");
+  const all = document.querySelectorAll(".ps-cb");
+  if(master) master.checked = sel.length===all.length && all.length>0;
+}
+
+function getSelectedCodes(){
+  return [...document.querySelectorAll(".ps-cb:checked")].map(cb=>cb.value);
+}
+
+async function sendSingleWA(empCode){
+  const mn = document.getElementById("selMonth").value;
+  const yr = document.getElementById("selYear").value;
+  const div = document.getElementById("waRes");
+  if(div) div.innerHTML = '<div class="alert alert-info" style="font-size:12px;">⏳ Sending...</div>';
+  document.getElementById("waModal_empCode").value = empCode;
+  document.getElementById("waModal_month").value  = mn;
+  document.getElementById("waModal_year").value   = yr;
+  openModal("waConfirmModal");
+}
+
+function openBulkWA(){
+  const codes = getSelectedCodes();
+  if(codes.length===0){ alert("Please select at least one employee"); return; }
+  document.getElementById("waBulkCount").textContent = codes.length;
+  document.getElementById("waBulkMode").value = "selected";
+  openModal("waBulkModal");
+}
+
+function openBulkWAAll(){
+  const total = document.querySelectorAll(".ps-cb").length;
+  document.getElementById("waBulkCount").textContent = total+" (All)";
+  document.getElementById("waBulkMode").value = "all";
+  openModal("waBulkModal");
+}
+
+async function confirmSingleWA(){
+  const empCode = document.getElementById("waModal_empCode").value;
+  const month   = parseInt(document.getElementById("waModal_month").value);
+  const year    = parseInt(document.getElementById("waModal_year").value);
+  const div     = document.getElementById("waRes");
+  div.innerHTML = '<div class="alert alert-info" style="font-size:12px;">⏳ Sending WhatsApp...</div>';
+  const r = await api("/wa/send-payslip","POST",{emp_codes:[empCode], month, year});
+  if(r.success){
+    const ok = r.sent; const fail = r.failed; const noph = r.no_phone;
+    div.innerHTML = `<div class="alert alert-${ok>0?'success':'danger'}" style="font-size:12px;">
+      ${ok>0?'✅ WhatsApp sent!':'❌ Failed to send'}
+      ${fail>0?` | ❌ ${fail} failed`:''}
+      ${noph>0?` | ⚠️ No phone number`:''}
+    </div>`;
+    if(ok>0) setTimeout(()=>closeModal("waConfirmModal"),2000);
+  } else {
+    div.innerHTML = `<div class="alert alert-danger" style="font-size:12px;">❌ ${r.error||'Error'}</div>`;
+  }
+}
+
+async function confirmBulkWA(){
+  const mode    = document.getElementById("waBulkMode").value;
+  const month   = parseInt(document.getElementById("selMonth").value);
+  const year    = parseInt(document.getElementById("selYear").value);
+  const divB    = document.getElementById("waBulkRes");
+  divB.innerHTML = '<div class="alert alert-info" style="font-size:12px;">⏳ Sending WhatsApp messages...</div>';
+  const codes = mode==="all" ? [] : getSelectedCodes();
+  const r = await api("/wa/send-payslip","POST",{emp_codes:codes, month, year});
+  if(r.success){
+    divB.innerHTML = `<div class="alert alert-success" style="font-size:12px;">
+      ✅ Sent: ${r.sent} &nbsp;|&nbsp; ❌ Failed: ${r.failed} &nbsp;|&nbsp; ⚠️ No Phone: ${r.no_phone}
+    </div>`;
+    setTimeout(()=>closeModal("waBulkModal"),3000);
+  } else {
+    divB.innerHTML = `<div class="alert alert-danger" style="font-size:12px;">❌ ${r.error||'Error'}</div>`;
+  }
+}
+</script>
+
+<!-- WhatsApp Single Confirm Modal -->
+<div class="modal-overlay no-print" id="waConfirmModal">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <span class="modal-title">📱 Send WhatsApp Salary Slip</span>
+      <button class="modal-close" onclick="closeModal('waConfirmModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="waModal_empCode">
+      <input type="hidden" id="waModal_month">
+      <input type="hidden" id="waModal_year">
+      <div style="font-size:13px;margin-bottom:12px;">
+        A WhatsApp salary text message will be sent to this employee's registered mobile number.
+      </div>
+      <div id="waRes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('waConfirmModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmSingleWA()">📱 Send WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- WhatsApp Bulk Modal -->
+<div class="modal-overlay no-print" id="waBulkModal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <span class="modal-title">📱 Bulk WhatsApp Salary Slip</span>
+      <button class="modal-close" onclick="closeModal('waBulkModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="waBulkMode">
+      <div style="font-size:13px;margin-bottom:12px;">
+        Sending to <strong><span id="waBulkCount">0</span></strong> employee(s).
+      </div>
+      <div style="background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:8px;padding:12px;font-size:11px;color:var(--muted);margin-bottom:12px;">
+        ℹ️ Message will be sent to employee's registered mobile number. Employees without phone number will be skipped.
+      </div>
+      <div id="waBulkRes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('waBulkModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmBulkWA()">📱 Send WhatsApp to All Selected</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

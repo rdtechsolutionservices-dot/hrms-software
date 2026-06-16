@@ -72,6 +72,7 @@
         <td style="padding:8px;text-align:center;font-size:11px;color:#10b981;">
           {% if lt.earn_enabled %}
             Every {{ lt.earn_every_n_days or 30 }} days → {{ lt.earn_days_per_period or 0.75 }} days
+            <br><span style="color:#0096dc;font-size:10px;">Credit on {{ lt.earn_credit_day or 1 }}st of month</span>
             {% if lt.max_accumulation %}<br><span style="color:var(--muted);">Max: {{ lt.max_accumulation }}</span>{% endif %}
           {% else %}
             <span style="color:var(--muted);">Fixed quota only</span>
@@ -92,6 +93,57 @@
     </tbody>
   </table>
 </div>
+
+<!-- Earn Log & Manual Earn -->
+<div class="table-card" style="padding:16px;margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="font-weight:800;font-size:14px;color:#10b981;">📈 Auto Leave Earn Log</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="earnLogYear" class="form-select" style="width:100px;" onchange="loadEarnLog()">
+        {% for y in range(2024,2030) %}<option {% if y==2026 %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <a id="earnLogExportBtn" href="/leave-master/earn-log/export?year=2026" class="btn btn-ghost btn-sm">📥 Export Excel</a>
+      {% if not earn_auto_credit %}
+      <button class="btn btn-primary btn-sm" style="background:#7c3aed;" onclick="openManualEarn()">➕ Manual Earn Credit</button>
+      {% endif %}
+    </div>
+  </div>
+  <div id="earnLogSummary" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px;"></div>
+  <div id="earnLogTable" style="overflow-x:auto;font-size:12px;max-height:320px;overflow-y:auto;"></div>
+</div>
+
+<!-- Manual Earn Modal -->
+{% if not earn_auto_credit %}
+<div class="modal-overlay" id="manualEarnModal">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header"><span class="modal-title">➕ Manual Leave Earn Credit</span><button class="modal-close" onclick="closeModal('manualEarnModal')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);background:rgba(124,58,237,.08);border-radius:8px;padding:10px;margin-bottom:14px;">
+        Manually credit monthly leave earn to all active employees based on leave type earn rules. Use when Auto-Earn is OFF.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group">
+          <label class="form-label">Year</label>
+          <select class="form-select" id="me_year">
+            {% for y in range(2024,2030) %}<option {% if y==2026 %}selected{% endif %}>{{ y }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Month</label>
+          <select class="form-select" id="me_month">
+            {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==6 %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="me_result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('manualEarnModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#7c3aed;" onclick="doManualEarn()">✅ Credit Now</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Bulk Leave Balance Upload -->
 <div class="table-card" style="padding:16px;margin-bottom:14px;">
@@ -162,7 +214,7 @@
         <div id="earn_fields" style="display:none;" class="col-span-2">
           <div style="background:rgba(16,185,129,.08);border-radius:8px;padding:12px;border:1px solid rgba(16,185,129,.2);">
             <div style="font-weight:700;font-size:12px;color:#10b981;margin-bottom:8px;">📈 Earn Rule Settings</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
               <div class="form-group" style="margin:0;">
                 <label class="form-label" style="font-size:10px;">Every N Days Worked</label>
                 <input class="form-control" type="number" id="t_earn_n" value="30" step="1" placeholder="30">
@@ -175,9 +227,13 @@
                 <label class="form-label" style="font-size:10px;">Max Accumulation</label>
                 <input class="form-control" type="number" id="t_earn_max" value="0" placeholder="0=unlimited">
               </div>
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-size:10px;">Credit on Day of Month</label>
+                <input class="form-control" type="number" id="t_earn_day" value="1" min="1" max="28" placeholder="1">
+              </div>
             </div>
             <div style="font-size:10px;color:var(--muted);margin-top:6px;">
-              Example: Every 30 working days → earn 0.75 days = 16 days EL/year (if 240 working days/year)
+              Example: Every 30 working days → earn 0.75 days = 16 days EL/year (if 240 working days/year). Credit Day = which day of month to auto-credit (e.g. 1 = 1st of month).
             </div>
           </div>
         </div>
@@ -223,6 +279,7 @@ function openAddType(){
   document.getElementById("t_earn_n").value=30;
   document.getElementById("t_earn_days").value=0.75;
   document.getElementById("t_earn_max").value=0;
+  document.getElementById("t_earn_day").value=1;
   document.getElementById("earn_fields").style.display="none";
   document.getElementById("t_result").innerHTML="";
   openModal("typeModal");
@@ -241,6 +298,7 @@ function editType(lt){
   document.getElementById("t_earn_n").value=lt.earn_every_n_days||30;
   document.getElementById("t_earn_days").value=lt.earn_days_per_period||0.75;
   document.getElementById("t_earn_max").value=lt.max_accumulation||0;
+  document.getElementById("t_earn_day").value=lt.earn_credit_day||1;
   document.getElementById("earn_fields").style.display=lt.earn_enabled?"block":"none";
   document.getElementById("t_result").innerHTML="";
   openModal("typeModal");
@@ -265,6 +323,7 @@ async function saveType(){
     earn_every_n_days:parseFloat(document.getElementById("t_earn_n").value)||30,
     earn_days_per_period:parseFloat(document.getElementById("t_earn_days").value)||0.75,
     max_accumulation:parseFloat(document.getElementById("t_earn_max").value)||0,
+    earn_credit_day:parseInt(document.getElementById("t_earn_day").value)||1,
     is_active:true
   };
   if(!data.code){showToast("Code required","error");return;}
@@ -295,5 +354,65 @@ async function bulkBalanceUpload(input){
   }
   input.value="";
 }
+
+// Earn log
+const MONTHS_LIST=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+async function loadEarnLog(){
+  const yr=document.getElementById("earnLogYear").value;
+  document.getElementById("earnLogExportBtn").href=`/leave-master/earn-log/export?year=${yr}`;
+  const r=await api(`/gratuity-bonus/leave-earn-log?year=${yr}`);
+  if(!r.success){document.getElementById("earnLogTable").innerHTML='<p style="color:var(--muted);font-size:12px;">No data.</p>';return;}
+  // Summary cards by month+type
+  const sc=document.getElementById("earnLogSummary");
+  if(r.summary&&r.summary.length){
+    sc.innerHTML=r.summary.map(s=>`<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;font-size:11px;">
+      <div style="font-weight:800;color:#10b981;">${MONTHS_LIST[s.month]||s.month} ${s.leave_type_code||"EL"}</div>
+      <div style="font-size:13px;font-weight:700;">${s.emp_count} emp</div>
+      <div style="color:var(--muted);">EL+${(s.total_el||0).toFixed(2)} CL+${(s.total_cl||0).toFixed(2)}</div>
+    </div>`).join("");
+  } else sc.innerHTML='<p style="font-size:12px;color:var(--muted);">No earn log for this year.</p>';
+  // Detail table
+  if(r.logs&&r.logs.length){
+    document.getElementById("earnLogTable").innerHTML=`<table style="width:100%;border-collapse:collapse;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 8px;font-size:11px;">Employee</th>
+        <th style="padding:6px;font-size:11px;">Dept</th>
+        <th style="padding:6px;font-size:11px;">Month</th>
+        <th style="padding:6px;font-size:11px;">Type</th>
+        <th style="padding:6px;font-size:11px;color:#10b981;">EL Credited</th>
+        <th style="padding:6px;font-size:11px;color:#0096dc;">CL Credited</th>
+        <th style="padding:6px;font-size:11px;">Source</th>
+        <th style="padding:6px;font-size:11px;">Date</th>
+      </tr></thead>
+      <tbody>${r.logs.map(l=>`<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;"><div style="font-weight:600;">${l.emp_name}</div><div style="font-size:10px;color:var(--muted);">${l.emp_code}</div></td>
+        <td style="padding:5px;font-size:11px;">${l.department||"—"}</td>
+        <td style="padding:5px;text-align:center;">${MONTHS_LIST[l.month]||l.month}</td>
+        <td style="padding:5px;text-align:center;font-weight:700;color:#0096dc;">${l.leave_type_code||"EL"}</td>
+        <td style="padding:5px;text-align:center;color:#10b981;font-weight:700;">${(l.el_credited||0).toFixed(4)}</td>
+        <td style="padding:5px;text-align:center;color:#0096dc;font-weight:700;">${(l.cl_credited||0).toFixed(4)}</td>
+        <td style="padding:5px;text-align:center;font-size:10px;"><span style="padding:2px 6px;border-radius:4px;background:${l.source==='auto'?'rgba(16,185,129,.15)':'rgba(124,58,237,.15)'};color:${l.source==='auto'?'#10b981':'#7c3aed'};">${l.source}</span></td>
+        <td style="padding:5px;font-size:10px;color:var(--muted);">${(l.credited_on||"").substring(0,10)}</td>
+      </tr>`).join("")}</tbody></table>`;
+  } else {
+    document.getElementById("earnLogTable").innerHTML='<p style="font-size:12px;color:var(--muted);padding:10px 0;">No earn log entries for this year.</p>';
+  }
+}
+
+function openManualEarn(){ openModal("manualEarnModal"); document.getElementById("me_result").innerHTML=""; }
+
+async function doManualEarn(){
+  const yr=parseInt(document.getElementById("me_year").value);
+  const mo=parseInt(document.getElementById("me_month").value);
+  if(!confirm(`Credit monthly leave earn for all active employees — ${MONTHS_LIST[mo]} ${yr}?`)) return;
+  const r=await api("/leave-master/manual-earn","POST",{year:yr,month:mo});
+  document.getElementById("me_result").innerHTML=r.success
+    ?`<div class="alert alert-success" style="margin-top:10px;">✅ ${r.message}</div>`
+    :`<div class="alert alert-danger" style="margin-top:10px;">❌ ${r.error}</div>`;
+  if(r.success){setTimeout(()=>{closeModal("manualEarnModal");loadEarnLog();},1500);}
+}
+
+// Load earn log on page load
+document.addEventListener("DOMContentLoaded", loadEarnLog);
 </script>
 {% endblock %}

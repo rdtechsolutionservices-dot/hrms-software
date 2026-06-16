@@ -29,7 +29,7 @@
     onclick="toggleLALock()">{% if is_locked %}🔒 Locked{% else %}🔓 Lock Month{% endif %}</button>
   {% endif %}
   <div style="margin-left:auto;font-size:11px;color:var(--muted);">
-    OT calculated at rate from OT Rate Master &nbsp;|&nbsp; ESIC: Emp 0.75% + Employer 3.25% deducted on OT amount
+    Default: All OT = Unauthorized (single rate) &nbsp;|&nbsp; ✅ Approve → Authorized OT (1.3× rate)
   </div>
 </div>{% if is_locked %}<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#ef4444;font-weight:600;">🔒 Month Locked — Approvals frozen</div>{% endif %}
 
@@ -40,12 +40,12 @@
     <div style="font-size:22px;font-weight:800;">{{ summary.total_emps }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#374151,#4b5563);border-radius:10px;padding:12px;color:#fff;">
-    <div style="font-size:10px;opacity:.8;">Total OT Hours</div>
-    <div style="font-size:22px;font-weight:800;">{{ summary.total_actual_ot }} <span style="font-size:12px;">hrs</span></div>
+    <div style="font-size:10px;opacity:.8;">Total Unauthorized OT</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_unauth_ot }} <span style="font-size:12px;">hrs</span></div>
   </div>
   <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;padding:12px;color:#fff;">
-    <div style="font-size:10px;opacity:.8;">Total OT Gross</div>
-    <div style="font-size:16px;font-weight:800;">₹{{ "{:,.0f}".format(summary.total_ot_gross) }}</div>
+    <div style="font-size:10px;opacity:.8;">Total Authorized OT</div>
+    <div style="font-size:22px;font-weight:800;">{{ summary.total_approved_ot }} <span style="font-size:12px;">hrs</span></div>
   </div>
   <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:10px;padding:12px;color:#fff;">
     <div style="font-size:10px;opacity:.8;">Approved</div>
@@ -63,10 +63,26 @@
 
 <!-- Bulk Actions Bar -->
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-radius:10px;padding:8px 12px;">
-  <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()">☑️ Select All</button>
+  <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()" id="selAllBtn">☑️ Select All</button>
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+    <input type="checkbox" id="cbUnauth" checked onchange="applyEmpFilter()">
+    <span style="color:#ef4444;font-weight:600;">Unauthorised</span>
+  </label>
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+    <input type="checkbox" id="cbAuth" checked onchange="applyEmpFilter()">
+    <span style="color:#10b981;font-weight:600;">Authorised</span>
+  </label>
+  <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
+    <input type="checkbox" id="cbZeroNet" onchange="applyEmpFilter()">
+    <span style="color:#f59e0b;font-weight:600;">Net OT = Zero</span>
+  </label>
   <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="bulkAction('Approved')">✅ Bulk Approve Selected</button>
   <span id="selCount" style="font-size:12px;color:var(--muted);">0 selected</span>
-  <div style="margin-left:auto;font-size:11px;color:var(--muted);">Select date checkboxes below to approve/reject specific dates</div>
+  <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markOTPaid()">✅ Mark as Paid</button>
+    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genOTBankFile()">🏦 Bank File</button>
+    <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="openOTEsic()">📋 ESIC Preview</button>
+  </div>
 </div>
 
 <!-- Employee Cards -->
@@ -90,6 +106,8 @@
       <span style="color:#f59e0b;">⏳ {{ emp.pending }}</span>
     </div>
   </div>
+  <!-- hidden data attrs for filter -->
+  <span style="display:none;" data-netot="{{ emp.net_ot_final }}" data-unauthdays="{{ emp.unauth_days }}"></span>
 
   <!-- Date Chips -->
   <div style="padding:10px 14px;border-bottom:1px solid var(--border);">
@@ -118,21 +136,29 @@
       <div style="font-size:9px;color:var(--muted);">Actual OT Hrs</div>
       <div style="font-weight:700;font-size:12px;color:#7c3aed;">{{ emp.actual_ot_hrs }}</div>
     </div>
-    <div style="text-align:center;background:rgba(124,58,237,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Per Hr Rate (₹)</div>
-      <div style="font-weight:700;font-size:12px;color:#7c3aed;">₹{{ "%.2f"|format((emp.gross_base/208)*emp.ot_multiplier) if emp.gross_base else '0.00' }}</div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth Days</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_days }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth OT Hrs<br><span style="font-size:8px;">8×{{ emp.unauth_days }}</span></div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">{{ emp.unauth_ot_hrs }}</div>
     </div>
     <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">OT Gross</div>
-      <div style="font-weight:700;font-size:12px;color:#10b981;">₹{{ "{:,.0f}".format(emp.ot_gross) }}</div>
+      <div style="font-size:9px;color:var(--muted);">Approved OT Hrs<br><span style="font-size:8px;">Actual−Unauth</span></div>
+      <div style="font-weight:700;font-size:12px;color:#10b981;">{{ emp.approved_ot_hrs }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(16,185,129,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Approved OT Pay</div>
+      <div style="font-weight:700;font-size:12px;color:#10b981;">₹{{ "{:,.0f}".format(emp.approved_ot_pay) }}</div>
+    </div>
+    <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 4px;">
+      <div style="font-size:9px;color:var(--muted);">Unauth OT Pay</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.unauth_ot_pay) }}</div>
     </div>
     <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Emp ESIC (0.75%)</div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_ee) }}</div>
-    </div>
-    <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:8px;padding:8px 4px;">
-      <div style="font-size:9px;color:var(--muted);">Employer ESIC (3.25%)</div>
-      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_er) }}</div>
+      <div style="font-size:9px;color:var(--muted);">ESIC (0.75%)</div>
+      <div style="font-weight:700;font-size:12px;color:#ef4444;">₹{{ "{:,.0f}".format(emp.esic_on_ot) }}</div>
     </div>
     <div style="text-align:center;background:linear-gradient(135deg,rgba(0,82,204,.2),rgba(0,150,220,.1));border-radius:8px;padding:8px 4px;border:1px solid rgba(0,150,220,.3);">
       <div style="font-size:9px;color:var(--muted);">Net OT Pay</div>
@@ -293,6 +319,64 @@ async function toggleLALock(){
   const r = await api('/payroll/ot-lock','POST',{month:parseInt(m),year:parseInt(y),action:action});
   if(r && r.success){ showToast(isLocked?'Month unlocked':'Month locked','success'); setTimeout(()=>location.reload(),800); }
   else showToast((r&&r.error)||'Failed','error');
+}
+
+// ── Unauthorised / Authorised / Zero filter ──────────────
+function applyEmpFilter(){
+  const showUnauth = document.getElementById("cbUnauth").checked;
+  const showAuth   = document.getElementById("cbAuth").checked;
+  const showZero   = document.getElementById("cbZeroNet").checked;
+
+  document.querySelectorAll("[id^='ec_']").forEach(card=>{
+    const netEl = card.querySelector("[data-netot]");
+    const net   = netEl ? parseFloat(netEl.dataset.netot||0) : -1;
+    const unauth = card.querySelector("[data-unauthdays]");
+    const udays  = unauth ? parseInt(unauth.dataset.unauthdays||0) : 0;
+
+    const isZero    = net === 0;
+    const isUnauth  = udays > 0;
+    const isAuth    = !isUnauth;
+
+    let show = false;
+    if(isZero  && showZero)   show = true;
+    if(!isZero && isUnauth && showUnauth) show = true;
+    if(!isZero && isAuth   && showAuth)   show = true;
+    // If all three unchecked — show all
+    if(!showUnauth && !showAuth && !showZero) show = true;
+
+    card.style.display = show ? "" : "none";
+  });
+  updateCount();
+}
+
+// ── Mark as Paid ─────────────────────────────────────────
+async function markOTPaid(){
+  const codes = [...document.querySelectorAll(".emp-chk:checked")].map(c=>c.value);
+  if(!codes.length){ alert("No employees selected"); return; }
+  if(!confirm(`Mark OT as Paid for ${codes.length} employees?`)) return;
+  const m = parseInt(document.getElementById("selM").value);
+  const y = parseInt(document.getElementById("selY").value);
+  const r = await api("/payroll/ot-mark-paid","POST",{emp_codes:codes,month:m,year:y});
+  if(r.success){ showToast("✅ Marked as Paid"); }
+  else { alert("Error: "+(r.error||"Failed")); }
+}
+
+// ── Bank File ─────────────────────────────────────────────
+function genOTBankFile(){
+  const codes = [...document.querySelectorAll(".emp-chk:checked")].map(c=>c.value);
+  if(!codes.length){ alert("No employees selected"); return; }
+  const m = document.getElementById("selM").value;
+  const y = document.getElementById("selY").value;
+  window.open(`/payroll/ot-bank-file/${m}/${y}?codes=${codes.join(",")}`, "_blank");
+}
+
+// ── ESIC Preview ──────────────────────────────────────────
+function openOTEsic(){
+  const codes = [...document.querySelectorAll(".emp-chk:checked")].map(c=>c.value);
+  if(!codes.length){ alert("No employees selected"); return; }
+  const m = document.getElementById("selM").value;
+  const y = document.getElementById("selY").value;
+  window.open(`/payroll/ot-esic-preview/${m}/${y}?codes=${codes.join(",")}`, "_blank");
 }
 </script>
 {% endblock %}

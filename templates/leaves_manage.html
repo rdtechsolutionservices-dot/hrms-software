@@ -57,6 +57,9 @@
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">{{ r.reason or '—' }}</div>
         <div style="font-size:10px;color:var(--muted);">Applied: {{ r.applied_on[:10] if r.applied_on else '—' }}</div>
+        {% if r.dept_head_approved_by %}
+        <div style="font-size:10px;margin-top:3px;"><span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-weight:700;">✅ Dept Head: {{ r.dept_head_approved_by }}</span> on {{ r.dept_head_approved_on[:10] if r.dept_head_approved_on else '' }}</div>
+        {% endif %}
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="approveLeave({{ r.id }})">✅ Approve</button>
@@ -67,57 +70,110 @@
   </div>
   {% endif %}
 
-  <!-- All Requests -->
-  <div style="font-weight:800;font-size:14px;margin-bottom:10px;">All Requests — {{ year }}</div>
-  <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
-      <thead><tr style="border-bottom:2px solid var(--border);">
-        <th style="text-align:left;padding:8px 10px;">Employee</th>
-        <th style="padding:8px;">Type</th>
-        <th style="padding:8px;">From</th>
-        <th style="padding:8px;">To</th>
-        <th style="padding:8px;">Days</th>
-        <th style="padding:8px;">Status</th>
-        <th style="padding:8px;">Source</th>
-        <th style="padding:8px;">Actioned By</th>
-        <th style="padding:8px;">Actions</th>
-      </tr></thead>
-      <tbody>
-        {% for r in all_req %}
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:7px 10px;"><div style="font-weight:600;">{{ r.emp_name }}</div><div style="font-size:10px;color:var(--muted);">{{ r.emp_code }} · {{ r.department }}</div></td>
-          <td style="padding:7px;text-align:center;"><span style="background:rgba(0,150,220,.12);color:#0096dc;border-radius:4px;padding:2px 7px;font-weight:700;font-size:11px;">{{ r.leave_type }}</span></td>
-          <td style="padding:7px;text-align:center;">{{ r.from_date }}</td>
-          <td style="padding:7px;text-align:center;">{{ r.to_date }}</td>
-          <td style="padding:7px;text-align:center;font-weight:700;">{{ r.days }}</td>
-          <td style="padding:7px;text-align:center;">
-            {% if r.status=='Approved' %}<span style="color:#10b981;font-weight:700;font-size:11px;">✅ Approved</span>
-            {% elif r.status=='Pending' %}<span style="color:#f59e0b;font-weight:700;font-size:11px;">⏳ Pending</span>
-            {% elif r.status=='Rejected' %}<span style="color:#ef4444;font-weight:700;font-size:11px;">❌ Rejected</span>
-            {% else %}<span style="color:var(--muted);font-size:11px;">{{ r.status }}</span>{% endif %}
-          </td>
-          <td style="padding:7px;text-align:center;font-size:10px;color:var(--muted);">{{ '👤 Employee' if r.source=='employee' else '🔑 Admin' }}</td>
-          <td style="padding:7px;text-align:center;font-size:11px;">
-            {% if r.approved_by %}
-              <span style="color:{% if r.status=='Approved' %}#10b981{% elif r.status=='Rejected' %}#ef4444{% else %}var(--muted){% endif %};">{{ r.approved_by }}</span>
-              {% if r.approved_on %}<div style="font-size:10px;color:var(--muted);">{{ r.approved_on[:10] }}</div>{% endif %}
-            {% else %}<span style="color:var(--muted);">—</span>{% endif %}
-          </td>
-          <td style="padding:7px;text-align:center;">
-            {% if r.status=='Pending' %}
-            <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#10b981;" onclick="approveLeave({{ r.id }})">✅</button>
-            <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#ef4444;" onclick="rejectLeave({{ r.id }})">❌</button>
-            {% elif r.status=='Approved' %}
-            <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:var(--muted);" onclick="cancelLeave({{ r.id }})">🚫 Cancel</button>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-        {% if not all_req %}<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">No leave requests for {{ year }}</td></tr>{% endif %}
-      </tbody>
-    </table>
+  <!-- All Requests — Filter Section -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;">🔍 Search Leave History</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Employee Name / Code</label>
+        <input class="form-control" id="fi_emp" value="{{ f_emp }}" placeholder="Search name or code..." style="font-size:12px;" onkeydown="if(event.key==='Enter') applyFilter()">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Department</label>
+        <select class="form-select" id="fi_dept" style="font-size:12px;">
+          <option value="">All Departments</option>
+          {% for d in depts %}<option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Month</label>
+        <select class="form-select" id="fi_month" style="font-size:12px;">
+          <option value="">All Months</option>
+          {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index|string==f_month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Year</label>
+        <select class="form-select" id="fi_year" style="font-size:12px;">
+          {% for y in range(2023,2030) %}<option value="{{ y }}" {% if y|string==f_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" onclick="applyFilter()" style="font-size:12px;white-space:nowrap;">🔍 Search</button>
+        {% if filter_applied %}<button class="btn btn-ghost" onclick="clearFilter()" style="font-size:12px;">✕</button>{% endif %}
+      </div>
+    </div>
   </div>
-</div>
+
+  {% if filter_applied %}
+    <!-- Results Table -->
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;">
+      📋 Results ({{ all_req|length }} found)
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:8px 10px;">Employee</th>
+          <th style="padding:8px;">Type</th>
+          <th style="padding:8px;">From</th>
+          <th style="padding:8px;">To</th>
+          <th style="padding:8px;">Days</th>
+          <th style="padding:8px;">Status</th>
+          <th style="padding:8px;">Source</th>
+          <th style="padding:8px;">Actioned By</th>
+          <th style="padding:8px;">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% for r in all_req %}
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:7px 10px;"><div style="font-weight:600;">{{ r.emp_name }}</div><div style="font-size:10px;color:var(--muted);">{{ r.emp_code }} · {{ r.department }}</div></td>
+            <td style="padding:7px;text-align:center;"><span style="background:rgba(0,150,220,.12);color:#0096dc;border-radius:4px;padding:2px 7px;font-weight:700;font-size:11px;">{{ r.leave_type }}</span></td>
+            <td style="padding:7px;text-align:center;">{{ r.from_date }}</td>
+            <td style="padding:7px;text-align:center;">{{ r.to_date }}</td>
+            <td style="padding:7px;text-align:center;font-weight:700;">{{ r.days }}</td>
+            <td style="padding:7px;text-align:center;">
+              {% if r.status=='Approved' %}<span style="color:#10b981;font-weight:700;font-size:11px;">✅ Approved</span>
+              {% elif r.status=='Pending' %}
+                {% if r.dept_head_status=='Approved' %}
+                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">⏳ Dir. Pending</span>
+                  <div style="font-size:9px;color:#10b981;">✅ DH: {{ r.dept_head_approved_by or '' }}</div>
+                {% elif r.dept_head_status=='Rejected' %}
+                  <span style="color:#ef4444;font-weight:700;font-size:11px;">❌ DH Rejected</span>
+                {% else %}
+                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">⏳ DH Pending</span>
+                {% endif %}
+              {% elif r.status=='Rejected' %}<span style="color:#ef4444;font-weight:700;font-size:11px;">❌ Rejected</span>
+              {% elif r.status=='Cancelled' %}<span style="color:var(--muted);font-size:11px;">🚫 Cancelled</span>
+              {% else %}<span style="color:var(--muted);font-size:11px;">{{ r.status }}</span>{% endif %}
+            </td>
+            <td style="padding:7px;text-align:center;font-size:10px;color:var(--muted);">{{ '👤 Employee' if r.source=='employee' else '🔑 Admin' }}</td>
+            <td style="padding:7px;text-align:center;font-size:11px;">
+              {% if r.approved_by %}
+                <span style="color:{% if r.status=='Approved' %}#10b981{% elif r.status=='Rejected' %}#ef4444{% else %}var(--muted){% endif %};">{{ r.approved_by }}</span>
+                {% if r.approved_on %}<div style="font-size:10px;color:var(--muted);">{{ r.approved_on[:10] }}</div>{% endif %}
+              {% else %}<span style="color:var(--muted);">—</span>{% endif %}
+            </td>
+            <td style="padding:7px;text-align:center;">
+              {% if r.status=='Pending' and r.dept_head_status=='Approved' %}
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#10b981;" onclick="approveLeave({{ r.id }})">✅</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#ef4444;" onclick="rejectLeave({{ r.id }})">❌</button>
+              {% elif r.status=='Approved' %}
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:var(--muted);" onclick="cancelLeave({{ r.id }})">🚫 Cancel</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not all_req %}<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">No records found for selected filters</td></tr>{% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align:center;padding:40px;color:var(--muted);background:var(--card);border-radius:12px;border:1px dashed var(--border);">
+      <div style="font-size:32px;margin-bottom:10px;">🔍</div>
+      <div style="font-weight:700;font-size:14px;">Use filters above to search leave history</div>
+      <div style="font-size:12px;margin-top:4px;">Filter by employee, department, month and year</div>
+    </div>
+  {% endif %}
 
 <!-- TAB: Admin Assign Leave -->
 <div id="pane_assign" class="tab-pane" {% if tab!='assign' %}style="display:none"{% endif %}>
@@ -125,18 +181,20 @@
     <div class="table-card" style="padding:20px;">
       <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">➕ Assign Leave to Employee</div>
       <div style="font-size:12px;color:var(--muted);background:rgba(0,150,220,.08);border-radius:8px;padding:10px;margin-bottom:14px;">
-        Admin direct assignment — auto approved, attendance marked as Leave, balance deducted.
+        HR direct assignment — auto approved, attendance marked as Leave, balance deducted. <strong>Back-date allowed.</strong>
       </div>
 
+      <!-- Employee search + select -->
       <div class="form-group">
         <label class="form-label">Employee *</label>
-        <div style="position:relative;">
-          <input class="form-control" id="al_emp_search" placeholder="🔍 Search by name or code..." oninput="filterLeaveEmps(this.value)" autocomplete="off">
-          <div id="al_emp_dropdown" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;position:absolute;width:100%;z-index:9999;margin-top:2px;box-shadow:0 4px 12px rgba(0,0,0,.3);">
-          </div>
-          <input type="hidden" id="al_emp" value="">
-          <div id="al_emp_selected" style="font-size:11px;color:#10b981;margin-top:3px;"></div>
-        </div>
+        <input class="form-control" id="al_emp_search" placeholder="🔍 Type name or code to filter..." oninput="filterAlEmp(this.value)" autocomplete="off" style="margin-bottom:6px;">
+        <select class="form-select" id="al_emp_select" size="5" onchange="onAlEmpSelect(this.value)" style="height:auto;min-height:90px;">
+          {% for e in all_emps %}
+          <option value="{{ e.emp_code }}" data-name="{{ e.emp_name }}" data-dept="{{ e.department or '' }}" data-cat="{{ e.category or '' }}">{{ e.emp_code }} — {{ e.emp_name }} ({{ e.department or '—' }})</option>
+          {% endfor %}
+        </select>
+        <input type="hidden" id="al_emp" value="">
+        <div id="al_emp_label" style="font-size:11px;color:#10b981;margin-top:4px;min-height:16px;"></div>
       </div>
 
       <!-- Balance preview -->
@@ -192,8 +250,8 @@
           <input type="checkbox" id="al_deduct" checked> Deduct from leave balance
         </label>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="assignLeave()">✅ Assign Leave</button>
-      <div id="alResult" style="margin-top:10px;"></div>
+      <button class="btn btn-primary" style="width:100%;font-size:15px;padding:12px;" onclick="assignLeave()">✅ Assign Leave</button>
+      <div id="alResult" style="margin-top:12px;"></div>
     </div>
 
     <!-- Bulk assign -->
@@ -222,21 +280,34 @@
 
 <!-- TAB: Balance -->
 <div id="pane_balance" class="tab-pane" {% if tab!='balance' %}style="display:none"{% endif %}>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <div style="font-size:12px;color:var(--muted);">Leave balance for Staff employees — {{ year }}</div>
-    <input class="form-control" id="balSearch" placeholder="🔍 Search..." oninput="filterBalance()" style="width:200px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="form-control" id="balSearch" placeholder="🔍 Search..." oninput="filterBalance()" style="width:160px;">
+      {% if not earn_auto_credit %}
+      <a href="/leave-master" class="btn btn-primary btn-sm" style="background:#7c3aed;font-size:11px;">➕ Earn Monthly Credit</a>
+      {% endif %}
+      <a href="/export/leave-balance?year={{ year }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📥 Export</a>
+    </div>
   </div>
   <div style="overflow-x:auto;">
+    {% set active_codes = leave_types|map(attribute='code')|list if leave_types else ['CL','EL','SL'] %}
     <table id="balTable" style="width:100%;border-collapse:collapse;font-size:12px;">
       <thead><tr style="border-bottom:2px solid var(--border);">
         <th style="text-align:left;padding:8px 10px;cursor:pointer;" onclick="sortTable('balTable',0)" data-sort-col="0">Employee<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        {% if 'CL' in active_codes %}
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',1)" data-sort-col="1">CL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',2)" data-sort-col="2">CL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
         <th style="text-align:center;padding:8px;color:#0096dc;cursor:pointer;" onclick="sortTable('balTable',3)" data-sort-col="3">CL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        {% endif %}
+        {% if 'EL' in active_codes %}
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',4)" data-sort-col="4">EL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',5)" data-sort-col="5">EL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
         <th style="text-align:center;padding:8px;color:#10b981;cursor:pointer;" onclick="sortTable('balTable',6)" data-sort-col="6">EL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        {% endif %}
+        {% if 'SL' in active_codes %}
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',7)" data-sort-col="7">SL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        {% endif %}
         <th style="text-align:center;padding:8px;cursor:pointer;" onclick="sortTable('balTable',8)" data-sort-col="8">Edit<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       </tr></thead>
       <tbody>
@@ -244,13 +315,19 @@
         {% set b = balances.get(emp.emp_code, {}) %}
         <tr style="border-bottom:1px solid var(--border);" data-name="{{ emp.emp_name|lower }}" data-code="{{ emp.emp_code|lower }}">
           <td style="padding:7px 10px;"><div style="font-weight:600;">{{ emp.emp_name }}</div><div style="font-size:10px;color:var(--muted);">{{ emp.emp_code }} · {{ emp.department }}</div></td>
+          {% if 'CL' in active_codes %}
           <td style="text-align:center;padding:7px;">{{ b.cl_allotted or 0 }}</td>
           <td style="text-align:center;padding:7px;color:#ef4444;">{{ b.cl_used or 0 }}</td>
           <td style="text-align:center;padding:7px;font-weight:700;color:#0096dc;">{{ ((b.cl_allotted or 0)-(b.cl_used or 0))|round(1) }}</td>
+          {% endif %}
+          {% if 'EL' in active_codes %}
           <td style="text-align:center;padding:7px;">{{ b.el_allotted or 0 }}</td>
           <td style="text-align:center;padding:7px;color:#ef4444;">{{ b.el_used or 0 }}</td>
           <td style="text-align:center;padding:7px;font-weight:700;color:#10b981;">{{ ((b.el_allotted or 0)-(b.el_used or 0))|round(1) }}</td>
+          {% endif %}
+          {% if 'SL' in active_codes %}
           <td style="text-align:center;padding:7px;color:#f59e0b;">{{ ((b.sl_allotted or 0)-(b.sl_used or 0))|round(1) }}</td>
+          {% endif %}
           <td style="text-align:center;padding:7px;">
             <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="editBalance('{{ emp.emp_code }}','{{ emp.emp_name }}',{{ b.cl_allotted or 0 }},{{ b.cl_used or 0 }},{{ b.el_allotted or 0 }},{{ b.el_used or 0 }},{{ b.sl_allotted or 0 }},{{ b.sl_used or 0 }})">✏️</button>
           </td>
@@ -372,6 +449,22 @@
 <script>
 function reload(){ location.href=`/leaves/manage?year=${document.getElementById("selYear").value}&tab={{ tab }}`; }
 
+function applyFilter(){
+  const emp   = document.getElementById("fi_emp").value.trim();
+  const dept  = document.getElementById("fi_dept").value;
+  const month = document.getElementById("fi_month").value;
+  const year  = document.getElementById("fi_year").value;
+  let url = `/leaves/manage?tab=requests&f_year=${year}`;
+  if(emp)   url += `&f_emp=${encodeURIComponent(emp)}`;
+  if(dept)  url += `&f_dept=${encodeURIComponent(dept)}`;
+  if(month) url += `&f_month=${month}`;
+  location.href = url;
+}
+
+function clearFilter(){
+  location.href = "/leaves/manage?tab=requests";
+}
+
 function switchTab(t){
   document.querySelectorAll(".tab-pane").forEach(p=>p.style.display="none");
   document.querySelectorAll("[id^='tab_']").forEach(b=>{
@@ -415,38 +508,41 @@ async function cancelLeave(id){
   else showToast(r.error||"Error","error");
 }
 
-// Assign leave
-const _leaveEmps = {{ employees|tojson if employees is defined else '[]' }};
-function filterLeaveEmps(q){
-  const dd=document.getElementById("al_emp_dropdown");
-  document.getElementById("al_emp").value="";
-  document.getElementById("al_emp_selected").textContent="";
-  if(!q||q.length<1){dd.style.display="none";return;}
-  const m=_leaveEmps.filter(e=>(e.emp_code||"").toLowerCase().includes(q.toLowerCase())||(e.emp_name||"").toLowerCase().includes(q.toLowerCase())).slice(0,12);
-  if(!m.length){dd.style.display="none";return;}
-  dd.innerHTML=m.map(e=>`<div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);" onmousedown="selectLeaveEmp('${e.emp_code}','${e.emp_name}','${e.category||''}')"><strong>${e.emp_code}</strong> — ${e.emp_name} <span style="color:var(--muted);font-size:10px;">${e.department||""}</span></div>`).join("");
-  dd.style.display="block";
+// Assign leave — select-based
+function filterAlEmp(q){
+  const sel=document.getElementById("al_emp_select");
+  const opts=sel.querySelectorAll("option");
+  const lq=(q||"").toLowerCase();
+  opts.forEach(o=>{
+    const txt=o.textContent.toLowerCase();
+    o.style.display=(!lq||txt.includes(lq))?"":"none";
+  });
+  // If previously selected emp is hidden, clear selection
+  if(sel.value){
+    const cur=sel.querySelector(`option[value="${sel.value}"]`);
+    if(cur&&cur.style.display==="none"){ sel.value=""; document.getElementById("al_emp").value=""; document.getElementById("al_emp_label").textContent=""; }
+  }
 }
-function selectLeaveEmp(code,name,cat){
+function onAlEmpSelect(code){
   document.getElementById("al_emp").value=code;
-  document.getElementById("al_emp_search").value=code+" — "+name;
-  document.getElementById("al_emp_selected").textContent="✓ "+name+(cat?" ("+cat+")":"");
-  document.getElementById("al_emp_dropdown").style.display="none";
+  const opt=document.getElementById("al_emp_select").querySelector(`option[value="${code}"]`);
+  if(opt){
+    const name=opt.dataset.name||""; const dept=opt.dataset.dept||""; const cat=opt.dataset.cat||"";
+    document.getElementById("al_emp_label").textContent=`✓ ${name}${dept?" · "+dept:""} ${cat?"("+cat+")":""}`;
+  }
   loadBalance();
 }
-document.addEventListener("click",e=>{
-  if(!e.target.closest("#al_emp_dropdown")&&!e.target.matches("#al_emp_search"))
-    document.getElementById("al_emp_dropdown").style.display="none";
-});
 async function loadBalance(){
   const ec=document.getElementById("al_emp").value;
   if(!ec){document.getElementById("balPreview").style.display="none";return;}
   const year=document.getElementById("init_year")?.value||new Date().getFullYear();
-  const r=await api(`/leaves/get-balance/${ec}?year=${year}`);
-  document.getElementById("bal_cl").textContent=((r.cl_allotted||0)-(r.cl_used||0)).toFixed(1);
-  document.getElementById("bal_el").textContent=((r.el_allotted||0)-(r.el_used||0)).toFixed(1);
-  document.getElementById("bal_sl").textContent=((r.sl_allotted||0)-(r.sl_used||0)).toFixed(1);
-  document.getElementById("balPreview").style.display="block";
+  try{
+    const r=await api(`/leaves/get-balance/${ec}?year=${year}`);
+    document.getElementById("bal_cl").textContent=((r.cl_allotted||0)-(r.cl_used||0)).toFixed(1);
+    document.getElementById("bal_el").textContent=((r.el_allotted||0)-(r.el_used||0)).toFixed(1);
+    document.getElementById("bal_sl").textContent=((r.sl_allotted||0)-(r.sl_used||0)).toFixed(1);
+    document.getElementById("balPreview").style.display="block";
+  }catch(e){ document.getElementById("balPreview").style.display="none"; }
 }
 
 function updateDateRange(){
@@ -458,22 +554,36 @@ function updateDateRange(){
 async function assignLeave(){
   const ec=document.getElementById("al_emp").value;
   const from=document.getElementById("al_from").value;
-  if(!ec||!from){showToast("Employee and date required","error");return;}
+  const div=document.getElementById("alResult");
+  if(!ec){div.innerHTML='<div class="alert alert-danger">❌ Please select an employee</div>';return;}
+  if(!from){div.innerHTML='<div class="alert alert-danger">❌ Please select From Date</div>';return;}
+  div.innerHTML='<div class="alert alert-info">⏳ Assigning leave...</div>';
   const data={
     emp_code:ec,
     leave_type:document.getElementById("al_type").value,
     from_date:from,
     to_date:document.getElementById("al_to").value||from,
     is_half_day:document.getElementById("al_half").value==="1",
-    reason:document.getElementById("al_reason").value,
+    reason:document.getElementById("al_reason").value||"Leave assigned by HR",
     deduct_balance:document.getElementById("al_deduct").checked
   };
-  const r=await api("/leaves/admin-assign","POST",data);
-  const div=document.getElementById("alResult");
-  if(r.success){
-    div.innerHTML=`<div class="alert alert-success">✅ ${r.message}</div>`;
-    loadBalance();
-  } else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  try{
+    const r=await api("/leaves/admin-assign","POST",data);
+    if(r.success){
+      div.innerHTML=`<div class="alert alert-success" style="font-weight:700;font-size:14px;">✅ ${r.message}</div>`;
+      loadBalance();
+      // Reset form
+      document.getElementById("al_emp").value=""; document.getElementById("al_emp_label").textContent="";
+      document.getElementById("al_emp_select").value=""; document.getElementById("al_emp_search").value="";
+      document.getElementById("al_from").value="{{ today }}"; document.getElementById("al_to").value="{{ today }}";
+      document.getElementById("al_reason").value="Leave assigned by HR";
+      document.getElementById("al_half").value="0"; updateDateRange();
+    } else {
+      div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Unknown error"}</div>`;
+    }
+  }catch(e){
+    div.innerHTML=`<div class="alert alert-danger">❌ Request failed: ${e.message}</div>`;
+  }
 }
 
 async function initBalance(){

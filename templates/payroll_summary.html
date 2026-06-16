@@ -302,8 +302,8 @@
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
           <div style="color:var(--red);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">DEDUCTIONS</div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>PF (12%)</span><span id="psm_pf" style="font-weight:600">₹0</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>ESI (0.75%)</span><span id="psm_esi" style="font-weight:600">₹0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>PF</span><span id="psm_pf" style="font-weight:600">₹0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>ESI</span><span id="psm_esi" style="font-weight:600">₹0</span></div>
           <div id="psm_pt_row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>Professional Tax</span><span id="psm_pt" style="font-weight:600">₹0</span></div>
           <div id="psm_tds_row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>TDS</span><span id="psm_tds" style="font-weight:600">₹0</span></div>
           <div id="psm_loan_row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:7px;"><span>Loan / Advance</span><span id="psm_loan" style="font-weight:600">₹0</span></div>
@@ -515,10 +515,10 @@ async function previewEmp(ec){
           <div style="background:var(--surface);border-radius:8px;padding:12px;">
             <div style="font-weight:700;margin-bottom:8px;color:#ef4444;">➖ Deductions</div>
             <table style="width:100%;font-size:12px;">
-              <tr><td>Provident Fund — Employee (12%)</td><td style="text-align:right;">₹${(d.pf||0).toLocaleString()}</td></tr>
-              <tr style="color:var(--muted);font-size:10px;"><td>&nbsp;&nbsp;Employer PF (12%) — Reference</td><td style="text-align:right;">₹${(d.employer_pf||0).toLocaleString()}</td></tr>
-              <tr><td>ESIC — Employee (0.75%)</td><td style="text-align:right;">₹${(d.esi||0).toLocaleString()}</td></tr>
-              <tr style="color:var(--muted);font-size:10px;"><td>&nbsp;&nbsp;Employer ESIC (3.25%) — Reference</td><td style="text-align:right;">₹${(d.employer_esi||0).toLocaleString()}</td></tr>
+              <tr><td>Employee PF</td><td style="text-align:right;">₹${(d.pf||0).toLocaleString()}</td></tr>
+              <tr style="color:var(--muted);font-size:10px;"><td>&nbsp;&nbsp;Employer PF — Reference</td><td style="text-align:right;">₹${(d.employer_pf||0).toLocaleString()}</td></tr>
+              <tr><td>Employee ESIC</td><td style="text-align:right;">₹${(d.esi||0).toLocaleString()}</td></tr>
+              <tr style="color:var(--muted);font-size:10px;"><td>&nbsp;&nbsp;Employer ESIC — Reference</td><td style="text-align:right;">₹${(d.employer_esi||0).toLocaleString()}</td></tr>
               ${d.pt>0?`<tr><td>Professional Tax</td><td style="text-align:right;">₹${d.pt.toLocaleString()}</td></tr>`:''}
               ${d.tds>0?`<tr><td>TDS (Tax Deducted at Source)</td><td style="text-align:right;">₹${d.tds.toLocaleString()}</td></tr>`:''}
               ${(d.loan_deduction||0)>0?`<tr><td>Loan / Advance Recovery</td><td style="text-align:right;color:#ef4444;">₹${d.loan_deduction.toLocaleString()}</td></tr>`:''}

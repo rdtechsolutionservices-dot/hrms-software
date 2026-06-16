@@ -13,7 +13,7 @@
   </select>
   <a href="/payroll/ot-export/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#10b981;">📥 Export Excel</a>
   <div style="margin-left:auto;font-size:12px;color:var(--muted);">
-    OT Rate: {% if ot_rate %}(Gross ÷ 208) × {{ ot_rate.multiplier }} per hour{% else %}Not configured{% endif %}
+    OT Rate: {% if ot_rate %}(Gross ÷ 208) × 1.3{% else %}Not configured{% endif %}
   </div>
 </div>
 
@@ -21,7 +21,7 @@
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
   <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.8;">Total Employees with OT</div>
-    <div style="font-size:28px;font-weight:800;">{{ ot_data|length }}</div>
+    <div style="font-size:28px;font-weight:800;" id="visibleCount">{{ ot_data|length }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.8;">Total OT Hours</div>
@@ -31,53 +31,86 @@
     </div>
   </div>
   <div style="background:linear-gradient(135deg,#10b981,#059669);border-radius:12px;padding:16px;color:#fff;">
-    <div style="font-size:11px;opacity:.8;">Total OT Amount</div>
-    <div style="font-size:24px;font-weight:800;">₹{{ "{:,.0f}".format(total_ot) }}</div>
+    <div style="font-size:11px;opacity:.8;">Total Net OT Pay</div>
+    <div style="font-size:24px;font-weight:800;" id="visibleTotal">₹{{ "{:,.0f}".format(total_ot) }}</div>
   </div>
 </div>
 
 <!-- OT Table -->
 <div class="table-card" style="overflow-x:auto;">
-  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <!-- Toolbar -->
+  <div style="display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;">
+      <input type="checkbox" id="cbAll" onchange="filterRows()" checked> Select All
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="cbUnauth" onchange="filterRows()" checked>
+      <span style="color:#ef4444;font-weight:600;">Unauthorised</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="cbAuth" onchange="filterRows()" checked>
+      <span style="color:#10b981;font-weight:600;">Authorised</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="cbZero" onchange="filterRows()">
+      <span style="color:#f59e0b;font-weight:600;">Net OT = Zero</span>
+    </label>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markPaid()">✅ Mark as Paid</button>
+      <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genBankFile()">🏦 Bank File</button>
+      <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="esicPreview()">📋 ESIC Preview</button>
+    </div>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;font-size:12px;" id="otTable">
     <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="padding:8px 12px;"><input type="checkbox" id="masterCb" onchange="toggleAll(this)"></th>
       <th style="text-align:left;padding:8px 12px;">Code</th>
       <th style="text-align:left;padding:8px;">Name</th>
       <th style="padding:8px;">Dept</th>
       <th style="padding:8px;">Gross Base</th>
-      <th style="padding:8px;">Per Hr Rate</th>
       <th style="padding:8px;">OT Hours</th>
-      <th style="padding:8px;">OT Amount</th>
-      <th style="padding:8px;">WOP Days</th>
-      <th style="padding:8px;">HP Days</th>
-      <th style="padding:8px;">Emp ESIC (0.75%)</th><th style="padding:8px;">Employer ESIC (3.25%)</th>
+      <th style="padding:8px;">WOP</th>
+      <th style="padding:8px;">HP</th>
+      <th style="padding:8px;color:#ef4444;">ESIC</th>
       <th style="padding:8px;color:#10b981;font-weight:800;">Net OT</th>
+      <th style="padding:8px;">Status</th>
     </tr></thead>
-    <tbody>
+    <tbody id="otTbody">
       {% for r in ot_data %}
-      <tr style="border-bottom:1px solid var(--border);">
+      <tr style="border-bottom:1px solid var(--border);"
+          data-auth="{{ 'authorised' if r.ot_hours > 0 else 'zero' }}"
+          data-net="{{ r.ot_net }}"
+          data-code="{{ r.emp_code }}">
+        <td style="padding:7px 12px;"><input type="checkbox" class="ot-cb" value="{{ r.emp_code }}" checked onchange="updateTotals()"></td>
         <td style="padding:7px 12px;color:#0096dc;font-weight:600;">{{ r.emp_code }}</td>
         <td style="padding:7px;font-weight:600;">{{ r.emp_name }}</td>
         <td style="padding:7px;font-size:11px;color:var(--muted);">{{ r.department }}</td>
         <td style="padding:7px;text-align:right;">₹{{ "{:,.0f}".format(r.gross_base) }}</td>
-        <td style="padding:7px;text-align:center;font-weight:600;color:#7c3aed;">₹{{ "%.2f"|format((r.gross_base/208)*r.ot_multiplier) if r.gross_base else '—' }}</td>
         <td style="padding:7px;text-align:center;font-weight:700;color:#f59e0b;">{{ r.ot_hours }}</td>
-        <td style="padding:7px;text-align:right;font-weight:600;color:#0096dc;">₹{{ "{:,.2f}".format(r.ot_amount) }}</td>
         <td style="padding:7px;text-align:center;">{{ r.wop_days or '—' }}</td>
         <td style="padding:7px;text-align:center;">{{ r.hp_days or '—' }}</td>
         <td style="padding:7px;text-align:right;color:#ef4444;">{% if r.esic_on_ot %}₹{{ "{:,.2f}".format(r.esic_on_ot) }}{% else %}—{% endif %}</td>
-        <td style="padding:7px;text-align:right;color:#ef4444;">{% if r.esic_er %}₹{{ "{:,.2f}".format(r.esic_er) }}{% else %}—{% endif %}</td>
-        <td style="padding:7px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.2f}".format(r.ot_net) }}</td>
+        <td style="padding:7px;text-align:right;font-weight:800;color:{% if r.ot_net == 0 %}#f59e0b{% else %}#10b981{% endif %};">₹{{ "{:,.2f}".format(r.ot_net) }}</td>
+        <td style="padding:7px;text-align:center;">
+          {% if r.ot_net == 0 %}
+            <span style="font-size:10px;background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 6px;border-radius:4px;">Zero</span>
+          {% else %}
+            <span style="font-size:10px;background:rgba(16,185,129,.15);color:#10b981;padding:2px 6px;border-radius:4px;">Active</span>
+          {% endif %}
+        </td>
       </tr>
       {% endfor %}
       {% if not ot_data %}
-      <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">No OT records for {{ month_name }} {{ year }}</td></tr>
+      <tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">No OT records for {{ month_name }} {{ year }}</td></tr>
       {% endif %}
     </tbody>
     {% if ot_data %}
     <tfoot>
       <tr style="border-top:2px solid var(--border);background:var(--surface);">
-        <td colspan="10" style="padding:8px 12px;font-weight:700;">TOTAL</td>
-        <td style="padding:8px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.2f}".format(total_ot) }}</td>
+        <td colspan="9" style="padding:8px 12px;font-weight:700;">TOTAL (Selected)</td>
+        <td style="padding:8px;text-align:right;font-weight:800;color:#10b981;" id="footTotal">₹{{ "{:,.2f}".format(total_ot) }}</td>
+        <td></td>
       </tr>
     </tfoot>
     {% endif %}
@@ -86,15 +119,129 @@
 
 <div style="margin-top:14px;background:rgba(0,82,204,.08);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);">
   <strong style="color:#0096dc;">💡 OT Formula:</strong>
-  (Actual Gross ÷ 208) × {{ ot_rate.multiplier if ot_rate else '1.3' }} × OT Hours<br>
-  <strong>ESIC:</strong> Employee 0.75% (deducted) + Employer 3.25% — on OT if Actual Gross ≤ ₹21,000<br><strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
+  (Actual Gross ÷ 208) × 1.3 × OT Hours<br>
+  <strong>ESIC:</strong> 0.75% deducted from OT if Actual Gross ≤ ₹21,000<br>
+  <strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
 </div>
 
 {% endblock %}
 {% block scripts %}
 <script>
+const ALL_DATA = {{ ot_data|tojson }};
+
 function reload(){
   location.href=`/payroll/ot-process?month=${document.getElementById("selM").value}&year=${document.getElementById("selY").value}`;
 }
+
+function toggleAll(master){
+  document.querySelectorAll(".ot-cb").forEach(cb=>{
+    if(cb.closest("tr").style.display!=="none") cb.checked = master.checked;
+  });
+  updateTotals();
+}
+
+function filterRows(){
+  const showUnauth = document.getElementById("cbUnauth").checked;
+  const showAuth   = document.getElementById("cbAuth").checked;
+  const showZero   = document.getElementById("cbZero").checked;
+  const showAll    = document.getElementById("cbAll").checked;
+
+  let visible = 0;
+  document.querySelectorAll("#otTbody tr[data-code]").forEach(row=>{
+    const net   = parseFloat(row.dataset.net || 0);
+    const isZero = net === 0;
+
+    let show = false;
+    if(showAll){
+      show = true;
+    } else {
+      if(showAuth   && !isZero) show = true;
+      if(showUnauth && !isZero) show = true; // adjust per your auth logic
+      if(showZero   && isZero)  show = true;
+      if(!showAuth && !showUnauth && !showZero) show = false;
+    }
+
+    row.style.display = show ? "" : "none";
+    if(!show){
+      const cb = row.querySelector(".ot-cb");
+      if(cb) cb.checked = false;
+    }
+    if(show) visible++;
+  });
+
+  document.getElementById("visibleCount").textContent = visible;
+  updateTotals();
+}
+
+function updateTotals(){
+  let total = 0;
+  document.querySelectorAll(".ot-cb:checked").forEach(cb=>{
+    const row = cb.closest("tr");
+    if(row && row.style.display !== "none"){
+      total += parseFloat(row.dataset.net || 0);
+    }
+  });
+  const fmt = "₹" + total.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("footTotal").textContent = fmt;
+  document.getElementById("visibleTotal").textContent = fmt;
+
+  // Update master checkbox state
+  const all = [...document.querySelectorAll(".ot-cb")].filter(c=>c.closest("tr").style.display!=="none");
+  const chk = all.filter(c=>c.checked);
+  const master = document.getElementById("masterCb");
+  if(master) master.checked = all.length>0 && chk.length===all.length;
+  master.indeterminate = chk.length>0 && chk.length<all.length;
+}
+
+function getSelectedCodes(){
+  return [...document.querySelectorAll(".ot-cb:checked")].map(c=>c.value);
+}
+
+async function markPaid(){
+  const codes = getSelectedCodes();
+  if(!codes.length){ alert("No employees selected"); return; }
+  if(!confirm(`Mark ${codes.length} employees' OT as Paid?`)) return;
+  const m = document.getElementById("selM").value;
+  const y = document.getElementById("selY").value;
+  const r = await api("/payroll/ot-mark-paid","POST",{emp_codes:codes,month:parseInt(m),year:parseInt(y)});
+  if(r.success){ showToast("✅ Marked as Paid"); }
+  else { alert("Error: "+(r.error||"Failed")); }
+}
+
+async function genBankFile(){
+  const codes = getSelectedCodes();
+  if(!codes.length){ alert("No employees selected"); return; }
+  const m = document.getElementById("selM").value;
+  const y = document.getElementById("selY").value;
+  window.location = `/payroll/ot-bank-file/${m}/${y}?codes=${codes.join(",")}`;
+}
+
+async function esicPreview(){
+  const codes = getSelectedCodes();
+  if(!codes.length){ alert("No employees selected"); return; }
+  const m = document.getElementById("selM").value;
+  const y = document.getElementById("selY").value;
+  window.location = `/payroll/ot-esic-preview/${m}/${y}?codes=${codes.join(",")}`;
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  updateTotals();
+  // Sync cbAll with individual checkboxes
+  document.getElementById("cbAll").addEventListener("change", function(){
+    if(this.checked){
+      document.getElementById("cbUnauth").checked = true;
+      document.getElementById("cbAuth").checked = true;
+      document.getElementById("cbZero").checked = true;
+    }
+    filterRows();
+    // Recheck all visible rows
+    if(this.checked){
+      document.querySelectorAll(".ot-cb").forEach(cb=>{
+        if(cb.closest("tr").style.display!=="none") cb.checked=true;
+      });
+      updateTotals();
+    }
+  });
+});
 </script>
 {% endblock %}

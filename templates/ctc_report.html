@@ -43,6 +43,7 @@
   </select>
   <input class="form-control" id="empSearch" placeholder="🔍 Name or Code..." value="{{ emp_search }}" oninput="reload()" style="width:160px;">
   <a id="exportBtn" href="/export/ctc?month={{ month }}&year={{ year }}&dept={{ selected_dept }}&cat={{ selected_cat }}&emp={{ emp_search }}&ctc_type={{ ctc_type }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export</a>
+  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="syncCTC()" title="Sync latest payroll + OT data for this month">🔄 Sync</button>
   <div style="margin-left:auto;font-size:12px;color:var(--muted);">
     {{ rows|length }} emp &nbsp;|&nbsp;
     <strong style="color:#7c3aed;">Total CTC: ₹{{ "{:,.0f}".format(total_ctc_sum) }}</strong>
@@ -73,32 +74,32 @@
         <th colspan="4" class="ctc-earn" style="text-align:center;border-bottom:none;">
           💰 {% if ctc_type=='earn' %}Earned{% else %}Actual{% endif %} Salary
         </th>
-        <th colspan="4" class="ctc-ded" style="text-align:center;border-bottom:none;">🔻 Employee Deductions</th>
+        <th colspan="5" class="ctc-ded" style="text-align:center;border-bottom:none;">🔻 Employee Deductions</th>
         <th onclick="srt(9)" rowspan="2" style="text-align:right;min-width:85px;">Net Salary<span class="si">↕</span></th>
-        <th colspan="4" class="ctc-er" style="text-align:center;border-bottom:none;">🏢 Employer Cost</th>
-        <th colspan="2" class="ctc-tot" style="text-align:center;border-bottom:none;">📊 CTC</th>
+        <th colspan="4" class="ctc-er" style="text-align:center;border-bottom:none;">🏢 Employer Contribution</th>
+        <th colspan="1" class="ctc-tot" style="text-align:center;border-bottom:none;">📊 CTC</th>
       </tr>
       <tr style="position:sticky;top:32px;z-index:2;">
         <th onclick="srt(4)" class="ctc-earn" style="text-align:right;min-width:80px;">Basic<span class="si">↕</span></th>
-        <th onclick="srt(5)" class="ctc-earn" style="text-align:right;min-width:75px;">Gross<span class="si">↕</span></th>
-        <th onclick="srt(6)" class="ctc-earn" style="text-align:right;min-width:75px;">OT Amt<span class="si">↕</span></th>
-        <th onclick="srt(14)" class="ctc-earn" style="text-align:right;min-width:75px;">Bonus(8.33%)<span class="si">↕</span></th>
+        <th onclick="srt(5)" class="ctc-earn" style="text-align:right;min-width:85px;">Actual Gross<span class="si">↕</span></th>
+        <th onclick="srt(6)" class="ctc-earn" style="text-align:right;min-width:75px;">Earn Gross<span class="si">↕</span></th>
+        <th onclick="srt(14)" class="ctc-earn" style="text-align:right;min-width:75px;">OT Amt<span class="si">↕</span></th>
         <th class="ctc-ded" style="text-align:right;min-width:70px;">PF</th>
         <th class="ctc-ded" style="text-align:right;">ESIC</th>
+        <th class="ctc-ded" style="text-align:right;">OT ESIC</th>
         <th class="ctc-ded" style="text-align:right;">PT</th>
         <th class="ctc-ded" style="text-align:right;">TDS</th>
         <th onclick="srt(10)" class="ctc-er" style="text-align:right;min-width:90px;">PF(13%)<span class="si">↕</span></th>
         <th class="ctc-er" style="text-align:right;min-width:90px;">ESIC(3.25%)</th>
         <th onclick="srt(12)" class="ctc-er" style="text-align:right;min-width:90px;">Gratuity<span class="si">↕</span></th>
         <th onclick="srt(13)" class="ctc-er" style="text-align:right;min-width:80px;">Bonus<span class="si">↕</span></th>
-        <th onclick="srt(15)" class="ctc-tot" style="text-align:right;min-width:100px;">Monthly<span class="si">↕</span></th>
-        <th onclick="srt(16)" class="ctc-tot" style="text-align:right;min-width:100px;">Annual<span class="si">↕</span></th>
+        <th onclick="srt(15)" class="ctc-tot" style="text-align:right;min-width:100px;">Monthly CTC<span class="si">↕</span></th>
       </tr>
     </thead>
     <tbody id="ctcBody">
     {% for r in rows %}
     <tr data-v="{{ [r.emp_code,r.emp_name,r.department or '',r.category,
-        r.base_basic,r.base_gross,r.ot_amount,r.bonus_calc,
+        r.base_basic,r.base_gross,r.ot_earn_gross,r.bonus_calc,
         r.emp_pf,r.net_salary,r.employer_pf_calc,r.employer_esi_calc,
         r.gratuity_m,r.bonus_calc,r.bonus_calc,r.total_ctc,r.total_ctc_annual]|tojson }}">
       <td style="color:#0096dc;font-weight:600;">{{ r.emp_code }}</td>
@@ -106,11 +107,12 @@
       <td style="color:var(--muted);font-size:10px;">{{ r.department or '—' }}</td>
       <td><span class="badge badge-{{ r.category.lower() }}">{{ r.category }}</span></td>
       <td class="num ctc-earn">{{ "{:,.0f}".format(r.base_basic) }}</td>
+      <td class="num ctc-earn" style="color:var(--muted);">{{ "{:,.0f}".format(r.actual_basic + r.actual_hra + r.actual_special) }}</td>
       <td class="num ctc-earn" style="font-weight:600;">{{ "{:,.0f}".format(r.base_gross) }}</td>
-      <td class="num ctc-earn" style="color:#f59e0b;">{{ "{:,.0f}".format(r.ot_amount) if r.ot_amount else '—' }}</td>
-      <td class="num ctc-earn" style="color:#10b981;">{{ "{:,.2f}".format(r.bonus_calc) }}</td>
+      <td class="num ctc-earn" style="color:#f59e0b;">{{ "{:,.0f}".format(r.ot_earn_gross) if r.ot_earn_gross else '—' }}</td>
       <td class="num ctc-ded">{{ "{:,.0f}".format(r.emp_pf) if r.emp_pf else '—' }}</td>
       <td class="num ctc-ded">{{ "{:,.0f}".format(r.emp_esi) if r.emp_esi else '—' }}</td>
+      <td class="num ctc-ded" style="color:#f59e0b;">{{ "{:,.2f}".format(r.ot_earn_gross * 0.0075) if (r.ot_earn_gross and (r.base_gross or 0) <= 21000) else '—' }}</td>
       <td class="num ctc-ded">{{ "{:,.0f}".format(r.pt) if r.pt else '—' }}</td>
       <td class="num ctc-ded">{{ "{:,.0f}".format(r.tds) if r.tds else '—' }}</td>
       <td class="num" style="font-weight:700;color:#10b981;">{{ "{:,.0f}".format(r.net_salary) }}</td>
@@ -119,7 +121,6 @@
       <td class="num ctc-er">{{ "{:,.2f}".format(r.gratuity_m) }}</td>
       <td class="num ctc-er" style="color:#10b981;">{{ "{:,.2f}".format(r.bonus_calc) }}</td>
       <td class="num ctc-tot" style="font-size:12px;">₹{{ "{:,.0f}".format(r.total_ctc) }}</td>
-      <td class="num ctc-tot" style="font-size:12px;">₹{{ "{:,.0f}".format(r.total_ctc_annual) }}</td>
     </tr>
     {% endfor %}
     </tbody>
@@ -127,11 +128,12 @@
       <tr style="background:var(--surface);font-weight:800;border-top:2px solid var(--border);">
         <td colspan="4" style="padding:6px 8px;">TOTAL ({{ rows|length }})</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='base_basic')) }}</td>
+        <td class="num">—</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='base_gross')) }}</td>
-        <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='ot_amount')) }}</td>
-        <td class="num">{{ "{:,.2f}".format(rows|sum(attribute='bonus_calc')) }}</td>
+        <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='ot_earn_gross')) }}</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='emp_pf')) }}</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='emp_esi')) }}</td>
+        <td class="num">—</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='pt')) }}</td>
         <td class="num">{{ "{:,.0f}".format(rows|sum(attribute='tds')) }}</td>
         <td class="num" style="color:#10b981;">{{ "{:,.0f}".format(rows|sum(attribute='net_salary')) }}</td>
@@ -140,7 +142,6 @@
         <td class="num">{{ "{:,.2f}".format(rows|sum(attribute='gratuity_m')) }}</td>
         <td class="num">{{ "{:,.2f}".format(rows|sum(attribute='bonus_calc')) }}</td>
         <td class="num ctc-tot">₹{{ "{:,.0f}".format(total_ctc_sum) }}</td>
-        <td class="num ctc-tot">₹{{ "{:,.0f}".format(rows|sum(attribute='total_ctc_annual')) }}</td>
       </tr>
     </tfoot>
   </table>
@@ -154,6 +155,20 @@
 {% endif %}
 {% endblock %}
 {% block scripts %}<script>
+async function syncCTC(){
+  const m = parseInt(document.getElementById("selM").value);
+  const y = parseInt(document.getElementById("selY").value);
+  const btn = event.target;
+  btn.textContent="⏳ Syncing..."; btn.disabled=true;
+  const r = await api("/payroll/ctc-sync","POST",{month:m,year:y});
+  btn.textContent="🔄 Sync"; btn.disabled=false;
+  if(r.success){
+    showToast("✅ "+r.message);
+    setTimeout(()=>location.reload(), 800);
+  } else {
+    alert("Sync error: "+(r.error||"Failed"));
+  }
+}
 let _sd={};
 function getParams(){
   return {

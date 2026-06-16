@@ -182,94 +182,103 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     {% endif %}
 
     {% if is_admin or 'emp_view' in perms or 'emp_add_edit' in perms %}
-    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni">👥</span> Employees</a>
+    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni">👥</span> Employee Profiles</a>
     {% endif %}
 
     {% if is_admin or 'masters' in perms %}
     <a href="/masters" class="nav-item {% if request.path=='/masters' %}active{% endif %}"><span class="ni">⚙️</span> Masters</a>
-    {% if is_admin %}<a href="/masters/dept-ot-limits" class="nav-item {% if '/dept-ot-limits' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">⏱️ Dept OT Limits</a>{% endif %}
+    {% if is_admin %}<a href="/masters/dept-ot-limits" class="nav-item {% if '/dept-ot-limits' in request.path %}active{% endif %}" >⏱️ Overtime Limit Policies</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'att_register' in perms or 'manual_entry' in perms %}
-    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni">📅</span> Attendance</a>
-    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📝 Manual Entry</a>{% endif %}
+    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni">📅</span> Time & Attendance</a>
+    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" >📝 Attendance Corrections</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'machines' in perms %}
-    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">🖥️ Attendance Machine</a>
+    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" >🖥️ Device Integration</a>
     {% endif %}
-    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📋 Shift Roster</a>{% endif %}
-    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">⚠️ Punch Alerts</a>{% endif %}
-    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">🎉 Holidays</a>{% endif %}
-    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">❌ Absent Report</a>{% endif %}
-    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">⏰ Late Report</a>{% endif %}
+    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" >📋 Shift Roster</a>{% endif %}
+    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" >⚠️ Missed Punch Alerts</a>{% endif %}
+    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" >🎉 Holiday Calendar</a>{% endif %}
+    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" >❌ Absence Management</a>{% endif %}
+    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" >⏰ Late Arrival Report</a>{% endif %}
 
     {% if is_admin or 'manpower' in perms %}
-    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni">📊</span> Manpower Master</a>
+    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni">📊</span> Workforce Planning</a>
     {% endif %}
-    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">🚪 Exit Management</a>{% endif %}
+    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" >🚪 Separation Management</a>{% endif %}
 
     {% if is_admin or 'payroll_view' in perms or 'payroll_process' in perms %}
     <div class="nav-sec">{% if is_admin %}Payroll{% endif %}</div>
-    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni">💰</span> Payroll</a>
+    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni">💰</span> Payroll Processing</a>
     {% endif %}
-    {% if is_admin or 'payroll_view' in perms or 'reports_salary' in perms %}<a href="/payroll/ctc" class="nav-item {% if '/payroll/ctc' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;"><span class="ni">💼</span> CTC Report</a>{% endif %}
-    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" style="padding-left:28px;font-size:12px;">🧾 Payslips</a>{% endif %}
-    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni">📈</span> Payroll Trends</a>{% endif %}
+    {% if is_admin or 'payroll_view' in perms or 'reports_salary' in perms %}<a href="/payroll/ctc" class="nav-item {% if '/payroll/ctc' in request.path %}active{% endif %}" ><span class="ni">💼</span> CTC Report</a>{% endif %}
+    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" >🧾 Payslip Center</a>{% endif %}
+    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni">📈</span> Payroll Insights</a>{% endif %}
 
-    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">⚙️ Payroll Settings</a>{% endif %}
-    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📊 Salary Revisions</a>{% endif %}
-    {% if is_admin or 'working_days' in perms %}<a href="/payroll/working-days" class="nav-item {% if '/working-days' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📅 Working Days</a>{% endif %}
-    {% if is_admin or 'payroll_schemes' in perms %}<a href="/payroll/schemes" class="nav-item {% if '/payroll/schemes' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📋 Payroll Schemes</a>{% endif %}
+    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" >⚙️ Payroll Configuration</a>{% endif %}
+    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path %}active{% endif %}" >📊 Compensation Management</a>{% endif %}
+    {% if is_admin or 'working_days' in perms %}<a href="/payroll/working-days" class="nav-item {% if '/working-days' in request.path %}active{% endif %}" >📅 Attendance Calendar</a>{% endif %}
+    {% if is_admin or 'payroll_schemes' in perms %}<a href="/payroll/schemes" class="nav-item {% if '/payroll/schemes' in request.path %}active{% endif %}" >📋 Employment Scheme Management</a>{% endif %}
 
 
 
     {% if is_admin or 'leave_assoc' in perms %}
-    <a href="/payroll/leave-associate" class="nav-item {% if '/leave-associate' in request.path %}active{% endif %}"><span class="ni">💰</span> OT Payment</a>
+    <a href="/payroll/leave-associate" class="nav-item {% if '/leave-associate' in request.path %}active{% endif %}"><span class="ni">💰</span> Overtime Processing</a>
     {% endif %}
 
     {% if is_admin or 'ot_rates' in perms %}
-    <a href="/payroll/ot-rates" class="nav-item {% if '/ot-rates' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">💹 OT Rate Master</a>
+    <a href="/payroll/ot-rates" class="nav-item {% if '/ot-rates' in request.path %}active{% endif %}" >💹 Overtime Rules</a>
     {% endif %}
 
     {% if is_admin or 'leave_approve' in perms or 'leave_balance' in perms or 'leave_master' in perms %}
     <div class="nav-sec">{% if is_admin %}Leave{% endif %}</div>
-    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni">📋</span> Leave Master</a>{% endif %}
-    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni">🌴</span> Leave Management</a>{% endif %}
-    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni">💼</span> Leave Balance</a>{% endif %}
+    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni">📋</span> Leave Configuration</a>{% endif %}
+    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni">🌴</span> Leave Requests{% if leave_mgmt_pending_count and leave_mgmt_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ leave_mgmt_pending_count }}</span>{% endif %}</a>{% endif %}
+    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni">💼</span> Leave Ledger</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'deductions_view' in perms or 'deductions_add' in perms %}
-    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni">💳</span> Deductions</a>
+    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni">💳</span> Recovery Management</a>
     {% endif %}
 
     {% if is_admin or 'reports_att' in perms or 'reports_salary' in perms or 'reports_payroll' in perms %}
-    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni">📊</span> Reports & Analytics</a>
-    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" style="padding-left:28px;font-size:12px;">📅 Yearly Attendance</a>{% endif %}
+    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni">📊</span> Reports Center</a>
+    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" >📅 Yearly Attendance</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'letters_view' in perms %}
-    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni">📄</span> Letters</a>
+    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni">📄</span> HR Documents</a>
     {% endif %}
     {% if is_admin or 'document_log' in perms %}
-    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni">🗂️</span> Document Log</a>
+    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni">🗂️</span> Document Repository</a>
     {% endif %}
 
     {% if is_admin or 'users' in perms %}
     <div class="nav-sec">{% if is_admin %}Admin{% endif %}</div>
-    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni">🔐</span> Manage Users</a>
-    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni">🖼️</span> Logo Settings</a>
-    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni">📧</span> Email & WhatsApp</a>
+    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni">🔐</span> User Administration</a>
+    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni">🖼️</span> Branding Settings</a>
+    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni">📧</span> Communication Center</a>
     {% endif %}
 
     {% if role == 'employee' %}
     <div class="nav-sec">My Account</div>
     {% endif %}
     {% if role == 'employee' or 'my_payslip' in perms %}
-    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni">🧾</span> My Payslip</a>
+    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni">🧾</span> Payslip Portal</a>
     {% endif %}
     {% if role == 'employee' or 'my_leaves' in perms %}
-    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni">🌴</span> My Leaves</a>
+    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni">🌴</span> Leave Portal</a>
+    {% endif %}
+    {% if role == 'employee' or 'my_attendance' in perms %}
+    <a href="/my-attendance" class="nav-item {% if '/my-attendance' in request.path %}active{% endif %}"><span class="ni">📅</span> Attendance Portal</a>
+    {% endif %}
+    {% if 'dept_head_approve' in perms %}
+    <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni">✅</span> Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
+    {% endif %}
+    {% if 'users' in perms %}
+    <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni">🏢</span> Department Heads</a>
     {% endif %}
 
 </nav>

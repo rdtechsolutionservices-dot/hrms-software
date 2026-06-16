@@ -183,12 +183,14 @@
     <span style="font-size:20px;">💬</span> WhatsApp Notifications
   </div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(37,211,102,.08);border-radius:8px;border:1px solid rgba(37,211,102,.2);">
-    📱 <strong>WhatsApp Setup (CallMeBot — FREE):</strong><br>
-    <strong>Step 1:</strong> Save <strong>+34 644 59 73 79</strong> in phone contacts as "CallMeBot"<br>
-    <strong>Step 2:</strong> Send <code>I allow callmebot to send me messages</code> on WhatsApp to that number<br>
-    <strong>Step 3:</strong> You'll receive your <strong>API Key</strong> back on WhatsApp<br>
-    <strong>Step 4:</strong> Enter that API Key + your phone number below → Birthday/Anniversary wishes jayengi automatically!<br>
-    <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="color:#25D366;">📖 Full guide here</a>
+    📱 <strong>Supported APIs:</strong><br><br>
+    <strong>TextMeBot (Current):</strong><br>
+    API URL: <code>http://api.textmebot.com/send.php</code><br>
+    API Key: Your TextMeBot API key<br><br>
+    <strong>CallMeBot (Free):</strong><br>
+    API URL: <code>https://api.callmebot.com/whatsapp.php</code><br>
+    API Key: Your CallMeBot API key<br><br>
+    <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="color:#25D366;">📖 CallMeBot setup guide</a>
   </div>
   <form onsubmit="saveWA(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
     <div class="form-group" style="grid-column:1/-1;">
@@ -199,7 +201,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">API URL</label>
-      <input class="form-control" id="wa_url" value="{{ settings.whatsapp_api_url or '' }}" placeholder="https://api.ultramsg.com/instanceXXX/messages/chat">
+      <input class="form-control" id="wa_url" value="{{ settings.whatsapp_api_url or '' }}" placeholder="http://api.textmebot.com/send.php">
     </div>
     <div class="form-group">
       <label class="form-label">API Token / Key</label>
@@ -272,13 +274,24 @@ document.getElementById("provider_sel")?.addEventListener("change",function(){
 
 async function saveWA(e){
   e.preventDefault();
-  // Save via form POST with extra fields
+  const btn = e.target.querySelector("button[type=submit]");
+  if(btn){ btn.textContent="Saving..."; btn.disabled=true; }
   const fd=new FormData();
   fd.append("whatsapp_enabled", document.getElementById("wa_enabled").checked?"1":"0");
-  fd.append("whatsapp_api_url", document.getElementById("wa_url").value);
-  fd.append("whatsapp_api_key", document.getElementById("wa_key").value);
-  const r=await fetch("/email-settings/whatsapp",{method:"POST",body:fd}).then(r=>r.json());
-  document.getElementById("wa_result").textContent=r.success?"✅ Saved!":"❌ "+r.error;
+  fd.append("whatsapp_api_url", document.getElementById("wa_url").value.trim());
+  fd.append("whatsapp_api_key", document.getElementById("wa_key").value.trim());
+  try{
+    const r=await fetch("/email-settings/whatsapp",{method:"POST",body:fd}).then(r=>r.json());
+    const res=document.getElementById("wa_result");
+    if(r.success){
+      res.innerHTML='<span style="color:#10b981;font-weight:700;">✅ WhatsApp settings saved!</span>';
+    } else {
+      res.innerHTML='<span style="color:#ef4444;font-weight:700;">❌ '+(r.error||"Save failed")+'</span>';
+    }
+  } catch(err){
+    document.getElementById("wa_result").innerHTML='<span style="color:#ef4444;">❌ Network error: '+err.message+'</span>';
+  }
+  if(btn){ btn.textContent="💾 Save WhatsApp Settings"; btn.disabled=false; }
 }
 
 async function testWA(){

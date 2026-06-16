@@ -76,37 +76,44 @@
 
 <div class="table-card">
   <div class="table-header"><span class="table-title">Leave Balance — {{ year }}</span></div>
+  {% set active_codes = active_leave_types|map(attribute='code')|list if (active_leave_types is defined and active_leave_types) else ['CL','EL','SL'] %}
   <div style="overflow-x:auto;"><table id="tblLvBal">
     <thead>
       <tr>
         <th style="cursor:pointer;" onclick="sortTable('tblLvBal',0)" data-sort-col="0">Code<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLvBal',1)" data-sort-col="1">Name<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLvBal',2)" data-sort-col="2">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblLvBal',3)" data-sort-col="3">Dept<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
-        <th style="color:#0096dc;cursor:pointer;" onclick="sortTable('tblLvBal',4)" data-sort-col="4">CL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:#0096dc;cursor:pointer;" onclick="sortTable('tblLvBal',5)" data-sort-col="5">CL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',6)" data-sort-col="6">CL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
-        <th style="color:var(--red);cursor:pointer;" onclick="sortTable('tblLvBal',7)" data-sort-col="7">SL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--red);cursor:pointer;" onclick="sortTable('tblLvBal',8)" data-sort-col="8">SL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',9)" data-sort-col="9">SL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
-        <th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',10)" data-sort-col="10">EL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',11)" data-sort-col="11">EL Carried<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',12)" data-sort-col="12">EL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',13)" data-sort-col="13">EL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        {% if 'CL' in active_codes %}<th style="color:#0096dc;cursor:pointer;" onclick="sortTable('tblLvBal',4)" data-sort-col="4">CL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:#0096dc;cursor:pointer;" onclick="sortTable('tblLvBal',5)" data-sort-col="5">CL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',6)" data-sort-col="6">CL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>{% endif %}
+        {% if 'SL' in active_codes %}<th style="color:var(--red);cursor:pointer;" onclick="sortTable('tblLvBal',7)" data-sort-col="7">SL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--red);cursor:pointer;" onclick="sortTable('tblLvBal',8)" data-sort-col="8">SL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',9)" data-sort-col="9">SL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>{% endif %}
+        {% if 'EL' in active_codes %}<th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',10)" data-sort-col="10">EL Allotted<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',11)" data-sort-col="11">EL Carried<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--yellow);cursor:pointer;" onclick="sortTable('tblLvBal',12)" data-sort-col="12">EL Used<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="color:var(--green);cursor:pointer;" onclick="sortTable('tblLvBal',13)" data-sort-col="13">EL Balance<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>{% endif %}
         <th style="cursor:pointer;" onclick="sortTable('tblLvBal',14)" data-sort-col="14">Edit<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       </tr>
     </thead>
     <tbody>
       {% for e in employees %}
       {% set b = balances.get(e.emp_code, {}) %}
-      {% set cl_bal = (b.cl_allotted or 0) - (b.cl_used or 0) %}
-      {% set sl_bal = (b.sl_allotted or 0) - (b.sl_used or 0) %}
-      {% set el_bal = (b.el_allotted or 0) + (b.el_carried or 0) - (b.el_used or 0) %}
       <tr>
         <td style="color:#0096dc;font-weight:600;font-size:12px">{{ e.emp_code }}</td>
         <td style="font-weight:600">{{ e.emp_name }}</td>
         <td><span class="badge badge-{{ e.category.lower() }}" style="font-size:10px">{{ e.category[:4] }}</span></td>
         <td style="font-size:12px;color:var(--muted)">{{ e.department or '—' }}</td>
+        {% if 'CL' in active_codes %}
+        {% set cl_bal = (b.cl_allotted or 0) - (b.cl_used or 0) %}
         <td style="text-align:center">{{ b.cl_allotted or 0 }}</td>
         <td style="text-align:center;color:var(--red)">{{ b.cl_used or 0 }}</td>
         <td style="text-align:center;font-weight:700;color:{% if cl_bal > 0 %}var(--green){% else %}var(--red){% endif %}">{{ cl_bal }}</td>
+        {% endif %}
+        {% if 'SL' in active_codes %}
+        {% set sl_bal = (b.sl_allotted or 0) - (b.sl_used or 0) %}
         <td style="text-align:center">{{ b.sl_allotted or 0 }}</td>
         <td style="text-align:center;color:var(--red)">{{ b.sl_used or 0 }}</td>
         <td style="text-align:center;font-weight:700;color:{% if sl_bal > 0 %}var(--green){% else %}var(--red){% endif %}">{{ sl_bal }}</td>
+        {% endif %}
+        {% if 'EL' in active_codes %}
+        {% set el_bal = (b.el_allotted or 0) + (b.el_carried or 0) - (b.el_used or 0) %}
         <td style="text-align:center">{{ b.el_allotted or 0 }}</td>
         <td style="text-align:center;color:var(--accent2)">{{ b.el_carried or 0 }}</td>
         <td style="text-align:center;color:var(--red)">{{ b.el_used or 0 }}</td>
         <td style="text-align:center;font-weight:700;color:{% if el_bal > 0 %}var(--green){% else %}var(--red){% endif %}">{{ el_bal }}</td>
+        {% endif %}
         <td><button class="btn btn-ghost btn-sm" onclick="editBal('{{ e.emp_code }}','{{ e.emp_name }}',{{ b.cl_allotted or 0 }},{{ b.sl_allotted or 0 }},{{ b.el_allotted or 0 }},{{ b.el_carried or 0 }})">✏️</button></td>
       </tr>
       {% endfor %}

@@ -36,26 +36,64 @@
 <div class="table-card">
   <div class="table-header"><span class="table-title">Employees</span><span style="font-size:12px;color:var(--muted)">{{ employees|length }} records</span></div>
   <div style="overflow-x:auto;"><table id="empTable">
-    <thead><tr>{% if session.role=='admin' %}<th><input type="checkbox" id="sa" onchange="toggleAll(this)"></th>{% endif %}<th onclick="sortTable('empTable',1)" data-sort-col="1" style="cursor:pointer;">Code<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',2)" data-sort-col="2" style="cursor:pointer;">Name<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',3)" data-sort-col="3" style="cursor:pointer;">Category<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',4)" data-sort-col="4" style="cursor:pointer;">Department<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',5)" data-sort-col="5" style="cursor:pointer;">Designation<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',6)" data-sort-col="6" style="cursor:pointer;">Basic<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',7)" data-sort-col="7" style="cursor:pointer;">HRA<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',8)" data-sort-col="8" style="cursor:pointer;">Special Allow.<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',9)" data-sort-col="9" style="cursor:pointer;">Email<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',10)" data-sort-col="10" style="cursor:pointer;">DOJ<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',11)" data-sort-col="11" style="cursor:pointer;">Email<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th><th onclick="sortTable('empTable',12)" data-sort-col="12" style="cursor:pointer;">Status<span class="sort-arrow" style="font-size:10px;opacity:0.6;"> ↕</span></th></tr></thead>
+    <thead><tr>
+      {% if session.role=='admin' %}<th><input type="checkbox" id="sa" onchange="toggleAll(this)"></th>{% endif %}
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}1{% else %}0{% endif %})" style="cursor:pointer;white-space:nowrap;">Code <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}2{% else %}1{% endif %})" style="cursor:pointer;white-space:nowrap;">Name <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}3{% else %}2{% endif %})" style="cursor:pointer;white-space:nowrap;">Category <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}4{% else %}3{% endif %})" style="cursor:pointer;white-space:nowrap;">Department <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}5{% else %}4{% endif %})" style="cursor:pointer;white-space:nowrap;">Location <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}6{% else %}5{% endif %})" style="cursor:pointer;white-space:nowrap;">Designation <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}7{% else %}6{% endif %})" style="cursor:pointer;white-space:nowrap;">Gender <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}8{% else %}7{% endif %})" style="cursor:pointer;white-space:nowrap;">DOB <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}9{% else %}8{% endif %})" style="cursor:pointer;white-space:nowrap;">DOJ <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}10{% else %}9{% endif %})" style="cursor:pointer;white-space:nowrap;">Phone <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}11{% else %}10{% endif %})" style="cursor:pointer;white-space:nowrap;">Email <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}12{% else %}11{% endif %})" style="cursor:pointer;white-space:nowrap;">Aadhar <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}13{% else %}12{% endif %})" style="cursor:pointer;white-space:nowrap;">PAN <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}14{% else %}13{% endif %})" style="cursor:pointer;white-space:nowrap;">Bank A/C <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}15{% else %}14{% endif %})" style="cursor:pointer;white-space:nowrap;">Bank <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}16{% else %}15{% endif %})" style="cursor:pointer;white-space:nowrap;">IFSC <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}17{% else %}16{% endif %})" style="cursor:pointer;white-space:nowrap;">UAN <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}18{% else %}17{% endif %})" style="cursor:pointer;white-space:nowrap;">PF No. <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}19{% else %}18{% endif %})" style="cursor:pointer;white-space:nowrap;">ESIC No. <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}20{% else %}19{% endif %})" style="cursor:pointer;white-space:nowrap;">Basic <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}21{% else %}20{% endif %})" style="cursor:pointer;white-space:nowrap;">HRA <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}22{% else %}21{% endif %})" style="cursor:pointer;white-space:nowrap;">Spl.Allow <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}23{% else %}22{% endif %})" style="cursor:pointer;white-space:nowrap;">Weekly Off <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      {% for cf in custom_fields %}
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}{{ 24 + loop.index0 }}{% else %}{{ 23 + loop.index0 }}{% endif %})" style="cursor:pointer;white-space:nowrap;">{{ cf.field_label }} <span style="font-size:10px;opacity:0.6;">↕</span></th>
+      {% endfor %}
+      <th onclick="sortTable('empTable',{% if session.role=='admin' %}{{ 24 + custom_fields|length }}{% else %}{{ 23 + custom_fields|length }}{% endif %})" style="cursor:pointer;white-space:nowrap;">Status <span style="font-size:10px;opacity:0.6;">↕</span></th>
+    </tr></thead>
     <tbody>{% for e in employees %}<tr data-id="{{ e.emp_code }}" onclick="selectRow(this)">
       {% if session.role=='admin' %}<td><input type="checkbox" class="row-cb" value="{{ e.emp_code }}" onclick="event.stopPropagation()"></td>{% endif %}
-      <td style="color:#0096dc;font-weight:600">{{ e.emp_code }}</td>
-      <td><div class="emp-cell"><div class="emp-av" style="background:linear-gradient(135deg,{% if e.category=='Staff' %}#0052cc,#0096dc{% elif e.category=='Director' %}#8b5cf6,#a78bfa{% else %}#f59e0b,#f97316{% endif %})">{{ e.emp_name[:2].upper() }}</div><div><div class="emp-name">{{ e.emp_name }}</div><div class="emp-id">{{ e.phone or '' }}</div></div></div></td>
+      <td style="color:#0096dc;font-weight:600;white-space:nowrap;">{{ e.emp_code }}</td>
+      <td><div class="emp-cell"><div class="emp-av" style="background:linear-gradient(135deg,{% if e.category=='Staff' %}#0052cc,#0096dc{% elif e.category=='Director' %}#8b5cf6,#a78bfa{% else %}#f59e0b,#f97316{% endif %})">{{ e.emp_name[:2].upper() }}</div><div><div class="emp-name">{{ e.emp_name }}</div></div></div></td>
       <td><span class="badge" style="background:{% if e.category=='Staff' %}rgba(0,82,204,.15);color:#0096dc{% else %}rgba(245,158,11,.15);color:var(--yellow){% endif %};font-size:10px;">{{ e.category }}</span></td>
-      <td>{{ e.department or '—' }}</td>
-      <td style="font-size:12px;color:var(--muted)">{{ e.designation or '—' }}</td>
-      <td class="sal-text">₹{{ "{:,.0f}".format(e.basic) }}</td>
-      <td>₹{{ "{:,.0f}".format(e.hra) }}</td>
-      <td>₹{{ "{:,.0f}".format(e.special_allowance) }}</td>
-      <td style="font-size:12px;color:var(--muted)">{{ e.email or '—' }}</td>
-      <td style="font-size:12px;color:var(--muted)">{{ e.date_of_joining or '—' }}</td>
-      <td style="font-size:12px;color:var(--muted)">
-        {% if e.email %}
-          <span title="{{ e.email }}" style="color:#0096dc;">📧</span>
-        {% else %}
-          <span style="color:var(--red);font-size:11px;">No email</span>
-        {% endif %}
-      </td>
+      <td style="white-space:nowrap;">{{ e.department or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">{{ e.location or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">{{ e.designation or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);">{{ e.gender or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">{{ e.date_of_birth or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap;">{{ e.date_of_joining or '—' }}</td>
+      <td style="font-size:12px;white-space:nowrap;">{{ e.phone or '—' }}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;">{{ e.email or e.official_email or e.personal_email or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);font-family:monospace;">{{ e.aadhar or '—' }}</td>
+      <td style="font-size:12px;color:var(--muted);font-family:monospace;">{{ e.pan or '—' }}</td>
+      <td style="font-size:11px;font-family:monospace;white-space:nowrap;">{{ e.bank_account or '—' }}</td>
+      <td style="font-size:11px;color:var(--muted);white-space:nowrap;">{{ e.bank_name or '—' }}</td>
+      <td style="font-size:11px;font-family:monospace;">{{ e.ifsc or '—' }}</td>
+      <td style="font-size:11px;font-family:monospace;">{{ e.uan_number or '—' }}</td>
+      <td style="font-size:11px;font-family:monospace;">{{ e.pf_number or '—' }}</td>
+      <td style="font-size:11px;font-family:monospace;">{{ e.esic_number or '—' }}</td>
+      <td class="sal-text" style="white-space:nowrap;">₹{{ "{:,.0f}".format(e.basic or 0) }}</td>
+      <td style="white-space:nowrap;">₹{{ "{:,.0f}".format(e.hra or 0) }}</td>
+      <td style="white-space:nowrap;">₹{{ "{:,.0f}".format(e.special_allowance or 0) }}</td>
+      <td style="font-size:12px;color:var(--muted);">{{ e.weekly_off or '—' }}</td>
+      {% for cf in custom_fields %}
+      <td style="font-size:12px;color:var(--muted);">{{ (custom_values.get(e.emp_code) or {}).get(cf.field_name, '—') }}</td>
+      {% endfor %}
       <td><span class="badge badge-{{ 'active' if e.status=='Active' else 'inactive' }}">{{ e.status }}</span></td>
     </tr>{% endfor %}</tbody>
   </table></div>
@@ -176,18 +214,18 @@
       <div class="form-group">
         <label class="form-label">{{ cf.field_label }}{% if cf.is_required %} *{% endif %}</label>
         {% if cf.field_type == 'select' %}
-        <select class="form-select" id="cf_{{ cf.field_name }}" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
+        <select class="form-control" id="cf_{{ cf.field_name }}" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
           <option value="">Select</option>
           {% if cf.options %}{% for opt in cf.options.split('|') %}<option value="{{ opt.strip() }}">{{ opt.strip() }}</option>{% endfor %}{% endif %}
         </select>
         {% elif cf.field_type == 'textarea' %}
-        <textarea class="form-input" id="cf_{{ cf.field_name }}" data-custom-field="{{ cf.field_name }}" rows="2" style="resize:vertical;" {% if cf.is_required %}required{% endif %}></textarea>
+        <textarea class="form-control" id="cf_{{ cf.field_name }}" data-custom-field="{{ cf.field_name }}" rows="2" style="resize:vertical;" {% if cf.is_required %}required{% endif %}></textarea>
         {% elif cf.field_type == 'number' %}
-        <input class="form-input" id="cf_{{ cf.field_name }}" type="number" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
+        <input class="form-control" id="cf_{{ cf.field_name }}" type="number" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
         {% elif cf.field_type == 'date' %}
-        <input class="form-input" id="cf_{{ cf.field_name }}" type="date" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
+        <input class="form-control" id="cf_{{ cf.field_name }}" type="date" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
         {% else %}
-        <input class="form-input" id="cf_{{ cf.field_name }}" type="text" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
+        <input class="form-control" id="cf_{{ cf.field_name }}" type="text" data-custom-field="{{ cf.field_name }}" {% if cf.is_required %}required{% endif %}>
         {% endif %}
       </div>
       {% endfor %}
