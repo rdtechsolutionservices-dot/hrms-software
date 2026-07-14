@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Saved Leads - VPL Exhibition</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<header>
+  <h1>VPL Customer Enquiry Form</h1>
+  <p>Saved leads &middot; search, review and export</p>
+  <div class="tabs">
+    <a href="{{ url_for('index') }}" class="tab-btn">New Entry</a>
+    <a href="{{ url_for('leads_page') }}" class="tab-btn active">Saved Leads</a>
+    <a href="{{ url_for('settings_page') }}" class="tab-btn">Master Settings</a>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="leads-summary">
+      <strong>All Saved Leads</strong>
+      <span class="count-badge" id="leadCount">…</span>
+    </div>
+    <div class="searchbar">
+      <input type="search" id="searchInput" placeholder="Search by name, contact, product, coordinator…">
+      <button class="btn btn-secondary" onclick="reload()">Search</button>
+    </div>
+    <div id="leadsContent"><div class="loading">Loading…</div></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<div class="actionbar">
+  <a class="btn btn-secondary" id="csvBtn" href="/export/csv">Export CSV</a>
+  <a class="btn btn-primary" id="xlsxBtn" href="/export/xlsx">Export Excel</a>
+</div>
+
+<script>
+let currentPage = 1;
+const perPage = 25;
+
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.style.display = 'block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>{ t.style.display='none'; }, 2600);
+}
+
+function escapeHtml(s){
+  if(s === undefined || s === null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function updateExportLinks(){
+  const q = document.getElementById('searchInput').value.trim();
+  const qs = q ? ('?q=' + encodeURIComponent(q)) : '';
+  document.getElementById('csvBtn').href = '/export/csv' + qs;
+  document.getElementById('xlsxBtn').href = '/export/xlsx' + qs;
+}
+
+function reload(){
+  currentPage = 1;
+  loadLeads();
+}
+
+async function loadLeads(){
+  const content = document.getElementById('leadsContent');
+  const countBadge = document.getElementById('leadCount');
+  const q = document.getElementById('searchInput').value.trim();
+  updateExportLinks();
+  content.innerHTML = '<div class="loading">Loading…</div>';
+  try{
+    const params = new URLSearchParams({ q, page: currentPage, per_page: perPage });
+    const resp = await fetch('/api/leads?' + params.toString());
+    const data = await resp.json();
+    if(!resp.ok || !data.ok){
+      throw new Error(data.error || 'Failed to load');
+    }
+    countBadge.textContent = String(data.total);
+    renderTable(data.leads);
+    renderPagination(data.total, data.page, data.per_page);
+  }catch(err){
+    console.error(err);
+    content.innerHTML = '<div class="empty-state">Could not load leads. Tap Search to retry.</div>';
+    showToast('Could not load leads', true);
+  }
+}
+
+function renderTable(leads){
+  const content = document.getElementById('leadsContent');
+  if(leads.length === 0){
+    content.innerHTML = '<div class="empty-state">No leads found.</div>';
+    return;
+  }
+
+  // Mobile card list (shown on small screens via CSS)
+  let cardsHtml = '';
+  leads.forEach(e=>{
+    cardsHtml += '<div class="lead-card">' +
+      '<div class="lc-name">'+escapeHtml(e.name)+'</div>' +
+      '<div class="lc-row"><span class="lc-label">Contact</span><span class="lc-value">'+escapeHtml(e.contact)+'</span></div>' +
+      '<div class="lc-row"><span class="lc-label">Product</span><span class="lc-value">'+escapeHtml(e.product_types)+'</span></div>' +
+      '<div class="lc-row"><span class="lc-label">Action</span><span class="lc-value">'+escapeHtml(e.actions)+'</span></div>' +
+      '<div class="lc-row"><span class="lc-label">Coordinator</span><span class="lc-value">'+escapeHtml(e.vpl_coordinator)+'</span></div>' +
+      '<div class="lc-row"><span class="lc-label">Date</span><span class="lc-value">'+escapeHtml(e.entry_date)+'</span></div>' +
+      '<div class="lc-row"><span class="lc-label">Saved At</span><span class="lc-value">'+escapeHtml(e.created_at)+'</span></div>' +
+      '</div>';
+  });
+
+  // Desktop/tablet table (shown on wider screens via CSS)
+  let tableHtml = '<table><thead><tr>' +
+    '<th>Name</th><th>Contact</th><th>Product</th><th>Action</th><th>Coordinator</th><th>Date</th><th>Saved At</th>' +
+    '</tr></thead><tbody>';
+  leads.forEach(e=>{
+    tableHtml += '<tr>' +
+      '<td>'+escapeHtml(e.name)+'</td>' +
+      '<td>'+escapeHtml(e.contact)+'</td>' +
+      '<td>'+escapeHtml(e.product_types)+'</td>' +
+      '<td>'+escapeHtml(e.actions)+'</td>' +
+      '<td>'+escapeHtml(e.vpl_coordinator)+'</td>' +
+      '<td>'+escapeHtml(e.entry_date)+'</td>' +
+      '<td>'+escapeHtml(e.created_at)+'</td>' +
+      '</tr>';
+  });
+  tableHtml += '</tbody></table>';
+
+  content.innerHTML = '<div class="table-wrap">' + cardsHtml + tableHtml + '</div>';
+}
+
+function renderPagination(total, page, perPageVal){
+  const el = document.getElementById('pagination');
+  const totalPages = Math.max(Math.ceil(total / perPageVal), 1);
+  if(totalPages <= 1){ el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<button ' + (page<=1?'disabled':'') + ' onclick="goPage('+(page-1)+')">Prev</button>' +
+    '<span>Page ' + page + ' of ' + totalPages + '</span>' +
+    '<button ' + (page>=totalPages?'disabled':'') + ' onclick="goPage('+(page+1)+')">Next</button>';
+}
+
+function goPage(p){
+  currentPage = p;
+  loadLeads();
+}
+
+document.getElementById('searchInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ reload(); }
+});
+
+loadLeads();
+</script>
+
+</body>
+</html>
