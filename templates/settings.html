@@ -35,6 +35,31 @@
 </header>
 
 <main>
+  <div class="card">
+    <h2>Customer Detail Fields</h2>
+    <p style="color:var(--muted);font-size:.85rem;margin-top:-4px;">
+      Customer Name and Contact No. always stay on the form (required for
+      every lead). Date and Source are listed below and can be removed if
+      you don't need them — add any extra fields too (e.g. Designation,
+      GST No.), same as the lists below.
+    </p>
+    <div id="list-customfields" style="margin-top:10px;">
+      {% for cf in custom_fields %}
+      <div class="option-row" id="cf-{{ cf.id }}">
+        <span>{{ cf.label }}</span>
+        <button class="del-btn" onclick="deleteCustomField({{ cf.id }})">Remove</button>
+      </div>
+      {% endfor %}
+      {% if custom_fields|length == 0 %}
+      <p style="color:var(--muted);font-size:.85rem;" id="empty-customfields">No fields added.</p>
+      {% endif %}
+    </div>
+    <div class="add-row">
+      <input type="text" id="input-customfield" placeholder="e.g. Designation">
+      <button class="btn btn-primary" onclick="addCustomField()">Add</button>
+    </div>
+  </div>
+
   {% for field in fields %}
   <div class="card">
     <h2>{{ field.label }}</h2>
@@ -55,31 +80,6 @@
     </div>
   </div>
   {% endfor %}
-
-  <div class="card">
-    <h2>Customer Detail Fields (Optional)</h2>
-    <p style="color:var(--muted);font-size:.85rem;margin-top:-4px;">
-      Name, Contact No., Date and Source always stay on the form. Add extra
-      fields here only if you need to capture something more (e.g.
-      Designation, GST No.) — completely optional, and you can remove any
-      you add.
-    </p>
-    <div id="list-customfields" style="margin-top:10px;">
-      {% for cf in custom_fields %}
-      <div class="option-row" id="cf-{{ cf.id }}">
-        <span>{{ cf.label }}</span>
-        <button class="del-btn" onclick="deleteCustomField({{ cf.id }})">Remove</button>
-      </div>
-      {% endfor %}
-      {% if custom_fields|length == 0 %}
-      <p style="color:var(--muted);font-size:.85rem;" id="empty-customfields">No extra fields added.</p>
-      {% endif %}
-    </div>
-    <div class="add-row">
-      <input type="text" id="input-customfield" placeholder="e.g. Designation">
-      <button class="btn btn-primary" onclick="addCustomField()">Add</button>
-    </div>
-  </div>
 
   <div class="card">
     <h2>My Account</h2>

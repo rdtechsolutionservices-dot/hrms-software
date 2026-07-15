@@ -311,3 +311,72 @@ Saved Leads page remain fully public with no login required, on purpose
 — exhibition visitors and staff need to use those without any login
 step. Logging out only ends your Master Settings session; it has no
 effect on the public form.
+
+---
+
+## 15. Saved Leads now requires login
+
+The **Saved Leads** page (viewing, searching, exporting, and deleting
+entries) now requires the same admin login as Master Settings — same
+username/password, same login page. This protects your collected leads
+from being viewed, exported, or deleted by anyone who just has the link.
+
+**The New Entry form itself is untouched and still fully public** —
+visitors and staff can keep filling it in without any login.
+
+### Deleting an individual entry
+
+On the Saved Leads page, each entry now has a **Delete** button (under
+each card on phones, or as a column on tablets/desktop). Tapping it asks
+for confirmation, then permanently removes that one entry — useful for
+removing test entries or duplicates during the exhibition.
+
+---
+
+## 16. Country Code + 10-digit Contact Number
+
+Contact No. is now split into two parts:
+- **Country Code** dropdown — defaults to **+91 India**, but visitors/staff
+  can pick a different one from the list
+- **Contact Number** — restricted to exactly **10 digits**. Non-digit
+  characters are stripped automatically as you type, and the form won't
+  save until exactly 10 digits are entered (checked on both the phone
+  screen and the server, so this can't be bypassed).
+
+The two are combined into a single value when saved (e.g. `+91
+9876543210`), so search, export, and everything else that already worked
+with the Contact column continues to work exactly as before.
+
+### Managing the Country Code list
+
+Same as Product Interested In and Action — go to **Master Settings** →
+**Country Code** → add or remove entries anytime. Changes apply
+immediately to the entry form. If you ever remove the option currently
+set as default (+91 India), the form automatically falls back to
+whichever country code is first in your list — it won't break or show a
+blank dropdown.
+
+---
+
+## 17. Date and Source are now removable too
+
+The **Customer Detail Fields** section has moved to the **top** of Master
+Settings. Date and Source — previously fixed — now live in this same
+list and can be removed or re-added exactly like any other field, using
+the same Remove / Add pattern as Product Interested In and Action.
+
+Only **Customer Name** and **Contact No.** stay permanently fixed (every
+lead needs these to be usable).
+
+**Fully backward-compatible:** this was implemented so that Date and
+Source still save into the same database columns they always did —
+nothing about search, export, or previously-collected leads changes.
+Existing databases are migrated automatically and safely: Date and
+Source are added to the list (or pinned to the top if they're already
+there), any custom fields you'd already added stay right where they
+were, and no existing lead data is touched.
+
+If you remove Date or Source and later want it back, just type "Date" or
+"Source" into the Add box again — it automatically snaps back to the top
+of the list and behaves exactly as it did originally (date-picker for
+Date, plain text for Source).

@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Saved Leads - VPL Exhibition</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  .lc-delete-btn{
+    display:block;width:100%;margin-top:10px;padding:10px;
+    background:#fdeceb;color:var(--danger);border:1px solid #f3c6c1;
+    border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;
+  }
+  .table-delete-btn{
+    background:#fdeceb;color:var(--danger);border:1px solid #f3c6c1;
+    border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:700;cursor:pointer;
+  }
+</style>
 </head>
 <body>
 
@@ -111,12 +122,13 @@ function renderTable(leads){
       '<div class="lc-row"><span class="lc-label">Coordinator</span><span class="lc-value">'+escapeHtml(e.vpl_coordinator)+'</span></div>' +
       '<div class="lc-row"><span class="lc-label">Date</span><span class="lc-value">'+escapeHtml(e.entry_date)+'</span></div>' +
       '<div class="lc-row"><span class="lc-label">Saved At</span><span class="lc-value">'+escapeHtml(e.created_at)+'</span></div>' +
+      '<button class="lc-delete-btn" onclick="deleteLead('+e.id+')">Delete Entry</button>' +
       '</div>';
   });
 
   // Desktop/tablet table (shown on wider screens via CSS)
   let tableHtml = '<table><thead><tr>' +
-    '<th>Name</th><th>Contact</th><th>Product</th><th>Action</th><th>Coordinator</th><th>Date</th><th>Saved At</th>' +
+    '<th>Name</th><th>Contact</th><th>Product</th><th>Action</th><th>Coordinator</th><th>Date</th><th>Saved At</th><th></th>' +
     '</tr></thead><tbody>';
   leads.forEach(e=>{
     tableHtml += '<tr>' +
@@ -127,11 +139,31 @@ function renderTable(leads){
       '<td>'+escapeHtml(e.vpl_coordinator)+'</td>' +
       '<td>'+escapeHtml(e.entry_date)+'</td>' +
       '<td>'+escapeHtml(e.created_at)+'</td>' +
+      '<td><button class="table-delete-btn" onclick="deleteLead('+e.id+')">Delete</button></td>' +
       '</tr>';
   });
   tableHtml += '</tbody></table>';
 
   content.innerHTML = '<div class="table-wrap">' + cardsHtml + tableHtml + '</div>';
+}
+
+async function deleteLead(id){
+  if(!confirm('Delete this lead entry permanently? This cannot be undone.')) return;
+  try{
+    const formData = new FormData();
+    formData.append('id', id);
+    const resp = await fetch('/api/leads/delete', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if(resp.ok && data.ok){
+      showToast('Entry deleted ✓');
+      loadLeads();
+    } else {
+      showToast((data && data.error) || 'Could not delete entry', true);
+    }
+  }catch(err){
+    console.error(err);
+    showToast('Network error — please try again.', true);
+  }
 }
 
 function renderPagination(total, page, perPageVal){

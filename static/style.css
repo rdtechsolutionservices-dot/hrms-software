@@ -81,6 +81,9 @@ textarea{resize:vertical;min-height:64px;}
 .chk input{width:20px;height:20px;flex-shrink:0;}
 .chk.checked{border-color:var(--teal);background:#eef8f7;}
 .other-row{display:flex;gap:8px;align-items:center;margin-top:6px;}
+.phone-row{display:flex;gap:8px;}
+.phone-row select{flex:0 0 42%;min-width:0;}
+.phone-row input{flex:1;min-width:0;}
 .err{color:var(--danger);font-size:.78rem;margin-top:4px;display:none;}
 .field.invalid input{border-color:var(--danger);}
 .field.invalid .err{display:block;}

@@ -59,17 +59,32 @@ DEFAULT_ADMIN_PASSWORD = os.environ.get("VPL_ADMIN_PASSWORD", "123123")
 FIELD_PRODUCT_TYPES = "product_types"
 FIELD_ACTIONS = "actions"
 FIELD_COORDINATOR = "vpl_coordinator"
+FIELD_COUNTRY_CODE = "country_codes"
+
+# used as the default pre-selected option in the Country Code dropdown
+DEFAULT_COUNTRY_CODE_VALUE = "+91 India"
 
 DEFAULT_OPTIONS = {
     FIELD_PRODUCT_TYPES: ["Mono Carton", "Corrugated Box", "3 Ply", "Shipper Box", "Rigid Box"],
     FIELD_ACTIONS: ["Rate", "Sample", "KLD", "Option", "Visit after Exhibition", "E-meet after Exhibition"],
     FIELD_COORDINATOR: [],  # left empty on purpose - add your team's names via Master Settings
+    FIELD_COUNTRY_CODE: [
+        DEFAULT_COUNTRY_CODE_VALUE, "+1 USA/Canada", "+44 UK", "+971 UAE", "+966 Saudi Arabia",
+        "+974 Qatar", "+968 Oman", "+965 Kuwait", "+973 Bahrain", "+61 Australia",
+        "+65 Singapore", "+60 Malaysia", "+66 Thailand", "+62 Indonesia", "+63 Philippines",
+        "+86 China", "+81 Japan", "+82 South Korea", "+92 Pakistan", "+880 Bangladesh",
+        "+94 Sri Lanka", "+977 Nepal", "+95 Myanmar", "+49 Germany", "+33 France",
+        "+39 Italy", "+34 Spain", "+31 Netherlands", "+46 Sweden", "+41 Switzerland",
+        "+7 Russia", "+27 South Africa", "+234 Nigeria", "+254 Kenya", "+20 Egypt",
+        "+55 Brazil", "+52 Mexico", "+54 Argentina", "+64 New Zealand", "+353 Ireland",
+    ],
 }
 
 FIELD_LABELS = {
     FIELD_PRODUCT_TYPES: "Product Interested In",
     FIELD_ACTIONS: "Action",
     FIELD_COORDINATOR: "VPL Coordinator",
+    FIELD_COUNTRY_CODE: "Country Code",
 }
 
 EXPORT_HEADERS = [
@@ -159,6 +174,35 @@ def init_db():
             );
         """)
 
+        # migration: add sort_order if this is an existing DB from before
+        # Date/Source were folded into the custom fields list
+        cf_cols = [row[1] for row in conn.execute("PRAGMA table_info(custom_fields)").fetchall()]
+        if "sort_order" not in cf_cols:
+            conn.execute("ALTER TABLE custom_fields ADD COLUMN sort_order INTEGER;")
+            # preserve the relative order fields were originally added in,
+            # offset so Date/Source (order 0 and 1, pinned below) stay on top
+            conn.execute("UPDATE custom_fields SET sort_order = id + 100 WHERE sort_order IS NULL;")
+
+        # Date and Source used to be fixed, hardcoded fields. They now live
+        # in this same removable/addable list, pinned to the top (sort_order
+        # 0 and 1) whether this is a brand new DB or an upgrade from an
+        # older one that already has other custom fields.
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for pinned_label, pinned_order in (("Date", 0), ("Source", 1)):
+            existing_row = conn.execute(
+                "SELECT id FROM custom_fields WHERE label = ? COLLATE NOCASE", (pinned_label,)
+            ).fetchone()
+            if existing_row:
+                conn.execute(
+                    "UPDATE custom_fields SET sort_order = ? WHERE id = ?",
+                    (pinned_order, existing_row[0]),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO custom_fields (label, created_at, sort_order) VALUES (?, ?, ?)",
+                    (pinned_label, now, pinned_order),
+                )
+
         conn.execute("""
             CREATE TABLE IF NOT EXISTS field_options (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,8 +264,19 @@ def get_options(field_key):
 
 def get_custom_fields():
     db = get_db()
-    rows = db.execute("SELECT id, label FROM custom_fields ORDER BY id ASC").fetchall()
+    rows = db.execute(
+        "SELECT id, label FROM custom_fields ORDER BY sort_order ASC, id ASC"
+    ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_default_country_code(options):
+    """Pre-select India if present, else fall back to the first option in
+    the (Master-Settings-editable) list, else empty if the list is empty."""
+    for opt in options:
+        if opt["value"] == DEFAULT_COUNTRY_CODE_VALUE:
+            return opt["value"]
+    return options[0]["value"] if options else ""
 
 
 def parse_custom_data(raw):
@@ -313,6 +368,7 @@ def index():
     except Exception:
         total = None
 
+    country_code_options = get_options(FIELD_COUNTRY_CODE)
     return render_template(
         "index.html",
         today=today,
@@ -321,6 +377,8 @@ def index():
         action_options=get_options(FIELD_ACTIONS),
         coordinator_options=get_options(FIELD_COORDINATOR),
         custom_fields=get_custom_fields(),
+        country_code_options=country_code_options,
+        default_country_code=get_default_country_code(country_code_options),
     )
 
 
@@ -329,29 +387,44 @@ def save_lead():
     try:
         form = request.form
         name = clean(form.get("name"))
-        contact = clean(form.get("contact"))
+        country_code_raw = clean(form.get("country_code"))
+        contact_number = clean(form.get("contact_number"))
 
         errors = {}
         if not name:
             errors["name"] = "Customer name is required."
-        if not contact:
-            errors["contact"] = "Contact number is required."
+        if not contact_number:
+            errors["contact_number"] = "Contact number is required."
+        elif not contact_number.isdigit() or len(contact_number) != 10:
+            errors["contact_number"] = "Contact number must be exactly 10 digits."
         if errors:
             return jsonify({"ok": False, "errors": errors}), 400
 
+        # store just the numeric prefix (e.g. "+91") together with the
+        # 10-digit number, so the contact column stays a single clean value
+        country_code_prefix = country_code_raw.split(" ")[0] if country_code_raw else ""
+        contact = f"{country_code_prefix} {contact_number}".strip()
+
         custom_fields = get_custom_fields()
         custom_data = {}
+        entry_date_value = ""
+        source_value = ""
         for field in custom_fields:
             value = clean(form.get(f"custom_{field['id']}"))
-            if value:
+            label_lower = field["label"].strip().lower()
+            if label_lower == "date":
+                entry_date_value = value
+            elif label_lower == "source":
+                source_value = value
+            elif value:
                 custom_data[field["label"]] = value
 
         record = {
             "uid": "L" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:6],
             "name": name,
             "contact": contact,
-            "entry_date": clean(form.get("entry_date")),
-            "source": clean(form.get("source")),
+            "entry_date": entry_date_value,
+            "source": source_value,
             "product_types": join_multi(form, "product_types"),
             "product_description": clean(form.get("product_description")),
             "dimensions": clean(form.get("dimensions")),
@@ -391,11 +464,13 @@ def save_lead():
 # ---------------------------------------------------------------------------
 
 @app.route("/leads")
+@login_required
 def leads_page():
     return render_template("leads.html")
 
 
 @app.route("/api/leads")
+@login_required
 def api_leads():
     try:
         q = clean(request.args.get("q", ""))
@@ -425,6 +500,24 @@ def api_leads():
     except Exception:
         app.logger.exception("Failed to fetch leads")
         return jsonify({"ok": False, "error": "Could not load leads."}), 500
+
+
+@app.route("/api/leads/delete", methods=["POST"])
+@login_required
+def api_delete_lead():
+    try:
+        lead_id = request.form.get("id", type=int)
+        if not lead_id:
+            return jsonify({"ok": False, "error": "Invalid request."}), 400
+
+        db = get_db()
+        db.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+        db.commit()
+
+        return jsonify({"ok": True})
+    except Exception:
+        app.logger.exception("Failed to delete lead")
+        return jsonify({"ok": False, "error": "Server error. Please try again."}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -467,6 +560,7 @@ def build_export_data(rows):
 
 
 @app.route("/export/csv")
+@login_required
 def export_csv():
     try:
         q = clean(request.args.get("q", ""))
@@ -493,6 +587,7 @@ def export_csv():
 
 
 @app.route("/export/xlsx")
+@login_required
 def export_xlsx():
     try:
         from openpyxl import Workbook
@@ -585,6 +680,8 @@ def settings_page():
          "options": get_options(FIELD_ACTIONS)},
         {"key": FIELD_COORDINATOR, "label": FIELD_LABELS[FIELD_COORDINATOR],
          "options": get_options(FIELD_COORDINATOR)},
+        {"key": FIELD_COUNTRY_CODE, "label": FIELD_LABELS[FIELD_COUNTRY_CODE],
+         "options": get_options(FIELD_COUNTRY_CODE)},
     ]
     return render_template(
         "settings.html",
@@ -664,7 +761,7 @@ def settings_reset_admin():
         return jsonify({"ok": False, "error": "Server error. Please try again."}), 500
 
 
-VALID_FIELD_KEYS = {FIELD_PRODUCT_TYPES, FIELD_ACTIONS, FIELD_COORDINATOR}
+VALID_FIELD_KEYS = {FIELD_PRODUCT_TYPES, FIELD_ACTIONS, FIELD_COORDINATOR, FIELD_COUNTRY_CODE}
 
 
 @app.route("/settings/api/add", methods=["POST"])
@@ -728,10 +825,19 @@ def settings_add_custom_field():
             return jsonify({"ok": False, "error": "Field name is too long."}), 400
 
         db = get_db()
+        label_lower = label.strip().lower()
+        if label_lower == "date":
+            order = 0
+        elif label_lower == "source":
+            order = 1
+        else:
+            max_order = db.execute("SELECT COALESCE(MAX(sort_order), 1) AS m FROM custom_fields").fetchone()["m"]
+            order = max_order + 1
+
         try:
             db.execute(
-                "INSERT INTO custom_fields (label, created_at) VALUES (?, ?)",
-                (label, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                "INSERT INTO custom_fields (label, created_at, sort_order) VALUES (?, ?, ?)",
+                (label, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), order),
             )
             db.commit()
         except sqlite3.IntegrityError:
