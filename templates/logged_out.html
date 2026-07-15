@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Logged Out - VPL Exhibition</title>
+<style>
+  :root{
+    --navy:#0f2136;
+    --navy-card:#16293f;
+    --teal:#0e7c7b;
+    --teal-light:#15a3a1;
+    --line:#2a4059;
+    --ink:#e8edf2;
+    --muted:#8ea3b8;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    min-height:100vh;
+    background:radial-gradient(circle at 30% 20%, #17304a 0%, var(--navy) 55%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .card{
+    width:100%;
+    max-width:400px;
+    background:var(--navy-card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:36px 30px 28px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    text-align:center;
+  }
+  .check-badge{
+    width:64px;height:64px;
+    background:var(--teal);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 20px;
+  }
+  .check-badge svg{width:32px;height:32px;}
+  h1{
+    font-size:1.2rem;
+    font-weight:700;
+    margin:0 0 8px;
+    color:#fff;
+  }
+  p.sub{
+    font-size:.88rem;
+    color:var(--muted);
+    margin:0 0 26px;
+    line-height:1.5;
+  }
+  .btn{
+    display:block;
+    width:100%;
+    padding:14px 10px;
+    border-radius:10px;
+    border:none;
+    font-size:.95rem;
+    font-weight:700;
+    cursor:pointer;
+    text-decoration:none;
+    min-height:48px;
+    box-sizing:border-box;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg, var(--teal-light), var(--teal));
+    color:#fff;
+    margin-bottom:10px;
+  }
+  .btn-secondary{
+    background:transparent;
+    color:var(--teal-light);
+    border:1.5px solid var(--line);
+  }
+  .footer-note{
+    text-align:center;
+    font-size:.72rem;
+    color:var(--muted);
+    margin-top:22px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="check-badge">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 13l4 4L19 7" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1>You've Been Logged Out</h1>
+    <p class="sub">Your Master Settings session has ended. The exhibition form itself stays open for visitors and staff to use as normal.</p>
+
+    <a class="btn btn-primary" href="{{ url_for('settings_login') }}">Log In Again</a>
+    <a class="btn btn-secondary" href="{{ url_for('index') }}">Go to Exhibition Form</a>
+
+    <p class="footer-note">VPL Exhibition Form &middot; Vijayshri Packaging Ltd.</p>
+  </div>
+
+</body>
+</html>
