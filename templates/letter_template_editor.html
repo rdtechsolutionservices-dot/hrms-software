@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if tmpl else 'New' }} Letter Template{% endblock %}
+{% block page_title %}🧩 {{ 'Edit' if tmpl else 'New' }} Letter Template{% endblock %}
+{% block content %}
+
+<div class="mini-card" style="margin-bottom:16px;">
+  <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:12px;">
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Template Name *</label>
+      <input class="form-control" id="t_name" placeholder="e.g. Show Cause Notice" value="{{ tmpl.template_name if tmpl else '' }}">
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Document Code Prefix (e.g. APT, SCN, TRM)</label>
+      <input class="form-control" id="t_prefix" maxlength="8" style="text-transform:uppercase;" placeholder="Auto (first 3 letters of name)" value="{{ tmpl.doc_code_prefix if tmpl else '' }}">
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Format No. / Name <span style="font-size:10px;color:var(--muted);">(fixed — prints bottom-left on every page)</span></label>
+      <input class="form-control" id="t_format_no" placeholder="e.g. VPL/HR/APT/01" value="{{ tmpl.format_no if tmpl else '' }}" oninput="schedulePaginate()">
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px;">
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Letter Title (shown centered on the letter, optional)</label>
+      <input class="form-control" id="t_title" placeholder="e.g. SHOW CAUSE NOTICE" value="{{ tmpl.letter_title if tmpl else '' }}">
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Page Size</label>
+      <select class="form-select" id="t_pagesize" onchange="schedulePaginate(true)">
+        <option value="A4"    {{ 'selected' if not tmpl or (tmpl and tmpl.page_size=='A4') }}>A4 (210 × 297 mm)</option>
+        <option value="A5"    {{ 'selected' if tmpl and tmpl.page_size=='A5' }}>A5 (148 × 210 mm)</option>
+        <option value="LEGAL" {{ 'selected' if tmpl and tmpl.page_size=='LEGAL' }}>Legal (215.9 × 355.6 mm)</option>
+        <option value="A3"    {{ 'selected' if tmpl and tmpl.page_size=='A3' }}>A3 (297 × 420 mm)</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-check" style="margin-top:28px;">
+        <input type="checkbox" id="t_header" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_header) }}> Show Company Header
+      </label>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-check" style="margin-top:28px;">
+        <input type="checkbox" id="t_footer" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_footer) }}> Show Company Footer
+      </label>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:10px;">
+    <label class="form-label">📐 Body Margins (mm) <span style="font-size:10px;color:var(--muted);">— distance from the page edge to where body text starts</span></label>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div><label style="font-size:11px;color:var(--muted);">Top</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_top" style="width:80px;" value="{{ tmpl.margin_top if tmpl else 15 }}" oninput="schedulePaginate(true)"></div>
+      <div><label style="font-size:11px;color:var(--muted);">Right</label><input type="number" min="0" max="60" step="0.5" class="form-control" id="m_right" style="width:80px;" value="{{ tmpl.margin_right if tmpl else 18 }}" oninput="schedulePaginate(true)"></div>
+      <div><label style="font-size:11px;color:var(--muted);">Bottom</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_bottom" style="width:80px;" value="{{ tmpl.margin_bottom if tmpl else 15 }}" oninput="schedulePaginate(true)"></div>
+      <div><label style="font-size:11px;color:var(--muted);">Left</label><input type="number" min="0" max="60" step="0.5" class="form-control" id="m_left" style="width:80px;" value="{{ tmpl.margin_left if tmpl else 18 }}" oninput="schedulePaginate(true)"></div>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:0;">
+    <label class="form-label">📏 Header / Footer Distance (mm) <span style="font-size:10px;color:var(--muted);">— like Word's "distance from edge"; can be smaller than the body margin above, leaving a gap before the text starts</span></label>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div><label style="font-size:11px;color:var(--muted);">Header from top</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_header" style="width:100px;" value="{{ tmpl.header_margin if tmpl else 10 }}" oninput="schedulePaginate(true)"></div>
+      <div><label style="font-size:11px;color:var(--muted);">Footer from bottom</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_footer" style="width:100px;" value="{{ tmpl.footer_margin if tmpl else 10 }}" oninput="schedulePaginate(true)"></div>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-top:12px;margin-bottom:0;">
+    <label class="form-label">Signature(s) On Letter — whichever you tick here will appear on the letter</label>
+    {% set selected_sig_ids = (tmpl.signature_ids or '').split(',') if tmpl else [] %}
+    {% if signatures %}
+    <div style="display:flex;flex-wrap:wrap;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;">
+      {% for sig in signatures %}
+      <label class="form-check" style="margin:0;">
+        <input type="checkbox" class="sig-check" value="{{ sig.id }}" {{ 'checked' if sig.id|string in selected_sig_ids }}> {{ sig.sig_name }}
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;">
+      No signatures added yet. Go to the Letter Generator page → 🖊️ Named Signatures to add one (e.g. "Director", "HR Department").
+    </div>
+    {% endif %}
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;"><a href="/letters#sig-manager" target="_blank" style="color:#0096dc;">+ Manage Signatures</a></div>
+  </div>
+</div>
+
+<div class="mini-card" style="margin-bottom:16px;">
+  <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
+    ✍️ Write the letter exactly the way it should look. Use <b>Insert Field</b> to drop in a fillable value (like Employee Name
+    or Department). For anything else that changes each time (a date, an incident detail), choose <b>+ Custom Field…</b>.
+    The header and footer stay fixed at the top/bottom of every page — once text runs past a page, a new page starts
+    automatically, just like Word.
+  </div>
+
+  <!-- Toolbar (Word-style) -->
+  <div class="wtoolbar">
+    <select class="tb-btn" id="fontFamily" style="cursor:pointer;min-width:120px;" onchange="fmt('fontName', this.value)" title="Font">
+      <option value="Calibri">Calibri</option>
+      <option value="'Times New Roman'">Times New Roman</option>
+      <option value="Arial">Arial</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Verdana">Verdana</option>
+      <option value="'Courier New'">Courier New</option>
+    </select>
+    <select class="tb-btn" id="fontSize" style="cursor:pointer;width:60px;" onchange="setFontSize(this.value)" title="Font size">
+      {% for sz in [8,9,10,11,12,13,14,16,18,20,24,28,32] %}
+      <option value="{{ sz }}" {{ 'selected' if sz==14 }}>{{ sz }}</option>
+      {% endfor %}
+    </select>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+    <button type="button" class="tb-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+    <button type="button" class="tb-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+    <button type="button" class="tb-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+    <button type="button" class="tb-btn" onclick="fmt('subscript')" title="Subscript">X₂</button>
+    <button type="button" class="tb-btn" onclick="fmt('superscript')" title="Superscript">X²</button>
+    <span class="tb-sep"></span>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Text color">A<input type="color" id="txtColor" value="#000000" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('foreColor', this.value)"></label>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color">🖍<input type="color" id="hlColor" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('justifyLeft')" title="Align left">⬅</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyCenter')" title="Align center">↔</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right">➡</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify">☰</button>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullets">• List</button>
+    <button type="button" class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbering">1. List</button>
+    <button type="button" class="tb-btn" onclick="fmt('indent')" title="Increase indent">→|</button>
+    <button type="button" class="tb-btn" onclick="fmt('outdent')" title="Decrease indent">|←</button>
+    <span class="tb-sep"></span>
+    <select class="tb-btn" style="cursor:pointer;" onchange="fmt('formatBlock', this.value); this.selectedIndex=0;" title="Paragraph style">
+      <option value="">Style…</option>
+      <option value="p">Normal</option>
+      <option value="h1">Title</option>
+      <option value="h2">Heading 1</option>
+      <option value="h3">Heading 2</option>
+      <option value="h4">Heading 3</option>
+    </select>
+    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">✖ Clear</button>
+    <span class="tb-sep"></span>
+    <select id="field_picker" class="tb-btn" style="cursor:pointer;min-width:160px;" onchange="insertPickedField(this.value); this.selectedIndex=0;">
+      <option value="">➕ Insert Field…</option>
+      <optgroup label="Employee Details">
+        <option value="emp_name">Employee Name</option>
+        <option value="emp_code">Employee Code</option>
+        <option value="department">Department</option>
+        <option value="designation">Designation</option>
+        <option value="category">Category (Staff/Associate)</option>
+        <option value="location">Location</option>
+        <option value="gender">Gender</option>
+        <option value="date_of_joining">Date of Joining</option>
+        <option value="date_of_birth">Date of Birth</option>
+        <option value="weekly_off">Weekly Off</option>
+        <option value="phone">Phone</option>
+        <option value="email">Email</option>
+        <option value="personal_email">Personal Email</option>
+        <option value="official_email">Official Email</option>
+        <option value="address">Address</option>
+        <option value="aadhar">Aadhar No.</option>
+        <option value="pan">PAN No.</option>
+        <option value="bank_account">Bank Account No.</option>
+        <option value="bank_name">Bank Name</option>
+        <option value="ifsc">IFSC Code</option>
+        <option value="uan_number">UAN Number</option>
+        <option value="pf_number">PF Number</option>
+        <option value="esic_number">ESIC Number</option>
+      </optgroup>
+      <optgroup label="Salary">
+        <option value="basic">Basic Salary</option>
+        <option value="hra">HRA</option>
+        <option value="special_allowance">Special Allowance</option>
+        <option value="gross">Gross Salary</option>
+        <option value="monthly_ctc">Monthly CTC</option>
+      </optgroup>
+      <optgroup label="Auto">
+        <option value="today">Letter Date</option>
+        <option value="company">Company Name</option>
+        <option value="seal">Company Seal</option>
+      </optgroup>
+      {% if signatures %}
+      <optgroup label="Signatures">
+        {% for sig in signatures %}
+        <option value="sig_{{ sig.id }}">{{ sig.sig_name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+      <option value="__custom__">+ Custom Field…</option>
+    </select>
+  </div>
+
+  <!-- Live paginated A4/A5/Legal/A3 preview — header & footer fixed on every page -->
+  <div id="pageScroll" style="background:#e8eaf0;padding:20px;border:1px solid var(--border);border-top:none;border-radius:0 0 9px 9px;overflow-x:auto;">
+    <div style="display:flex;align-items:flex-start;width:max-content;margin:0 auto;">
+      <div style="display:flex;flex-direction:column;flex-shrink:0;">
+        <div style="height:20px;width:20px;background:#d8dce6;border:1px solid #b8bdc9;border-right:none;border-bottom:none;"></div>
+        <div id="vRuler" style="width:20px;position:relative;background:#d8dce6;border:1px solid #b8bdc9;border-right:none;border-top:none;cursor:default;"></div>
+      </div>
+      <div>
+        <div id="hRuler" style="height:20px;position:relative;background:#d8dce6;border:1px solid #b8bdc9;border-bottom:none;cursor:default;"></div>
+        <div id="pageStack" style="position:relative;">
+          <div id="editor" contenteditable="true" style="background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);color:#111;font-family:Calibri,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ (tmpl.body_html if tmpl else '<p>Dear {{emp_name}},</p><p>&nbsp;</p><p>Type your letter content here…</p>') | safe }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="mmRuler" style="position:absolute;visibility:hidden;top:-9999px;left:-9999px;width:1px;"></div>
+</div>
+
+<div style="display:flex;gap:10px;">
+  <button class="btn btn-success" onclick="saveTemplate()">💾 Save Template</button>
+  <a href="/letters/templates" class="btn btn-ghost">✖ Cancel</a>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<style>
+.wtoolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:9px 9px 0 0;padding:8px;}
+.tb-btn{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text);}
+.tb-btn:hover{background:var(--hover);}
+.tb-sep{width:1px;background:var(--border);align-self:stretch;margin:0 2px;}
+.pg-deco{user-select:none;}
+.pg-deco img{width:100%;display:block;}
+#editor p{margin:0 0 10px;}
+</style>
+<script>
+const TMPL_ID = {{ tmpl.id if tmpl else 'null' }};
+const HAS_HEADER_IMG = {{ 'true' if (ls and ls.has_header) else 'false' }};
+const HAS_FOOTER_IMG = {{ 'true' if (ls and ls.has_footer) else 'false' }};
+const HEADER_IMG_URL = {{ (ls.header_b64 if (ls and ls.has_header) else "") | tojson }};
+const FOOTER_IMG_URL = {{ (ls.footer_b64 if (ls and ls.has_footer) else "") | tojson }};
+const PAGE_DIMS = { A4:[210,297], A5:[148,210], LEGAL:[215.9,355.6], A3:[297,420] };
+
+function fmt(cmd, val){
+  document.getElementById("editor").focus();
+  document.execCommand(cmd, false, val || null);
+}
+function setFontSize(px){
+  document.getElementById("editor").focus();
+  document.execCommand("fontSize", false, "7");
+  document.querySelectorAll('#editor font[size="7"]').forEach(el=>{
+    el.removeAttribute("size");
+    el.style.fontSize = px + "pt";
+  });
+  schedulePaginate();
+}
+
+const PENDING_FIELD_TYPES = {}; // key -> 'text'|'date'|'number', collected as custom fields are inserted
+
+function insertPickedField(key){
+  if(!key) return;
+  if(key === "__custom__"){
+    let custom = prompt("Enter a short field name (letters, numbers, underscores only)\ne.g. incident_date, notice_days, termination_date");
+    if(!custom) return;
+    custom = custom.trim().toLowerCase().replace(/[^a-z0-9_]/g,"_").replace(/^_+|_+$/g,"");
+    if(!custom){ showToast("Invalid field name","error"); return; }
+    key = custom;
+    let vtype = (prompt("What kind of value will this field hold?\nType one of: date, number, text", "text") || "text").trim().toLowerCase();
+    if(!["date","number","text"].includes(vtype)) vtype = "text";
+    PENDING_FIELD_TYPES[key] = vtype;
+  }
+  const editor = document.getElementById("editor");
+  editor.focus();
+  document.execCommand("insertText", false, "{" + "{" + key + "}" + "}");
+  schedulePaginate();
+}
+
+function escapeHtml(s){
+  const d = document.createElement("div");
+  d.textContent = s || "";
+  return d.innerHTML;
+}
+
+// ── Page geometry helpers ─────────────────────────────────────
+function pageSizeKey(){
+  const v = document.getElementById("t_pagesize").value;
+  return PAGE_DIMS[v] ? v : "A4";
+}
+function pageWidthMm(){ return PAGE_DIMS[pageSizeKey()][0]; }
+function pageHeightMm(){ return PAGE_DIMS[pageSizeKey()][1]; }
+function mmVal(id, dflt){ const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? dflt : v; }
+
+function mmToPx(mm){
+  const ruler = document.getElementById("mmRuler");
+  ruler.style.height = mm + "mm";
+  return ruler.getBoundingClientRect().height;
+}
+
+function applyPageWidth(){
+  document.getElementById("pageStack").style.width = pageWidthMm() + "mm";
+  document.getElementById("editor").style.paddingLeft = mmVal("m_left",18) + "mm";
+  document.getElementById("editor").style.paddingRight = mmVal("m_right",18) + "mm";
+  buildRulers();
+}
+
+// ── MS-Word-style rulers — drag the margin markers to resize margins live ──
+function buildRuler(axis){
+  // axis: 'h' (horizontal, controls m_left/m_right) or 'v' (vertical, controls m_top/m_bottom)
+  const el = document.getElementById(axis === "h" ? "hRuler" : "vRuler");
+  const totalMm = axis === "h" ? pageWidthMm() : pageHeightMm();
+  const sizePx = mmToPx(totalMm);
+  if(axis === "h") el.style.width = sizePx + "px"; else el.style.height = sizePx + "px";
+  el.innerHTML = "";
+
+  // Tick marks every 10mm, labelled every 50mm
+  for(let mm = 0; mm <= totalMm; mm += 10){
+    const pos = mmToPx(mm);
+    const big = mm % 50 === 0;
+    const tick = document.createElement("div");
+    tick.style.position = "absolute";
+    tick.style.background = "#8b93a7";
+    if(axis === "h"){
+      tick.style.left = pos + "px"; tick.style.bottom = "0"; tick.style.width = "1px";
+      tick.style.height = big ? "9px" : "5px";
+    } else {
+      tick.style.top = pos + "px"; tick.style.right = "0"; tick.style.height = "1px";
+      tick.style.width = big ? "9px" : "5px";
+    }
+    el.appendChild(tick);
+    if(big && mm > 0){
+      const lbl = document.createElement("div");
+      lbl.textContent = mm;
+      lbl.style.position = "absolute";
+      lbl.style.fontSize = "8px"; lbl.style.color = "#6b7280";
+      if(axis === "h"){ lbl.style.left = (pos+2) + "px"; lbl.style.top = "1px"; }
+      else { lbl.style.top = (pos+1) + "px"; lbl.style.left = "1px"; lbl.style.writingMode = "vertical-rl"; }
+      el.appendChild(lbl);
+    }
+  }
+
+  // Draggable margin markers
+  const marks = axis === "h"
+    ? [{ id:"m_left", mm:mmVal("m_left",18), color:"#0052cc" }, { id:"m_right", mm: totalMm - mmVal("m_right",18), color:"#0052cc" }]
+    : [{ id:"m_top", mm:mmVal("m_top",15), color:"#10b981" }, { id:"m_bottom", mm: totalMm - mmVal("m_bottom",15), color:"#10b981" }];
+  marks.forEach(mk=>{
+    const pos = mmToPx(mk.mm);
+    const handle = document.createElement("div");
+    handle.style.position = "absolute";
+    handle.style.background = mk.color;
+    handle.style.cursor = axis === "h" ? "ew-resize" : "ns-resize";
+    handle.title = mk.id.replace("m_","Margin: ") + " (drag to adjust)";
+    if(axis === "h"){
+      handle.style.left = (pos-3) + "px"; handle.style.top = "12px"; handle.style.width = "6px"; handle.style.height = "8px";
+    } else {
+      handle.style.top = (pos-3) + "px"; handle.style.left = "12px"; handle.style.width = "8px"; handle.style.height = "6px";
+    }
+    handle.addEventListener("mousedown", e=> startRulerDrag(e, axis, mk.id, totalMm));
+    el.appendChild(handle);
+  });
+}
+
+function buildRulers(){ buildRuler("h"); buildRuler("v"); }
+
+let _rulerDrag = null;
+function startRulerDrag(e, axis, fieldId, totalMm){
+  e.preventDefault();
+  _rulerDrag = { axis, fieldId, totalMm, rulerEl: document.getElementById(axis === "h" ? "hRuler" : "vRuler") };
+  document.addEventListener("mousemove", onRulerDrag);
+  document.addEventListener("mouseup", stopRulerDrag);
+}
+function onRulerDrag(e){
+  if(!_rulerDrag) return;
+  const rect = _rulerDrag.rulerEl.getBoundingClientRect();
+  const px = _rulerDrag.axis === "h" ? (e.clientX - rect.left) : (e.clientY - rect.top);
+  const mmPerPx = _rulerDrag.totalMm / (_rulerDrag.axis === "h" ? rect.width : rect.height);
+  let mm = Math.round(px * mmPerPx);
+  // right/bottom handles are measured from the far edge
+  if(_rulerDrag.fieldId === "m_right" || _rulerDrag.fieldId === "m_bottom"){
+    mm = Math.round(_rulerDrag.totalMm - mm);
+  }
+  mm = Math.max(0, Math.min(60, mm));
+  const input = document.getElementById(_rulerDrag.fieldId);
+  input.value = mm;
+  schedulePaginate(true);
+}
+function stopRulerDrag(){
+  _rulerDrag = null;
+  document.removeEventListener("mousemove", onRulerDrag);
+  document.removeEventListener("mouseup", stopRulerDrag);
+}
+
+function headerChunkHTML(){
+  const showHdr = document.getElementById("t_header").checked;
+  const hm = mmVal("m_header", 10);
+  const mt = mmVal("m_top", 15);
+  const gap = Math.max(mt - hm, 0);
+  if(!showHdr){
+    return `<div class="pg-deco pg-hchunk" contenteditable="false" style="padding-top:${mt}mm;"></div>`;
+  }
+  const img = HAS_HEADER_IMG ? `<img src="${HEADER_IMG_URL}">` : `<div style="height:14mm;background:linear-gradient(135deg,#003399,#0077e6);"></div>`;
+  return `<div class="pg-deco pg-hchunk" contenteditable="false" style="padding-top:${hm}mm;padding-bottom:${gap}mm;">${img}</div>`;
+}
+function footerChunkHTML(){
+  const showFtr = document.getElementById("t_footer").checked;
+  const fm = mmVal("m_footer", 10);
+  const mb = mmVal("m_bottom", 15);
+  const gap = Math.max(mb - fm, 0);
+  const formatNo = escapeHtml(document.getElementById("t_format_no").value.trim());
+  const fnoHtml = formatNo ? `<div style="font-size:9px;color:#666;padding-top:2mm;">${formatNo}</div>` : "";
+  if(!showFtr){
+    return `<div class="pg-deco pg-fchunk" contenteditable="false" style="padding-bottom:${mb}mm;">${fnoHtml}</div>`;
+  }
+  const img = HAS_FOOTER_IMG ? `<img src="${FOOTER_IMG_URL}">` : `<div style="height:10mm;border-top:2px solid #e8f0fe;"></div>`;
+  return `<div class="pg-deco pg-fchunk" contenteditable="false" style="padding-top:${gap}mm;padding-bottom:${fm}mm;">${img}${fnoHtml}</div>`;
+}
+function gapChunkHTML(){
+  const lm = mmVal("m_left", 18), rm = mmVal("m_right", 18);
+  return `<div class="pg-deco pg-gap" contenteditable="false" style="height:14mm;margin:0 -${rm}mm 0 -${lm}mm;background:#c7cbd4;border-top:1px solid #9aa0ad;border-bottom:1px solid #9aa0ad;"></div>`;
+}
+function firstElFromHtml(html){
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.firstElementChild;
+}
+
+// ── Live pagination: fixed header/footer, auto next-page on overflow ──
+let _paginating = false;
+let _paginateTimer = null;
+function schedulePaginate(immediate){
+  clearTimeout(_paginateTimer);
+  if(immediate){ paginate(); return; }
+  _paginateTimer = setTimeout(paginate, 450);
+}
+
+function paginate(){
+  if(_paginating) return;
+  _paginating = true;
+  applyPageWidth();
+
+  const editor = document.getElementById("editor");
+  const sel = window.getSelection();
+  let savedRange = null;
+  if(sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode)){
+    savedRange = sel.getRangeAt(0).cloneRange();
+  }
+
+  // Collect only the real content nodes (drop previous decorations)
+  const realNodes = Array.from(editor.childNodes).filter(n => !(n.nodeType===1 && n.classList.contains("pg-deco")));
+  editor.innerHTML = "";
+
+  // Page 1 header, to measure header block height
+  editor.appendChild(firstElFromHtml(headerChunkHTML()));
+  const pageH = mmToPx(pageHeightMm());
+  const headerPx = editor.lastElementChild.getBoundingClientRect().height;
+
+  // Measure footer block height (temporarily)
+  const tmpFooter = firstElFromHtml(footerChunkHTML());
+  editor.appendChild(tmpFooter);
+  const footerPx = tmpFooter.getBoundingClientRect().height;
+  editor.removeChild(tmpFooter);
+
+  const budget = Math.max(pageH - headerPx - footerPx, 80);
+  let pageStart = editor.scrollHeight;
+
+  realNodes.forEach(node=>{
+    if(node.nodeType===3 && !node.textContent.trim()){ return; } // skip stray blank text nodes
+    editor.appendChild(node);
+    const used = editor.scrollHeight - pageStart;
+    if(used > budget){
+      editor.removeChild(node);
+      editor.appendChild(firstElFromHtml(footerChunkHTML()));
+      editor.appendChild(firstElFromHtml(gapChunkHTML()));
+      editor.appendChild(firstElFromHtml(headerChunkHTML()));
+      pageStart = editor.scrollHeight;
+      editor.appendChild(node);
+    }
+  });
+
+  editor.appendChild(firstElFromHtml(footerChunkHTML()));
+
+  if(savedRange){
+    try{ sel.removeAllRanges(); sel.addRange(savedRange); }catch(e){}
+  }
+  _paginating = false;
+}
+
+document.getElementById("editor").addEventListener("input", function(){ schedulePaginate(false); });
+document.addEventListener("DOMContentLoaded", function(){ applyPageWidth(); paginate(); });
+
+function getCleanBodyHtml(){
+  const clone = document.getElementById("editor").cloneNode(true);
+  clone.querySelectorAll(".pg-deco").forEach(el=>el.remove());
+  return clone.innerHTML.trim();
+}
+
+async function saveTemplate(){
+  const name = document.getElementById("t_name").value.trim();
+  if(!name){ showToast("Please enter a template name","error"); return; }
+  const body = getCleanBodyHtml();
+  if(!body){ showToast("Letter content cannot be empty","error"); return; }
+  const sigIds = Array.from(document.querySelectorAll(".sig-check:checked")).map(el=>el.value);
+  const payload = {
+    id: TMPL_ID,
+    template_name: name,
+    letter_title: document.getElementById("t_title").value.trim(),
+    body_html: body,
+    show_header: document.getElementById("t_header").checked,
+    show_footer: document.getElementById("t_footer").checked,
+    doc_code_prefix: document.getElementById("t_prefix").value.trim(),
+    format_no: document.getElementById("t_format_no").value.trim(),
+    page_size: pageSizeKey(),
+    margin_top: document.getElementById("m_top").value,
+    margin_right: document.getElementById("m_right").value,
+    margin_bottom: document.getElementById("m_bottom").value,
+    margin_left: document.getElementById("m_left").value,
+    header_margin: document.getElementById("m_header").value,
+    footer_margin: document.getElementById("m_footer").value,
+    signature_ids: sigIds
+  };
+  const r = await fetch("/letters/templates/save", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)
+  }).then(r=>r.json());
+  if(r.success){
+    if(Object.keys(PENDING_FIELD_TYPES).length){
+      try{
+        await fetch("/letters/field-types/save", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({field_types: PENDING_FIELD_TYPES})
+        });
+      }catch(e){}
+    }
+    showToast("Template saved!","success");
+    setTimeout(()=>{ window.location.href = "/letters/templates"; }, 600);
+  } else {
+    showToast(r.error || "Save failed","error");
+  }
+}
+</script>
+{% endblock %}

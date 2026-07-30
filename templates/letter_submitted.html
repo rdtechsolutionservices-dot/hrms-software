@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Submitted for Approval{% endblock %}
+{% block page_title %}📄 Letter Generator{% endblock %}
+{% block content %}
+
+<div class="mini-card" style="max-width:560px;margin:40px auto;text-align:center;padding:40px 30px;">
+  <div style="font-size:48px;margin-bottom:14px;">⏳</div>
+  <div style="font-weight:800;font-size:18px;margin-bottom:8px;">Submitted for Approval</div>
+  <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:24px;">
+    <b>{{ tmpl_name }}</b>{% if emp_name %} for <b>{{ emp_name }}</b>{% endif %} has been submitted.<br>
+    It will get a document number and become printable only after an approver signs off.
+    You'll find it under <b>Pending for Approval</b> on the Letter Generator page.
+  </div>
+  <a href="/letters" class="btn btn-success">← Back to Letter Generator</a>
+</div>
+
+{% endblock %}

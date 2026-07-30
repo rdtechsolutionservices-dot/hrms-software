@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>{{ company_name }} — Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Calibri,sans-serif;background:#050810;min-height:100vh;}
+.wrap{display:flex;min-height:100vh;}
+
+/* ── Left panel — branding media ── */
+.brand-panel{position:relative;flex:1.15;min-height:100vh;overflow:hidden;display:flex;align-items:flex-end;background:linear-gradient(135deg,#0a1628,#050810);}
+.brand-panel video,.brand-panel img.bg-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.brand-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,8,16,.25) 0%,rgba(5,8,16,.55) 60%,rgba(5,8,16,.88) 100%);}
+.brand-fallback-pattern{position:absolute;inset:0;background:
+  radial-gradient(circle at 15% 25%,rgba(0,150,220,.18),transparent 45%),
+  radial-gradient(circle at 85% 15%,rgba(0,82,204,.15),transparent 50%),
+  radial-gradient(circle at 50% 90%,rgba(124,58,237,.12),transparent 55%);}
+.brand-content{position:relative;z-index:5;padding:60px;max-width:520px;}
+.brand-content h1{font-size:36px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:14px;text-shadow:0 2px 20px rgba(0,0,0,.4);}
+.brand-content p{font-size:14px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:28px;}
+.brand-pill{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:12px 18px;color:#fff;font-size:13px;}
+.brand-pill b{font-size:14px;}
+
+/* ── Right panel — form ── */
+.form-panel{flex:0.85;min-width:420px;max-width:520px;display:flex;align-items:center;justify-content:center;padding:40px;background:#0a0f1c;position:relative;}
+.card{width:100%;max-width:380px;}
+.logo-area{text-align:center;margin-bottom:30px;}
+.logo-box{width:82px;height:82px;border-radius:16px;background:white;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;}
+.logo-box img{width:74px;height:74px;object-fit:contain;}
+.logo-box span{font-family:Calibri,sans-serif;font-weight:800;font-size:24px;color:#0052cc;display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+.company{font-family:Calibri,sans-serif;font-weight:800;font-size:15px;color:#e2e8f0;line-height:1.3;}
+.subtitle{font-size:10px;color:#64748b;margin-top:3px;text-transform:uppercase;letter-spacing:.05em;}
+h2{font-family:Calibri,sans-serif;font-weight:700;font-size:20px;color:#e2e8f0;margin-bottom:6px;}
+.lead{font-size:13px;color:#64748b;margin-bottom:24px;}
+.field{margin-bottom:16px;}
+label{display:block;font-size:11px;color:#94a3b8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+input{width:100%;background:#0e1524;border:1px solid #1e2a40;border-radius:11px;padding:12px 15px;color:#e2e8f0;font-size:14px;font-family:Calibri,sans-serif;outline:none;transition:border .2s;}
+input:focus{border-color:#0096dc;}
+.btn{width:100%;background:linear-gradient(135deg,#0052cc,#0096dc);color:white;border:none;border-radius:11px;padding:13px;font-family:Calibri,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;}
+.btn:hover{opacity:.9;}
+.error{background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.3);border-radius:9px;padding:11px 14px;color:#f43f5e;font-size:13px;margin-bottom:16px;}
+
+@media (max-width:860px){
+  .brand-panel{display:none;}
+  .form-panel{flex:1;min-width:0;max-width:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand-panel">
+    {% if login_bg_type == 'video' %}
+      <video src="/admin/login-bg" autoplay muted loop playsinline></video>
+    {% elif login_bg_type == 'image' %}
+      <img class="bg-media" src="/admin/login-bg" alt="">
+    {% else %}
+      <div class="brand-fallback-pattern"></div>
+    {% endif %}
+    <div class="brand-overlay"></div>
+    <div class="brand-content">
+      <h1>{{ login_headline }}</h1>
+      {% if login_subtext %}<p>{{ login_subtext }}</p>{% endif %}
+      <div class="brand-pill">🔐 <b>{{ company_name }}</b> &nbsp;·&nbsp; Secure Employee Portal</div>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="card">
+      <div class="logo-area">
+        <div class="logo-box">
+          <img src="/admin/logo" alt="Logo" style="width:100%;height:100%;object-fit:contain;"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <span style="display:none;">{{ company_name[:3]|upper }}</span>
+        </div>
+        <div class="company">{{ company_name }}</div>
+        <div class="subtitle">PayRoll Management System</div>
+      </div>
+      <h2>Welcome Back</h2>
+      <p class="lead">Sign in to your account to continue</p>
+      {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
+      <form method="POST">
+        <div class="field"><label>Username</label><input type="text" name="username" placeholder="Enter your username" required autofocus></div>
+        <div class="field"><label>Password</label><input type="password" name="password" placeholder="Enter your password" required></div>
+        <button type="submit" class="btn">Sign In →</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

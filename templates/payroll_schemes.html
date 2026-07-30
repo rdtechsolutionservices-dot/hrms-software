@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Employee Scheme Master{% endblock %}
+{% block page_title %}Employee Scheme Master{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+  <div style="color:var(--muted);font-size:13px;">Define salary schemes — PF, ESIC, PT, Bonus, Gratuity applicable per scheme</div>
+  <button class="btn btn-primary" onclick="openModal('schemeModal');resetForm()">➕ Add Scheme</button>
+</div>
+
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:10px 12px;">Scheme Name</th>
+      <th style="text-align:center;padding:10px;">PF</th>
+      <th style="text-align:center;padding:10px;">ESIC</th>
+      <th style="text-align:center;padding:10px;">PT</th>
+      <th style="text-align:center;padding:10px;">Bonus</th>
+      <th style="text-align:center;padding:10px;">Gratuity</th>
+      <th style="text-align:center;padding:10px;">LWF</th>
+      <th style="text-align:center;padding:10px;">TDS</th>
+      <th style="text-align:center;padding:10px;">OT</th>
+      <th style="text-align:center;padding:10px;">Status</th>
+      <th style="text-align:center;padding:10px;">Actions</th>
+    </tr></thead>
+    <tbody>
+      {% for s in schemes %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px 12px;">
+          <div style="font-weight:700;">{{ s.scheme_name }}</div>
+          {% if s.description %}<div style="font-size:11px;color:var(--muted);">{{ s.description }}</div>{% endif %}
+          {% if s.notes %}<div style="font-size:11px;color:#f59e0b;">📝 {{ s.notes }}</div>{% endif %}
+        </td>
+        {% for field in ['pf_applicable','esi_applicable','pt_applicable','bonus_applicable','gratuity_applicable','lwf_applicable','tds_applicable','ot_applicable'] %}
+        <td style="text-align:center;padding:10px;">
+          {% if s[field] %}
+            <span style="color:#10b981;font-size:16px;">✅</span>
+          {% else %}
+            <span style="color:#ef4444;font-size:16px;">❌</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+        <td style="text-align:center;padding:10px;">
+          <span class="badge badge-{{ 'active' if s.is_active else 'inactive' }}">{{ 'Active' if s.is_active else 'Inactive' }}</span>
+        </td>
+        <td style="text-align:center;padding:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="editScheme({{ s|tojson|e }})">✏️</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteScheme({{ s.id }},'{{ s.scheme_name }}')">🗑️</button>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not schemes %}
+      <tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">No schemes yet. Add your first scheme.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="schemeModal">
+  <div class="modal" style="width:580px;">
+    <div class="modal-header">
+      <span class="modal-title" id="schemeModalTitle">➕ Add Employee Scheme</span>
+      <button class="modal-close" onclick="closeModal('schemeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="s_id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Scheme Name *</label>
+          <input class="form-control" id="s_name" placeholder="e.g. Regular, NAPS, Contract">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Description</label>
+          <input class="form-control" id="s_desc" placeholder="Brief description">
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);">⚖️ Legal Compliance Applicability</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          {% set checks = [
+            ('pf','pf_cb','PF (Provident Fund)','Employee PF @ 12% of Basic'),
+            ('esi','esi_cb','ESIC (Employee State Insurance)','ESIC @ 0.75% if gross ≤ ₹21,000'),
+            ('pt','pt_cb','PT (Professional Tax)','State-wise professional tax'),
+            ('bonus','bon_cb','Bonus','Annual bonus applicable'),
+            ('gratuity','grat_cb','Gratuity','Gratuity after 5 years'),
+            ('lwf','lwf_cb','LWF (Labour Welfare Fund)','Labour welfare fund deduction'),
+            ('tds','tds_cb','TDS (Income Tax)','TDS deduction applicable'),
+            ('ot','ot_cb','OT (Overtime)','Overtime payment applicable')
+          ] %}
+          {% for id,cbid,label,hint in checks %}
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:8px;background:var(--card);border-radius:8px;border:1px solid var(--border);">
+            <input type="checkbox" id="{{ cbid }}" style="margin-top:2px;width:16px;height:16px;cursor:pointer;">
+            <div>
+              <div style="font-weight:600;font-size:13px;">{{ label }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ hint }}</div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <input class="form-control" id="s_notes" placeholder="Any special notes">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="s_active">
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+      <div id="schemeResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('schemeModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveScheme()">💾 Save Scheme</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function resetForm(){
+  document.getElementById("s_id").value="";
+  document.getElementById("s_name").value="";
+  document.getElementById("s_desc").value="";
+  document.getElementById("s_notes").value="";
+  document.getElementById("s_active").value="1";
+  document.getElementById("schemeModalTitle").textContent="➕ Add Employee Scheme";
+  ["pf_cb","esi_cb","pt_cb","bon_cb","grat_cb","lwf_cb","tds_cb","ot_cb"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.checked=true;
+  });
+  document.getElementById("schemeResult").innerHTML="";
+}
+
+function editScheme(s){
+  document.getElementById("s_id").value=s.id;
+  document.getElementById("s_name").value=s.scheme_name;
+  document.getElementById("s_desc").value=s.description||"";
+  document.getElementById("s_notes").value=s.notes||"";
+  document.getElementById("s_active").value=s.is_active?"1":"0";
+  document.getElementById("schemeModalTitle").textContent="✏️ Edit Scheme";
+  const map={pf_cb:"pf_applicable",esi_cb:"esi_applicable",pt_cb:"pt_applicable",
+    bon_cb:"bonus_applicable",grat_cb:"gratuity_applicable",lwf_cb:"lwf_applicable",
+    tds_cb:"tds_applicable",ot_cb:"ot_applicable"};
+  Object.entries(map).forEach(([cbid,field])=>{
+    const el=document.getElementById(cbid); if(el) el.checked=!!s[field];
+  });
+  document.getElementById("schemeResult").innerHTML="";
+  openModal("schemeModal");
+}
+
+async function saveScheme(){
+  const id=document.getElementById("s_id").value;
+  const data={
+    scheme_name:document.getElementById("s_name").value.trim(),
+    description:document.getElementById("s_desc").value.trim(),
+    notes:document.getElementById("s_notes").value.trim(),
+    is_active:document.getElementById("s_active").value==="1",
+    pf_applicable:document.getElementById("pf_cb").checked,
+    esi_applicable:document.getElementById("esi_cb").checked,
+    pt_applicable:document.getElementById("pt_cb").checked,
+    bonus_applicable:document.getElementById("bon_cb").checked,
+    gratuity_applicable:document.getElementById("grat_cb").checked,
+    lwf_applicable:document.getElementById("lwf_cb").checked,
+    tds_applicable:document.getElementById("tds_cb").checked,
+    ot_applicable:document.getElementById("ot_cb").checked,
+  };
+  if(!data.scheme_name){showToast("Scheme name required!","error");return;}
+  const url=id?`/payroll/schemes/edit/${id}`:"/payroll/schemes/add";
+  const r=await api(url,"POST",data);
+  if(r.success){showToast("Scheme saved!");setTimeout(()=>{closeModal("schemeModal");location.reload();},1000);}
+  else document.getElementById("schemeResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+
+async function deleteScheme(id,name){
+  if(!confirm(`Delete scheme "${name}"?`)) return;
+  const r=await api(`/payroll/schemes/delete/${id}`,"POST",{});
+  if(r.success){showToast("Deleted!");location.reload();}
+  else showToast(r.error||"Error","error");
+}
+</script>
+{% endblock %}

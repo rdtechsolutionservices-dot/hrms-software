@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Edit Letter — {{ doc.template_name }}{% endblock %}
+{% block page_title %}✏️ Edit Pending Letter — {{ doc.template_name }}{% endblock %}
+{% block content %}
+
+<div class="mini-card" style="margin-bottom:16px;">
+  <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+    This letter is still <b>Pending Approval</b>, so you can adjust its wording here. The saved page layout, header,
+    footer and margins won't change — only the content below. Every save needs a short reason for the record;
+    that reason is <b>never printed</b> on the letter itself.
+  </div>
+</div>
+
+<div class="mini-card" style="margin-bottom:16px;">
+  <!-- Toolbar (Word-style) -->
+  <div class="wtoolbar">
+    <select class="tb-btn" style="cursor:pointer;min-width:120px;" onchange="fmt('fontName', this.value)" title="Font">
+      <option value="Calibri">Calibri</option>
+      <option value="'Times New Roman'">Times New Roman</option>
+      <option value="Arial">Arial</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Verdana">Verdana</option>
+      <option value="'Courier New'">Courier New</option>
+    </select>
+    <select class="tb-btn" style="cursor:pointer;width:60px;" onchange="setFontSize(this.value)" title="Font size">
+      {% for sz in [8,9,10,11,12,13,14,16,18,20,24,28,32] %}
+      <option value="{{ sz }}" {{ 'selected' if sz==14 }}>{{ sz }}</option>
+      {% endfor %}
+    </select>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+    <button type="button" class="tb-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+    <button type="button" class="tb-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+    <button type="button" class="tb-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+    <span class="tb-sep"></span>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Text color">A<input type="color" value="#000000" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('foreColor', this.value)"></label>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color">🖍<input type="color" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('justifyLeft')" title="Align left">⬅</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyCenter')" title="Align center">↔</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right">➡</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify">☰</button>
+    <span class="tb-sep"></span>
+    <button type="button" class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullets">• List</button>
+    <button type="button" class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbering">1. List</button>
+    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">✖ Clear</button>
+  </div>
+  <div id="editor" contenteditable="true"
+       style="min-height:400px;background:#fff;color:#111;border:1px solid var(--border);border-top:none;border-radius:0 0 9px 9px;padding:24px 30px;font-family:Calibri,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ doc.merged_body | safe }}</div>
+</div>
+
+<div class="mini-card" style="margin-bottom:16px;">
+  <label class="form-label">Reason for this edit * <span style="font-size:10px;color:var(--muted);">(record only — not printed on the letter)</span></label>
+  <input class="form-control" id="edit_reason" placeholder="e.g. Corrected department name as per manager's request">
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:20px;">
+  <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
+  <a href="/letters/documents/view/{{ doc.id }}" target="_blank" class="btn btn-ghost">👁️ Preview</a>
+  <a href="/letters" class="btn btn-ghost">✖ Cancel</a>
+</div>
+
+{% if edits %}
+<div class="table-card" style="margin-bottom:20px;">
+  <div class="table-header"><span class="table-title">🕘 Edit History</span></div>
+  <table>
+    <thead><tr><th>#</th><th>Reason</th><th>Edited By</th><th>Edited On</th></tr></thead>
+    <tbody>
+      {% for e in edits %}
+      <tr>
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td style="font-size:12px;">{{ e.reason }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ e.edited_by }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ e.edited_on }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<style>
+.wtoolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:9px 9px 0 0;padding:8px;}
+.tb-btn{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text);}
+.tb-btn:hover{background:var(--hover);}
+.tb-sep{width:1px;background:var(--border);align-self:stretch;margin:0 2px;}
+</style>
+<script>
+function fmt(cmd, val){
+  document.getElementById("editor").focus();
+  document.execCommand(cmd, false, val || null);
+}
+function setFontSize(px){
+  document.getElementById("editor").focus();
+  document.execCommand("fontSize", false, "7");
+  document.querySelectorAll('#editor font[size="7"]').forEach(el=>{
+    el.removeAttribute("size");
+    el.style.fontSize = px + "pt";
+  });
+}
+
+async function saveEdit(){
+  const reason = document.getElementById("edit_reason").value.trim();
+  if(!reason){ showToast("Please enter a reason for this edit","error"); return; }
+  const body = document.getElementById("editor").innerHTML.trim();
+  if(!body){ showToast("Letter content cannot be empty","error"); return; }
+  const r = await fetch(window.location.pathname, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({merged_body: body, reason: reason})
+  }).then(r=>r.json());
+  if(r.success){
+    showToast("Changes saved!","success");
+    setTimeout(()=>{ window.location.href = "/letters"; }, 700);
+  } else {
+    showToast(r.error || "Save failed","error");
+  }
+}
+</script>
+{% endblock %}

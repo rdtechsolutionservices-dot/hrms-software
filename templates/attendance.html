@@ -1,0 +1,1111 @@
+{% extends "base.html" %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Attendance Management{% endblock %}
+{% block content %}
+
+<!-- Import Buttons -->
+<div class="toolbar">
+  <div class="month-selector">
+    <label>Month:</label>
+    <select id="selMonth" onchange="reload()">
+      {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+    </select>
+    <label>Year:</label>
+    <select id="selYear" onchange="reload()">
+      {% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <select class="form-select" style="width:160px" id="deptFilter" onchange="reload()">
+    <option value="">All Departments</option>
+    {% for d in departments %}<option value="{{ d }}" {% if d==selected_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+  </select>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+    <a href="/attendance?month={{ month }}&year={{ year }}&dept={{ selected_dept }}" 
+       class="btn btn-sm {% if not request.args.get('show_inactive') %}btn-primary{% else %}btn-ghost{% endif %}"
+       style="font-size:11px;">✅ Active</a>
+    <a href="/attendance?month={{ month }}&year={{ year }}&dept={{ selected_dept }}&show_inactive=1"
+       class="btn btn-sm {% if request.args.get('show_inactive') %}btn-warning{% else %}btn-ghost{% endif %}"
+       style="font-size:11px;background:rgba(245,158,11,.15);color:var(--yellow);">
+       ⏸️ Inactive</a>
+    <a href="/attendance?month={{ month }}&year={{ year }}&dept={{ selected_dept }}{% if request.args.get('show_inactive') %}&show_inactive=1{% endif %}"
+       class="btn btn-sm btn-ghost"
+       style="font-size:11px;" title="Refresh attendance data">
+       🔄 Refresh</a>
+  </div>
+  <div style="margin-left:auto;position:relative;">
+    <input class="form-control" id="attSearch" placeholder="🔍 Search name, code..." 
+      style="width:220px;padding-left:12px;" oninput="onAttSearch(this)">
+  </div>
+</div>
+
+<!-- Date Filter Bar -->
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;background:var(--card);border-radius:12px;padding:12px 16px;flex-wrap:wrap;">
+  <span style="font-size:12px;font-weight:700;color:var(--muted);">📅 Filter by Date:</span>
+  <input class="form-control" type="date" id="filterDate" style="width:160px;" onchange="filterByDate()">
+  <button class="btn btn-ghost btn-sm" onclick="clearDateFilter()">✕ Clear</button>
+  <button class="btn btn-ghost btn-sm" onclick="setToday()" style="background:rgba(0,150,220,.1);color:#0096dc;">📅 Today</button>
+  <span id="filterInfo" style="font-size:12px;color:#0096dc;"></span>
+  <div style="margin-left:auto;">
+    <span style="font-size:12px;color:var(--muted);">Showing: <strong id="showCount">all</strong></span>
+  </div>
+</div>
+
+<!-- Import Options -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;">
+  <div style="background:var(--card);border:1px solid rgba(0,82,204,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🖥️</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#0096dc;">Direct Machine</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">eSSL UFace302 · 192.168.0.125</div>
+    <button class="btn btn-primary" style="margin-top:12px;width:100%;" onclick="openModal('machineModal')">🖥️ Import</button>
+  </div>
+  <div style="background:var(--card);border:1px solid rgba(139,92,246,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🗄️</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#a78bfa;">Database Import</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">SQL Server · VPLDCSRV\INDUS</div>
+    <button class="btn btn-ghost" style="margin-top:12px;width:100%;background:rgba(139,92,246,.15);color:#a78bfa;" onclick="openModal('dbModal')">🗄️ Import</button>
+  </div>
+  <div style="background:var(--card);border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">📊</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:var(--green);">Excel / CSV</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Upload attendance file</div>
+    <label class="btn btn-ghost" style="margin-top:12px;width:100%;cursor:pointer;background:rgba(16,185,129,.15);color:var(--green);">
+      📊 Upload File<input type="file" id="attXl" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadXl()">
+    </label>
+  </div>
+  <!-- Manual Entry Card -->
+  <div style="background:var(--card);border:1px solid rgba(245,158,11,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">📝</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#f59e0b;">Manual Entry</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Field / Outside Work</div>
+    <a href="/attendance/manual-add" class="btn btn-ghost" style="margin-top:12px;width:100%;display:block;background:rgba(245,158,11,.15);color:#f59e0b;">📝 Add Manual</a>
+  </div>
+  <!-- Recalculate Card -->
+  <div style="background:var(--card);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🔄</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#ef4444;">Recalculate</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Reprocess OT/Shift/Status</div>
+    <button class="btn btn-ghost" style="margin-top:12px;width:100%;background:rgba(239,68,68,.15);color:#ef4444;" onclick="openModal('recalcModal')">🔄 Recalculate</button>
+  </div>
+  <!-- Fix Weekly Off Card -->
+  <div style="background:var(--card);border:1px solid rgba(139,92,246,.3);border-radius:14px;padding:18px;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">📅</div>
+    <div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#a78bfa;">Fix Weekly Off</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px;">Correct WO/WOP for all employees</div>
+    <button class="btn btn-ghost" style="margin-top:12px;width:100%;background:rgba(139,92,246,.15);color:#a78bfa;" onclick="openModal('fixWoModal')">📅 Fix Weekly Off</button>
+  </div>
+</div>
+
+<!-- Fix Weekly Off Modal -->
+<div class="modal-overlay" id="fixWoModal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">📅 Fix Weekly Off</span>
+      <button class="modal-close" onclick="closeModal('fixWoModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#a78bfa;border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;">
+        This will correct attendance records for all employees based on their individual Weekly Off setting.
+        Employees with no punch on their WO day → marked <b>WO</b>. Employees who punched on WO day → marked <b>WOP</b> (OT calculated).
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label class="form-label">Month</label>
+          <select class="form-select" id="fixwo_month">
+            {% for i in range(1,13) %}<option value="{{ i }}" {% if i==today_m %}selected{% endif %}>{{ months[i-1] }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year</label>
+          <select class="form-select" id="fixwo_year">
+            {% for y in range(today_y-1, today_y+2) %}<option value="{{ y }}" {% if y==today_y %}selected{% endif %}>{{ y }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="fixwo_result" style="margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('fixWoModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#7c3aed;" onclick="runFixWeeklyOff()">📅 Fix Weekly Off</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recalculate Modal -->
+<div class="modal-overlay" id="recalcModal">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header"><span class="modal-title">🔄 Recalculate Attendance</span><button class="modal-close" onclick="closeModal('recalcModal')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);background:rgba(245,158,11,.08);border-radius:8px;padding:10px;margin-bottom:12px;">
+        Reprocesses OT, shift detection, late marks. Leave/Manual entries are preserved.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mode</label>
+        <div style="display:flex;gap:12px;">
+          <label style="cursor:pointer;font-size:13px;"><input type="radio" name="rcMode" value="month" checked onchange="toggleRcMode()"> This Month</label>
+          <label style="cursor:pointer;font-size:13px;"><input type="radio" name="rcMode" value="range" onchange="toggleRcMode()"> Date Range</label>
+        </div>
+      </div>
+      <div id="rcRangeFields" style="display:none;gap:10px;grid-template-columns:1fr 1fr;">
+        <div class="form-group"><label class="form-label">From</label><input class="form-control" type="date" id="rcFrom"></div>
+        <div class="form-group"><label class="form-label">To</label><input class="form-control" type="date" id="rcTo"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Employee (blank = all employees)</label>
+        <input class="form-control" id="rcEmpSearch" placeholder="Search by name or code..." oninput="filterRcEmps(this.value)" autocomplete="off">
+        <div id="rcEmpDropdown" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;position:absolute;width:calc(100% - 32px);z-index:9999;margin-top:2px;">
+        </div>
+        <input type="hidden" id="rcEmp" value="">
+        <div id="rcEmpSelected" style="font-size:11px;color:#10b981;margin-top:3px;"></div>
+      </div>
+      <div id="rcResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('recalcModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="runRecalcAtt()">🔄 Run Recalculate</button>
+    </div>
+  </div>
+</div>
+
+<div id="attAlert" style="display:none" class="alert alert-success"></div>
+
+<!-- Attendance Table -->
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">{{ month_name }} {{ year }} — Attendance Register</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:12px;color:var(--muted)">Staff Working Days: <strong style="color:#0096dc">{{ working_days_staff }}</strong></span>
+      <div style="font-size:12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:4px 10px;color:var(--yellow);">
+        📝 Use Manual Entry to add attendance for outside/field duty employees
+      </div>
+    </div>
+  </div>
+  <!-- Search Filter -->
+  <div style="padding:10px 14px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input class="form-control" id="att_search" placeholder="🔍 Search by Name or Code..." oninput="onAttSearch(this)" style="width:220px;">
+    <select class="form-select" id="att_dept_filter" style="width:170px;" onchange="filterAttRows()">
+      <option value="">All Departments</option>
+      {% for d in departments %}<option value="{{ d|lower }}" {% if d==selected_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select class="form-select" id="att_status_filter" style="width:130px;" onchange="filterAttRows()">
+      <option value="">All Status</option>
+      <option value="present">Present</option><option value="absent">Absent</option><option value="wo">WO</option><option value="wop">WOP</option><option value="holiday">Holiday</option><option value="leave">Leave</option>
+    </select>
+    <span id="att_count" style="font-size:12px;color:var(--muted);margin-left:auto;"></span>
+  </div>
+  <div style="overflow-x:auto;"><table>
+    <thead><tr>
+      <th onclick="sortTable('attTableBody',0)" data-sort-col="0" style="cursor:pointer;">Code<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',1)" data-sort-col="1" style="cursor:pointer;">Name<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',2)" data-sort-col="2" style="cursor:pointer;">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',3)" data-sort-col="3" style="cursor:pointer;">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th onclick="sortTable('attTableBody',4)" data-sort-col="4" style="cursor:pointer;">Today In<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',5)" data-sort-col="5" style="cursor:pointer;">Today Out<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',6)" data-sort-col="6" style="cursor:pointer;">Working Hrs<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      <th onclick="sortTable('attTableBody',7)" data-sort-col="7" style="cursor:pointer;">Late<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',8)" data-sort-col="8" style="cursor:pointer;">OT<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',9)" data-sort-col="9" style="cursor:pointer;">Status<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th onclick="sortTable('attTableBody',10)" data-sort-col="10" style="cursor:pointer;">½ Day<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+    </tr></thead>
+    <tbody id="attTableBody">
+      {% for emp in employees %}
+      {% set all_dates = att_data.get(emp.emp_code, {}) %}
+      {% set today_row = all_dates.get(selected_date if selected_date else today_str, {}) %}
+      {% set row = today_row %}
+      <tr id="row_{{ emp.emp_code }}" 
+          data-code="{{ emp.emp_code|lower }}" 
+          data-name="{{ emp.emp_name|lower }}" 
+          data-dept="{{ (emp.department or '')|lower }}"
+          data-status="{{ (today_row.status if today_row else 'absent')|lower }}"
+          data-latest-date="{{ row.att_date if row and row.att_date else '' }}">
+        <td style="color:#0096dc;font-weight:600;font-size:12px">{{ emp.emp_code }}</td>
+        <td><div style="font-weight:600;font-size:13px;">{{ emp.emp_name }}</div></td>
+        <td style="font-size:12px;color:var(--muted)">{{ emp.department or '—' }}</td>
+        <td><span class="badge badge-{{ emp.category.lower() }}" style="font-size:10px">{{ emp.category[:4] }}</span></td>
+        <td id="disp_in_{{ emp.emp_code }}" style="font-size:13px;font-weight:600;color:var(--green)">
+          {{ row.in_time if row and row.in_time else '—' }}
+        </td>
+        <td id="disp_out_{{ emp.emp_code }}" style="font-size:13px;font-weight:600;color:var(--accent2)">
+          {{ row.out_time if row and row.out_time else '—' }}
+        </td>
+        <td id="disp_wh_{{ emp.emp_code }}" id="disp_wrk_{{ emp.emp_code }}" style="font-size:13px;font-weight:600;color:var(--text)">
+          {% if row and row.working_minutes %}{{ row.working_minutes|hrsmin }}{% else %}—{% endif %}
+        </td>
+        <td id="disp_late_{{ emp.emp_code }}" style="font-size:12px;color:{% if row and row.late_minutes and row.late_minutes>0 %}var(--red){% else %}var(--muted){% endif %}">
+          {{ row.late_minutes if row and row.late_minutes else '—' }}
+        </td>
+        <td id="disp_ot_{{ emp.emp_code }}" style="font-size:12px;color:{% if row and row.ot_minutes and row.ot_minutes>0 %}var(--yellow){% else %}var(--muted){% endif %}">
+          {{ row.ot_minutes if row and row.ot_minutes else '—' }}
+        </td>
+        <td id="disp_st_{{ emp.emp_code }}">
+          {% if row %}
+            {% if row.status=='Present' %}<span class="badge badge-active">Present</span>
+            {% elif row.status=='Absent' %}<span class="badge badge-inactive">Absent</span>
+            {% elif row.status=='WO' %}<span class="badge" style="background:rgba(100,116,139,.15);color:var(--muted)">WO</span>
+            {% elif row.status=='WOP' %}<span class="badge" style="background:rgba(245,158,11,.15);color:var(--yellow)">WOP</span>
+            {% elif row.status=='Leave' %}<span class="badge" style="background:rgba(139,92,246,.15);color:#a78bfa">Leave</span>
+            {% elif row.status=='Holiday' %}<span class="badge" style="background:rgba(0,150,220,.15);color:#0096dc">Holiday</span>
+            {% elif row.status=='Miss Punch' %}<span class="badge" style="background:rgba(249,115,22,.15);color:#f97316;font-weight:700">⚠ Miss Punch</span>
+            {% else %}<span class="badge">{{ row.status }}</span>{% endif %}
+          {% else %}<span class="badge badge-inactive">Absent</span>{% endif %}
+        </td>
+        <td id="disp_hd_{{ emp.emp_code }}" style="font-size:12px;color:{% if row and row.is_half_day %}var(--yellow){% else %}var(--muted){% endif %}">
+          {% if row and row.is_half_day %}⚠️{% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<!-- ══ EDIT MODAL — Any Date ══ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Correction / Manual Entry</span>
+      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit_emp_code">
+
+      <!-- Employee name display -->
+      <div style="background:var(--surface);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+        <div class="emp-av" id="edit_emp_av" style="width:38px;height:38px;border-radius:9px;font-size:13px;background:linear-gradient(135deg,#0052cc,#0096dc)">--</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;" id="edit_emp_name">—</div>
+          <div style="font-size:12px;color:var(--muted);">Select date below to load existing record</div>
+        </div>
+      </div>
+
+      <!-- DATE PICKER — Key Feature -->
+      <div class="form-group">
+        <label class="form-label" style="color:var(--yellow);font-weight:700;">📅 Kaunsi Date Edit Karni Hai? *</label>
+        <input class="form-control" type="date" id="edit_date"
+          max="{{ today_str }}"
+          style="font-size:14px;font-weight:600;border-color:var(--yellow);"
+          onchange="loadExistingRecord()">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">Date select karte hi us din ka purana record load ho jayega (agar hai to)</div>
+      </div>
+
+      <!-- Existing record preview -->
+      <div id="existingRecord" style="display:none;background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;">
+        <div style="color:#0096dc;font-weight:700;margin-bottom:5px;">📋 Existing Record Found:</div>
+        <div id="existingInfo" style="color:var(--muted);"></div>
+      </div>
+      <div id="noRecord" style="display:none;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:12px;color:var(--red);">
+        ℹ️ No record exists for this date — a new record will be created
+      </div>
+
+      <!-- Correction Reason -->
+      <div class="form-group">
+        <label class="form-label">⚠️ Reason for Correction <span style="color:var(--red)">*</span></label>
+        <select class="form-select" id="edit_reason">
+          <option value="">— Select Reason —</option>
+          <option value="Forgot to Punch In">Forgot to Punch In</option>
+          <option value="Forgot to Punch Out">Forgot to Punch Out</option>
+          <option value="Machine Error">Machine Error / Device Issue</option>
+          <option value="Biometric Not Recognized">Biometric Not Recognized</option>
+          <option value="Came Late - Manager Approved">Came Late - Manager Approved</option>
+          <option value="Left Early - Emergency">Left Early - Emergency</option>
+          <option value="On Duty Outside Office">On Duty Outside Office</option>
+          <option value="System Import Error">System Import Error</option>
+          <option value="Wrong Date Imported">Wrong Date Imported</option>
+          <option value="Holiday Correction">Holiday / WO Correction</option>
+          <option value="Backdated Entry">Backdated Entry</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">In Time (Punch In)</label>
+          <input class="form-control" type="time" id="edit_in_time">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Out Time (Punch Out)</label>
+          <input class="form-control" type="time" id="edit_out_time">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="edit_status">
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="WO">WO (Week Off)</option>
+            <option value="WOP">WOP (Week Off Present)</option>
+            <option value="Leave">Leave</option>
+            <option value="Holiday">Holiday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Half Day?</label>
+          <select class="form-select" id="edit_half">
+            <option value="0">No</option>
+            <option value="1">Yes — Half Day</option>
+          </select>
+        </div>
+      </div>
+      <div id="editResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn btn-warning" onclick="saveEdit()">💾 Save Correction</button>
+    </div>
+  </div>
+</div>
+
+<!-- Machine Modal -->
+<div class="modal-overlay" id="machineModal">
+  <div class="modal" style="width:540px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:18px 18px 0 0;">
+      <span class="modal-title" style="color:white;">🖥️ Biometric Machine — Import Attendance</span>
+      <button class="modal-close" onclick="closeModal('machineModal')" style="background:rgba(255,255,255,.2)">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Select from saved machines -->
+      <div class="form-group">
+        <label class="form-label">Select Machine</label>
+        <select class="form-select" id="selMachine" onchange="loadMachineDetails()">
+          <option value="custom">— Enter Manually —</option>
+          {% for m in machines %}
+          <option value="{{ m.id }}" data-ip="{{ m.ip_address }}" data-port="{{ m.port }}" data-pass="{{ m.password or 0 }}">
+            🖥️ {{ m.machine_name }} — {{ m.ip_address }}{% if m.location %} ({{ m.location }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+          <a href="/attendance/machines" style="color:#0096dc;">➕ Add / Manage Machines →</a>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">IP Address</label><input class="form-control" id="m_ip" value="192.168.0.125"></div>
+        <div class="form-group"><label class="form-label">Port</label><input class="form-control" id="m_port" value="4370"></div>
+        <div class="form-group col-span-2"><label class="form-label">Password (0 = no password)</label><input class="form-control" id="m_pass" value="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="testMachine()">🔌 Test Connection</button>
+        <button class="btn btn-ghost btn-sm" onclick="getMachineInfo()" style="background:rgba(139,92,246,.15);color:#a78bfa;">📊 Machine Info</button>
+        <span id="testRes" style="font-size:13px;align-self:center;"></span>
+      </div>
+      <div id="machineInfoDiv" style="display:none;background:var(--surface);border-radius:10px;padding:12px;margin-bottom:10px;font-size:12px;"></div>
+      <!-- Import options -->
+      <div style="background:var(--surface);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:12px;color:var(--muted);margin-bottom:8px;">📅 Import Options:</div>
+        <label class="form-check" style="cursor:pointer;display:block;margin-bottom:8px;">
+          <input type="radio" name="imp_type" id="imp_month" checked>
+          <span style="font-weight:600;color:#0096dc;">Current Month Only</span>
+          <span style="font-size:11px;color:var(--muted);"> ({{ month_name }} {{ year }})</span>
+        </label>
+        <label class="form-check" style="cursor:pointer;display:block;">
+          <input type="radio" name="imp_type" id="imp_all">
+          <span style="font-weight:600;color:var(--yellow);">Import All Months</span>
+          <span style="font-size:11px;color:var(--muted);"> (all data on machine)</span>
+        </label>
+      </div>
+      <div id="machineRes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('machineModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="importMachine()">🖥️ Import Attendance</button>
+    </div>
+  </div>
+</div>
+
+<!-- Database Modal -->
+<div class="modal-overlay" id="dbModal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">🗄️ Database Import</span><button class="modal-close" onclick="closeModal('dbModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Database Type</label>
+        <div style="display:flex;gap:16px;margin-top:6px;">
+          <label class="form-check" style="cursor:pointer;"><input type="radio" name="dbt" id="rb_sql" checked onchange="toggleDb()"> <span style="font-weight:600;color:#0096dc">SQL Server</span></label>
+          <label class="form-check" style="cursor:pointer;"><input type="radio" name="dbt" id="rb_mysql" onchange="toggleDb()"> MySQL</label>
+        </div>
+      </div>
+      <div class="form-grid">
+        <!-- SQL Server Fields -->
+        <div class="form-group" id="db_ip_f">
+          <label class="form-label">Server IP / Hostname</label>
+          <input class="form-control" id="db_host" placeholder="192.168.0.3" value="192.168.0.3">
+          <small style="color:#64748b;font-size:11px;">Sirf IP ya hostname daalo</small>
+        </div>
+        <div class="form-group" id="db_instance_f">
+          <label class="form-label">Instance Name <span style="color:#64748b;font-weight:400;">(optional)</span></label>
+          <input class="form-control" id="db_instance" placeholder="INDUS" value="INDUS">
+          <small style="color:#64748b;font-size:11px;">SQL Server instance (e.g. INDUS, SQLEXPRESS)</small>
+        </div>
+        <!-- MySQL Port -->
+        <div class="form-group" id="db_port_f" style="display:none;">
+          <label class="form-label">Port</label>
+          <input class="form-control" id="db_port" value="3306">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" id="db_user" value="essl5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" type="password" id="db_pass">
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Database Name</label>
+          <input class="form-control" id="db_name" value="etimetracklite1">
+          <small style="color:#64748b;font-size:11px;">eTimeTrack database name (etimetracklite1)</small>
+        </div>
+      </div>
+      <!-- Connection string preview -->
+      <div id="db_preview" style="background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.2);border-radius:8px;padding:10px 14px;margin-top:8px;font-size:11px;color:#94a3b8;font-family:monospace;"></div>
+      <!-- Windows Auth toggle -->
+      <div style="margin-top:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <input type="checkbox" id="win_auth" onchange="toggleWinAuth()">
+          <span>Use Windows Authentication (no Username/Password required)</span>
+        </label>
+      </div>
+      <div id="dbRes" style="margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('dbModal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="testDbConnection()" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);">🔌 Test Connection</button>
+      <button class="btn btn-primary" onclick="importDb()">🗄️ Import</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ UNMATCHED CODES NOTIFICATION POPUP ══ -->
+{% if ghost_codes and ghost_codes|length > 0 %}
+<div id="ghostPopup" style="
+    position:fixed;bottom:20px;right:20px;z-index:9999;
+    background:var(--card);border:2px solid rgba(239,68,68,.4);
+    border-radius:14px;padding:16px 18px;width:340px;
+    box-shadow:0 8px 32px rgba(0,0,0,.3);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="font-weight:800;font-size:13px;color:#ef4444;">
+      ⚠️ {{ ghost_codes|length }} Unmatched Attendance Records
+    </div>
+    <button onclick="document.getElementById('ghostPopup').remove()" 
+      style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+    These codes exist in machine but no exact match found in Employee records.
+    Their attendance is not visible.
+  </div>
+  <div style="max-height:120px;overflow-y:auto;margin-bottom:10px;">
+    {% for g in ghost_codes %}
+    <div style="display:flex;justify-content:space-between;padding:4px 8px;background:rgba(239,68,68,.08);border-radius:6px;margin-bottom:3px;font-size:12px;">
+      <span style="color:#ef4444;font-weight:600;">{{ g.emp_code }}</span>
+      <span style="color:var(--muted);">{{ g.cnt }} records</span>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="font-size:11px;color:var(--yellow);background:rgba(245,158,11,.1);border-radius:8px;padding:8px;">
+    💡 Fix: Add employees with exact matching codes in Employees page
+  </div>
+  <button onclick="document.getElementById('ghostPopup').remove()"
+    style="width:100%;margin-top:10px;padding:8px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;">
+    ✕ Understood, Close
+  </button>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Auto-fix Miss Punch on page load (today's records where shift still ongoing)
+document.addEventListener("DOMContentLoaded", async ()=>{
+  try {
+    const r = await fetch("/attendance/fix-miss-punch-today",
+      {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"})
+      .then(r=>r.json());
+    if(r.success && r.fixed > 0){
+      location.reload();  // Refresh to show corrected status
+    }
+  } catch(e){}
+});
+
+async function fixMissPunchToday(){
+  showToast("Checking Miss Punch records...");
+  const r = await fetch("/attendance/fix-miss-punch-today",
+    {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"})
+    .then(r=>r.json());
+  if(r.success){
+    showToast(r.fixed > 0 ? `✅ Fixed ${r.fixed} records` : "✅ All records are correct", r.fixed > 0 ? "success" : "info");
+    if(r.fixed > 0) setTimeout(()=>location.reload(), 1200);
+  }
+}
+
+// Preserve scroll position across reloads
+function reloadPage(){
+  sessionStorage.setItem("scrollPos", window.scrollY);
+  location.reload();
+}
+window.addEventListener("load", ()=>{
+  const pos = sessionStorage.getItem("scrollPos");
+  if(pos){ window.scrollTo(0, parseInt(pos)); sessionStorage.removeItem("scrollPos"); }
+});
+const MONTH={{ month }}, YEAR={{ year }}, TODAY="{{ today_str }}";
+
+function reload(){
+  const m=document.getElementById("selMonth").value;
+  const y=document.getElementById("selYear").value;
+  const d=document.getElementById("deptFilter").value;
+  const si=new URLSearchParams(window.location.search).get("show_inactive")||"0";
+  location.href=`/attendance?month=${m}&year=${y}&dept=${d}${si==="1"?"&show_inactive=1":""}`;
+}
+
+// ── Search & Filter ──
+function searchTable(){
+  // Sync att_search with attSearch so both search boxes work together
+  const attSrch = document.getElementById("attSearch");
+  const attSrch2 = document.getElementById("att_search");
+  if(attSrch2) attSrch2.value = attSrch ? attSrch.value : "";
+  // When searching by name/code, clear status filter so all matches show
+  if(attSrch && attSrch.value.trim()){
+    const stF = document.getElementById("att_status_filter");
+    if(stF) stF.value = "";
+  }
+  filterAttRows();
+  // Update top count
+  let visible = 0;
+  document.querySelectorAll("#attTableBody tr[id^='row_']").forEach(tr=>{
+    if(tr.style.display !== "none") visible++;
+  });
+  const cnt = document.getElementById("showCount");
+  if(cnt) cnt.textContent = (attSrch && attSrch.value) ? visible + " matched" : "all";
+}
+
+function filterByDate(){
+  const dt = document.getElementById("filterDate").value;
+  if(!dt){ clearDateFilter(); return; }
+  // Client-side filter only - NO page reload!
+  sessionStorage.setItem("attDateFilter", dt);
+  applyDateFilter(dt);
+  document.getElementById("filterInfo").textContent = `Records for: ${dt}`;
+}
+
+function applyDateFilter(dt){
+  // Date filter: server already rendered today's data
+  // Just update filterInfo display
+  const rows = document.querySelectorAll("#attTableBody tr");
+  let withData = 0;
+  rows.forEach(tr => {
+    if(!tr.id || !tr.id.startsWith("row_")) return;
+    tr.style.opacity = "1";
+    // Count rows that have data (in_time not empty)
+    const empCode = tr.id.replace("row_","");
+    const inEl = document.getElementById("disp_in_"+empCode);
+    if(inEl && inEl.textContent && inEl.textContent !== "—") withData++;
+  });
+  const fi = document.getElementById("filterInfo");
+  if(fi && dt) fi.textContent = "Records for: " + dt + " | " + withData + " with punch";
+}
+
+function clearDateFilter(){
+  document.getElementById("filterDate").value = "";
+  document.getElementById("filterInfo").textContent = "";
+  document.querySelectorAll("#attTableBody tr").forEach(tr => {
+    tr.style.display = "";
+    tr.style.opacity = "1";
+  });
+  document.getElementById("showCount").textContent = document.querySelectorAll("#attTableBody tr").length + " total";
+  sessionStorage.removeItem("attDateFilter");
+  searchTable();
+}
+
+function setToday(){
+  const today = "{{ today_str }}";
+  document.getElementById("filterDate").value = today;
+  filterByDate(); // Only apply when user clicks "Today" button
+}
+
+// On page load - show today's date by default
+window.addEventListener("load", ()=>{
+  const total = document.querySelectorAll("#attTableBody tr").length;
+  document.getElementById("showCount").textContent = total + " employees";
+  const urlParams = new URLSearchParams(window.location.search);
+  const selDate = urlParams.get("sel_date") || "{{ today_str }}";
+  if(selDate){
+    document.getElementById("filterDate").value = selDate;
+    applyDateFilter(selDate);
+    document.getElementById("filterInfo").textContent = "Records for: " + selDate;
+  }
+});
+
+function toggleDb(){
+  const s=document.getElementById("rb_sql").checked;
+  document.getElementById("db_port_f").style.display=s?"none":"block";
+  document.getElementById("db_instance_f").style.display=s?"block":"none";
+  document.getElementById("db_ip_f").style.display="block";
+  if(s){
+    document.getElementById("db_host").value="192.168.0.3";
+    document.getElementById("db_instance").value="INDUS";
+    document.getElementById("db_user").value="essl5";
+    document.getElementById("db_name").value="etimetracklite1";
+  } else {
+    document.getElementById("db_host").value="localhost";
+    document.getElementById("db_user").value="root";
+    document.getElementById("db_name").value="etimetracklite";
+  }
+  updateDbPreview();
+}
+
+// Open edit modal — set employee, default date = today
+function openEdit(code, name){
+  document.getElementById("edit_emp_code").value = code;
+  document.getElementById("edit_emp_name").textContent = name;
+  document.getElementById("edit_emp_av").textContent = name.substring(0,2).toUpperCase();
+  document.getElementById("edit_date").value = TODAY;
+  document.getElementById("edit_reason").value = "";
+  document.getElementById("edit_in_time").value = "";
+  document.getElementById("edit_out_time").value = "";
+  document.getElementById("edit_status").value = "Present";
+  document.getElementById("edit_half").value = "0";
+  document.getElementById("editResult").innerHTML = "";
+  document.getElementById("existingRecord").style.display = "none";
+  document.getElementById("noRecord").style.display = "none";
+  openModal("editModal");
+  // Auto load today's record
+  loadExistingRecord();
+}
+
+// Load existing record when date changes
+async function loadExistingRecord(){
+  const code = document.getElementById("edit_emp_code").value;
+  const dt   = document.getElementById("edit_date").value;
+  if(!code || !dt) return;
+
+  const r = await api("/attendance/get-record","POST",{emp_code:code, att_date:dt});
+
+  if(r.found && r.record){
+    const rec = r.record;
+    // Fill form with existing data
+    document.getElementById("edit_in_time").value  = rec.in_time  || "";
+    document.getElementById("edit_out_time").value = rec.out_time || "";
+    document.getElementById("edit_status").value   = rec.status   || "Present";
+    document.getElementById("edit_half").value     = rec.is_half_day ? "1" : "0";
+
+    // Show existing record info
+    document.getElementById("existingRecord").style.display = "block";
+    document.getElementById("noRecord").style.display = "none";
+    document.getElementById("existingInfo").innerHTML =
+      `In: <strong>${rec.in_time||"—"}</strong> &nbsp;|&nbsp; 
+       Out: <strong>${rec.out_time||"—"}</strong> &nbsp;|&nbsp; 
+       Status: <strong>${rec.status||"—"}</strong> &nbsp;|&nbsp; 
+       Working: <strong>${rec.working_minutes ? (rec.working_minutes/60).toFixed(1)+" hrs" : "—"}</strong>
+       ${rec.late_minutes>0 ? ` &nbsp;|&nbsp; Late: <strong style="color:var(--red)">${rec.late_minutes} min</strong>` : ""}
+       ${rec.ot_minutes>0 ? ` &nbsp;|&nbsp; OT: <strong style="color:var(--yellow)">${rec.ot_minutes} min</strong>` : ""}`;
+  } else {
+    // No record found for this date
+    document.getElementById("existingRecord").style.display = "none";
+    document.getElementById("noRecord").style.display = "block";
+    document.getElementById("edit_in_time").value  = "";
+    document.getElementById("edit_out_time").value = "";
+    document.getElementById("edit_status").value   = "Present";
+    document.getElementById("edit_half").value     = "0";
+  }
+}
+
+async function saveEdit(){
+  const reason = document.getElementById("edit_reason").value;
+  if(!reason){showToast("Please select a reason!","error");return;}
+  const code = document.getElementById("edit_emp_code").value;
+  const dt   = document.getElementById("edit_date").value;
+  if(!dt){showToast("Please select a date!","error");return;}
+
+  const r = await api("/attendance/save","POST",{
+    emp_code: code,
+    att_date: dt,
+    in_time:  document.getElementById("edit_in_time").value,
+    out_time: document.getElementById("edit_out_time").value,
+    status:   document.getElementById("edit_status").value,
+    is_half_day: parseInt(document.getElementById("edit_half").value),
+    correction_reason: reason
+  });
+
+  if(r.success){
+    const c = r.calc;
+    // Update table display only if it's today's date
+    if(dt === TODAY){
+      document.getElementById(`disp_in_${code}`).textContent  = document.getElementById("edit_in_time").value  || "—";
+      document.getElementById(`disp_out_${code}`).textContent = document.getElementById("edit_out_time").value || "—";
+      document.getElementById(`disp_wh_${code}`).textContent  = c.working_minutes ? (c.working_minutes/60).toFixed(1)+" hrs" : "—";
+      document.getElementById(`disp_late_${code}`).textContent = c.late_minutes || "—";
+      document.getElementById(`disp_late_${code}`).style.color = c.late_minutes>0 ? "var(--red)" : "var(--muted)";
+      document.getElementById(`disp_ot_${code}`).textContent  = c.ot_minutes || "—";
+      document.getElementById(`disp_ot_${code}`).style.color  = c.ot_minutes>0 ? "var(--yellow)" : "var(--muted)";
+      document.getElementById(`disp_hd_${code}`).textContent  = c.is_half_day ? "⚠️" : "—";
+      const stColors = {"Present":"badge-active","Absent":"badge-inactive","WO":"","WOP":"","Leave":"","Holiday":"","Miss Punch":""};
+      const st = document.getElementById("edit_status").value;
+      const stStyle = st=='WO'?'background:rgba(100,116,139,.15);color:var(--muted)':st=='WOP'?'background:rgba(245,158,11,.15);color:var(--yellow)':st=='Leave'?'background:rgba(139,92,246,.15);color:#a78bfa':st=='Miss Punch'?'background:rgba(249,115,22,.15);color:#f97316;font-weight:700':'';
+      document.getElementById(`disp_st_${code}`).innerHTML = `<span class="badge ${stColors[st]||''}" style="${stStyle}">${st}</span>`;
+    }
+    showToast(`✅ ${code} — ${dt} correction saved! Reason: ${reason}`);
+    closeModal("editModal");
+  } else {
+    showToast(r.error||"Error!","error");
+  }
+}
+
+function loadMachineDetails(){
+  const sel = document.getElementById("selMachine");
+  const opt = sel.options[sel.selectedIndex];
+  if(sel.value !== "custom"){
+    document.getElementById("m_ip").value   = opt.dataset.ip   || "";
+    document.getElementById("m_port").value = opt.dataset.port || "4370";
+    document.getElementById("m_pass").value = opt.dataset.pass || "0";
+  }
+}
+
+async function getMachineInfo(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="Checking...";btn.disabled=true;
+  const r=await api("/attendance/machine-info","POST",{
+    ip:document.getElementById("m_ip").value,
+    port:parseInt(document.getElementById("m_port").value),
+    password:parseInt(document.getElementById("m_pass").value||0)
+  });
+  btn.textContent="📊 Machine Info";btn.disabled=false;
+  const div=document.getElementById("machineInfoDiv");
+  if(r.success){
+    div.style.display="block";
+    const mList=Object.entries(r.months||{}).map(([m,c])=>`<span style="background:rgba(0,150,220,.1);border-radius:4px;padding:2px 7px;font-size:11px;">${m}: ${c}</span>`).join(" ");
+    div.innerHTML=`<strong style="color:#0096dc;">Machine Data:</strong> Total ${r.total} logs | First: ${r.first} | Last: ${r.last}<br><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">${mList}</div>`;
+  } else {div.style.display="block"; div.innerHTML=`<span style="color:var(--red)">❌ ${r.error}</span>`;}
+}
+
+async function testMachine(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="Testing...";btn.disabled=true;
+  const r=await api("/attendance/connect-machine","POST",{ip:document.getElementById("m_ip").value,port:parseInt(document.getElementById("m_port").value),password:parseInt(document.getElementById("m_pass").value||0)});
+  btn.textContent="🔌 Test Connection";btn.disabled=false;
+  const res=document.getElementById("testRes");
+  if(r.success){res.textContent=`✅ Connected! ${r.device}`;res.style.color="var(--green)";}
+  else{res.textContent="❌ "+r.error;res.style.color="var(--red)";}
+}
+
+async function importMachine(){
+  const btn = event.target;
+  btn.textContent = "⏳ Importing...";
+  btn.disabled = true;
+  const allMonths = document.getElementById("imp_all") ? document.getElementById("imp_all").checked : false;
+  const div = document.getElementById("machineRes");
+
+  // Show initial progress UI
+  div.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span id="imp_stage" style="font-weight:700;font-size:13px;color:#0096dc;">🔌 Connecting to machine...</span>
+        <span id="imp_pct" style="font-size:13px;font-weight:700;color:#10b981;">0%</span>
+      </div>
+
+      <!-- Progress Bar -->
+      <div style="background:var(--border);border-radius:6px;height:10px;overflow:hidden;margin-bottom:12px;">
+        <div id="imp_bar" style="height:10px;width:0%;background:linear-gradient(90deg,#0052cc,#0096dc,#10b981);border-radius:6px;transition:width .4s ease;"></div>
+      </div>
+
+      <!-- Live Stats -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+        <div style="background:rgba(0,150,220,.08);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);">Total Logs</div>
+          <div id="imp_total" style="font-size:18px;font-weight:800;color:#0096dc;">—</div>
+        </div>
+        <div style="background:rgba(16,185,129,.08);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);">Saved</div>
+          <div id="imp_saved" style="font-size:18px;font-weight:800;color:#10b981;">—</div>
+        </div>
+        <div style="background:rgba(245,158,11,.08);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);">Skipped</div>
+          <div id="imp_skip" style="font-size:18px;font-weight:800;color:#f59e0b;">—</div>
+        </div>
+      </div>
+
+      <div id="imp_msg" style="font-size:11px;color:var(--muted);text-align:center;">
+        Please wait, do not close this window...
+      </div>
+    </div>`;
+
+  // Start polling progress
+  let pollTimer = setInterval(async ()=>{
+    try {
+      const p = await api("/attendance/import-progress");
+      document.getElementById("imp_stage").textContent = p.stage || "Processing...";
+      document.getElementById("imp_pct").textContent   = (p.percent||0) + "%";
+      document.getElementById("imp_bar").style.width   = (p.percent||0) + "%";
+      if(p.total > 0)    document.getElementById("imp_total").textContent = p.total.toLocaleString();
+      if(p.imported > 0) document.getElementById("imp_saved").textContent = p.imported.toLocaleString();
+      if(p.skipped >= 0) document.getElementById("imp_skip").textContent  = p.skipped.toLocaleString();
+      if(p.status === "done" || p.status === "error") clearInterval(pollTimer);
+    } catch(e){}
+  }, 800);
+
+  try {
+    const r = await api("/attendance/import-machine","POST",{
+      ip:       document.getElementById("m_ip").value,
+      port:     parseInt(document.getElementById("m_port").value),
+      password: parseInt(document.getElementById("m_pass").value||0),
+      month:MONTH, year:YEAR, all_months:allMonths
+    });
+
+    clearInterval(pollTimer);
+    btn.textContent = "🖥️ Import Attendance";
+    btn.disabled = false;
+
+    if(r.success){
+      div.innerHTML = `
+        <div class="alert alert-success" style="border-radius:12px;padding:16px;">
+          <div style="font-size:16px;font-weight:800;margin-bottom:10px;">✅ Import Complete!</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:13px;">
+            <div>📥 <strong>Saved:</strong> ${r.imported.toLocaleString()} records</div>
+            <div>📋 <strong>Total Logs:</strong> ${r.total.toLocaleString()}</div>
+            <div>🔄 <strong>Sessions:</strong> ${r.total_unique_sessions.toLocaleString()}</div>
+            <div>🗑️ <strong>Duplicates Removed:</strong> ${r.duplicates_removed}</div>
+            <div>⚠️ <strong>Missing OUT:</strong> ${r.no_out_punch}</div>
+            <div>❓ <strong>Unmatched IDs:</strong> ${r.unmatched_count}</div>
+          </div>
+          ${r.unmatched_count > 0 ? `<div style="margin-top:8px;font-size:11px;color:#f59e0b;">Unmatched: ${(r.unmatched_ids||[]).join(", ")}</div>` : ""}
+        </div>`;
+      setTimeout(()=>{ closeModal("machineModal"); reloadPage(); }, 3500);
+    } else {
+      div.innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    }
+  } catch(e){
+    clearInterval(pollTimer);
+    btn.textContent = "🖥️ Import Attendance";
+    btn.disabled = false;
+    div.innerHTML = `<div class="alert alert-danger">❌ Timeout — machine still processing. Try again.</div>`;
+  }
+}
+
+function toggleWinAuth(){
+  const winAuth = document.getElementById("win_auth").checked;
+  const userEl  = document.getElementById("db_user");
+  const passEl  = document.getElementById("db_pass");
+  if(winAuth){
+    userEl.value = ""; passEl.value = "";
+    userEl.disabled = true; passEl.disabled = true;
+    userEl.placeholder = "(Windows Auth)";
+    passEl.placeholder = "(Windows Auth)";
+  } else {
+    userEl.disabled = false; passEl.disabled = false;
+    userEl.placeholder = ""; passEl.placeholder = "";
+    userEl.value = "essl5";
+  }
+  updateDbPreview();
+}
+
+async function testDbConnection(){
+  const div = document.getElementById("dbRes");
+  div.innerHTML = `<div class="alert alert-info">🔌 Testing connection... please wait.</div>`;
+  const isSql   = document.getElementById("rb_sql").checked;
+  const host    = document.getElementById("db_host").value.trim();
+  const inst    = document.getElementById("db_instance") ? document.getElementById("db_instance").value.trim() : "";
+  const server  = (isSql && inst) ? `${host}\\${inst}` : host;
+  const winAuth = document.getElementById("win_auth") && document.getElementById("win_auth").checked;
+
+  const r = await api("/attendance/test-db-connection","POST",{
+    host:     server,
+    database: document.getElementById("db_name").value,
+    user:     winAuth ? "" : document.getElementById("db_user").value,
+    password: winAuth ? "" : document.getElementById("db_pass").value,
+  });
+
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">
+      ${r.message}<br>
+      <small style="color:#94a3b8;">Driver: ${r.driver || "SQL Server"}</small>
+    </div>`;
+  } else {
+    div.innerHTML=`<div class="alert alert-danger">
+      ❌ <b>Connection Failed!</b><br>
+      <small style="font-family:monospace;font-size:10px;">${(r.errors||[r.error]).join("<br>")}</small><br><br>
+      <small style="color:#94a3b8;">
+        💡 Troubleshooting:<br>
+        • Enable "Windows Authentication" checkbox<br>
+        • Is Server IP correct: <b>${host}</b>?<br>
+        • Is Instance name correct: <b>${inst||"blank"}</b>?<br>
+        • Is SQL Server TCP/IP enabled? (Check in SQL Server Configuration Manager)<br>
+        • Is Port 1433 open in the firewall?
+      </small>
+    </div>`;
+  }
+}
+function updateDbPreview(){
+  const isSql = document.getElementById("rb_sql").checked;
+  const host  = document.getElementById("db_host").value || "192.168.0.3";
+  const inst  = document.getElementById("db_instance") ? document.getElementById("db_instance").value : "";
+  const user  = document.getElementById("db_user").value || "essl5";
+  const db    = document.getElementById("db_name").value || "etimetracklite1";
+  const prev  = document.getElementById("db_preview");
+  if(!prev) return;
+  if(isSql){
+    const server = inst ? `${host}\\${inst}` : host;
+    prev.innerHTML = `🔗 Connecting to: <b>${server}</b> &nbsp;|&nbsp; DB: <b>${db}</b> &nbsp;|&nbsp; User: <b>${user}</b>`;
+  } else {
+    prev.innerHTML = `🔗 MySQL: <b>${host}</b> &nbsp;|&nbsp; DB: <b>${db}</b>`;
+  }
+}
+
+async function importDb(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;
+  btn.textContent="⏳ Connecting...";
+  btn.disabled=true;
+  const div=document.getElementById("dbRes");
+  div.innerHTML=`<div class="alert alert-info">⏳ Connecting to MS SQL Server... please wait.</div>`;
+
+  const isSql = document.getElementById("rb_sql").checked;
+  const host  = document.getElementById("db_host").value.trim();
+  const inst  = document.getElementById("db_instance") ? document.getElementById("db_instance").value.trim() : "";
+  // Server = IP\Instance (agar instance hai toh)
+  const server = (isSql && inst) ? `${host}\\${inst}` : host;
+
+  const r = await api("/attendance/import-database","POST",{
+    db_type:  isSql ? "sqlserver" : "mysql",
+    host:     server,
+    port:     document.getElementById("db_port").value,
+    user:     document.getElementById("db_user").value,
+    password: document.getElementById("db_pass").value,
+    database: document.getElementById("db_name").value,
+    month:    MONTH,
+    year:     YEAR
+  });
+
+  btn.textContent="🗄️ Import";
+  btn.disabled=false;
+
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">
+      ✅ <b>${r.imported}</b> records imported!
+      ${r.skipped ? `&nbsp;|&nbsp; ⚠️ ${r.skipped} skipped (employee not found)` : ""}
+      ${r.unmatched_count ? `<br><small>Unmatched IDs: ${(r.unmatched_ids||[]).join(", ")}</small>` : ""}
+    </div>`;
+    setTimeout(()=>{ closeModal("dbModal"); window.location.href=window.location.href; }, 2500);
+  } else {
+    div.innerHTML=`<div class="alert alert-danger">
+      ❌ <b>Connection Failed!</b><br>
+      <small style="font-family:monospace;">${r.error}</small><br><br>
+      <small style="color:#94a3b8;">
+        💡 Troubleshooting:<br>
+        • Is Server IP correct? (${host})<br>
+        • Is Instance name correct? (${inst || "blank"})<br>
+        • Are Username/Password correct?<br>
+        • Is SQL Server TCP/IP enabled?<br>
+        • Firewall port 1433 open hai?
+      </small>
+    </div>`;
+  }
+}
+
+// Preview on page load
+document.addEventListener("DOMContentLoaded", function(){
+  updateDbPreview();
+  ["db_host","db_instance","db_user","db_name"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener("input", updateDbPreview);
+  });
+  // Apply filters on load (no default status filter - show all)
+  filterAttRows();
+  // Don't restore date filter - server already renders correct today data
+});
+
+async function uploadXl(){
+  const file=document.getElementById("attXl").files[0];if(!file)return;
+  const al=document.getElementById("attAlert");
+  al.style.display="flex";al.className="alert alert-info";al.textContent="⏳ Uploading attendance file...";
+  const form=new FormData();
+  form.append("file",file);
+  form.append("month",document.getElementById("selMonth").value);
+  form.append("year",document.getElementById("selYear").value);
+  const j=await(await fetch("/attendance/import-excel",{method:"POST",body:form})).json();
+  if(j.success){al.className="alert alert-success";al.textContent=`✅ ${j.imported} records imported!${j.errors&&j.errors.length?" ("+j.errors.length+" skipped)":""}`;setTimeout(()=>{ window.location.href=window.location.href; },2000);}
+  else{al.className="alert alert-danger";al.textContent="❌ "+(j.error||"Error");}
+}
+
+function toggleRcMode(){
+  const mode=document.querySelector('input[name="rcMode"]:checked').value;
+  document.getElementById("rcRangeFields").style.display=mode==="range"?"grid":"none";
+}
+// Employee search for recalculate
+const _rcEmpList = {{ employees|tojson if employees is defined else '[]' }};
+function filterRcEmps(q){
+  const dd=document.getElementById("rcEmpDropdown");
+  document.getElementById("rcEmp").value="";
+  if(!q){dd.style.display="none";return;}
+  const m=_rcEmpList.filter(e=>(e.emp_code||"").toLowerCase().includes(q.toLowerCase())||(e.emp_name||"").toLowerCase().includes(q.toLowerCase())).slice(0,10);
+  if(!m.length){dd.style.display="none";return;}
+  dd.innerHTML=m.map(e=>`<div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);" onclick="selectRcEmp('${e.emp_code}','${e.emp_name}')"><strong>${e.emp_code}</strong> — ${e.emp_name} <span style="color:var(--muted);font-size:10px;">${e.department||""}</span></div>`).join("");
+  dd.style.display="block";
+}
+function selectRcEmp(code,name){
+  document.getElementById("rcEmp").value=code;
+  document.getElementById("rcEmpSearch").value=code+" — "+name;
+  document.getElementById("rcEmpSelected").textContent="✓ "+name;
+  document.getElementById("rcEmpDropdown").style.display="none";
+}
+document.addEventListener("click",e=>{if(!e.target.closest("#rcEmpDropdown")&&!e.target.matches("#rcEmpSearch"))document.getElementById("rcEmpDropdown").style.display="none";});
+async function runRecalcAtt(){
+  const mode=document.querySelector('input[name="rcMode"]:checked').value;
+  const ec=document.getElementById("rcEmp").value.trim();
+  let payload;
+  if(mode==="range"){
+    const fd=document.getElementById("rcFrom").value;
+    const td=document.getElementById("rcTo").value;
+    if(!fd||!td){showToast("Select date range","error");return;}
+    payload={from_date:fd,to_date:td,emp_code:ec};
+  } else {
+    payload={month:{{ month }},year:{{ year }},emp_code:ec};
+  }
+  const div=document.getElementById("rcResult");
+  div.innerHTML='<div style="color:var(--yellow);">⏳ Processing...</div>';
+  const r=await api("/attendance/recalculate","POST",payload);
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">✅ ${r.message}</div>`;
+    setTimeout(()=>{closeModal("recalcModal");location.reload();},2000);
+  } else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Error"}</div>`;
+}
+
+function onAttSearch(inp){
+  // Clear status filter when user searches by name/code
+  if(inp.value.trim()){
+    const stF = document.getElementById("att_status_filter");
+    if(stF) stF.value = "";
+  }
+  // Sync both search boxes
+  const other = inp.id === "att_search" 
+    ? document.getElementById("attSearch") 
+    : document.getElementById("att_search");
+  if(other) other.value = inp.value;
+  filterAttRows();
+}
+
+function filterAttRows(){
+  const q    = ((document.getElementById("att_search")?.value) || (document.getElementById("attSearch")?.value) || "").toLowerCase().trim();
+  const dept = (document.getElementById("att_dept_filter")?.value || "").toLowerCase().trim();
+  const st   = (document.getElementById("att_status_filter")?.value || "").toLowerCase().trim();
+  let vis = 0;
+  const rows = document.querySelectorAll("#attTableBody tr");
+  rows.forEach(tr => {
+    if(!tr.id || !tr.id.startsWith("row_")) return;
+    const tCode = (tr.getAttribute("data-code") || "").toLowerCase();
+    const tName = (tr.getAttribute("data-name") || "").toLowerCase();
+    const tDept = (tr.getAttribute("data-dept") || "").toLowerCase();
+    const tSt   = (tr.getAttribute("data-status") || "").toLowerCase();
+    const matchQ    = !q    || tCode.includes(q) || tName.includes(q);
+    const matchDept = !dept || tDept === dept;
+    const matchSt   = !st   || tSt   === st;
+    const show = matchQ && matchDept && matchSt;
+    tr.style.display = show ? "" : "none";
+    if(show) vis++;
+  });
+  const cnt = document.getElementById("att_count");
+  if(cnt) cnt.textContent = vis + " employees";
+  const cnt2 = document.getElementById("showCount");
+  if(cnt2) cnt2.textContent = vis + " shown";
+}
+
+async function runFixWeeklyOff(){
+  const month = parseInt(document.getElementById('fixwo_month').value);
+  const year  = parseInt(document.getElementById('fixwo_year').value);
+  const div   = document.getElementById('fixwo_result');
+  div.innerHTML = '<div style="color:var(--muted);font-size:12px;">⏳ Processing... please wait</div>';
+  try{
+    const r = await api('/attendance/fix-weekly-off','POST',{month,year});
+    if(r.success){
+      div.innerHTML = `<div class="alert alert-success">✅ ${r.message}</div>`;
+    } else {
+      div.innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    }
+  }catch(e){
+    div.innerHTML = '<div class="alert alert-danger">❌ Error</div>';
+  }
+}
+</script>
+{% endblock %}

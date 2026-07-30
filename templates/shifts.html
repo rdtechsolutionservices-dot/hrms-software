@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}Shift Management{% endblock %}
+{% block page_title %}⏰ Shift Management{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- LEFT: Shift List -->
+  <div>
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-title">Company Shifts ({{ shifts|length }})</span>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addShiftModal')">➕ Add Shift</button>
+      </div>
+      <table>
+        <thead><tr><th>Shift Name</th><th>Code</th><th>Category</th><th>Start</th><th>End</th><th>Hours</th><th>Night</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for s in shifts %}
+          <tr>
+            <td style="font-weight:700">{{ s.shift_name }}</td>
+            <td><span class="badge" style="background:rgba(0,82,204,.15);color:#0096dc;font-size:10px;">{{ s.shift_code }}</span></td>
+            <td><span class="badge badge-{{ s.category.lower() }}" style="font-size:10px;">{{ s.category[:4] }}</span></td>
+            <td style="font-weight:600;color:var(--green)">{{ s.start_time }}</td>
+            <td style="font-weight:600;color:var(--accent2)">{{ s.end_time }}</td>
+            <td style="text-align:center">{{ "%.1f"|format(s.working_hours) }}h</td>
+            <td style="text-align:center">{% if s.is_night_shift %}🌙{% else %}—{% endif %}</td>
+            <td>
+              <div style="display:flex;gap:4px;">
+                <button class="btn btn-ghost btn-sm" onclick="editShift({{ s.id }},'{{ s.shift_name }}','{{ s.shift_code }}','{{ s.category }}','{{ s.start_time }}','{{ s.end_time }}',{{ s.grace_minutes }},'{{ s.allowed_in_start or '' }}','{{ s.allowed_in_end or '' }}',{{ s.is_next_day or 0 }},{{ s.punch_begin_before or 60 }},{{ s.half_day_minutes or 240 }},'{{ s.ot_formula or 'total_minus_shift' }}',{{ s.neglect_last_in or 0 }},{{ s.half_day_min_minutes or 180 }},{{ s.full_day_min_minutes or 390 }},{{ s.min_present_minutes or 0 }},'{{ s.half_day_late_cutoff or '' }}',{{ 1 if s.count_late_marks is none else s.count_late_marks }})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="delShift({{ s.id }},'{{ s.shift_name }}')">🗑️</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RIGHT: Assign Shifts -->
+  <div>
+    <div class="mini-card">
+      <div class="mini-title">👤 Assign Shift to Employee(s)</div>
+      <div class="form-group">
+        <label class="form-label">Select Shift</label>
+        <select class="form-select" id="assign_shift_id">
+          {% for s in shifts %}<option value="{{ s.id }}">{{ s.shift_name }} ({{ s.start_time }}-{{ s.end_time }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Effective From</label>
+        <input class="form-control" type="date" id="assign_date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Select Employees</label>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;">
+          <label class="form-check" style="margin-bottom:6px;cursor:pointer;">
+            <input type="checkbox" id="selAllEmps" onchange="toggleAllEmps(this)"> <strong>Select All</strong>
+          </label>
+          {% for e in employees %}
+          <label class="form-check" style="margin-bottom:4px;cursor:pointer;">
+            <input type="checkbox" class="emp-cb" value="{{ e.emp_code }}">
+            <span style="font-size:12px;">{{ e.emp_code }} — {{ e.emp_name }} <span style="color:var(--muted)">({{ e.department or '' }})</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <select id="assign_mode" class="form-select" style="font-size:12px;margin-bottom:8px;">
+        <option value="fixed">Fixed Shift (Always use this shift)</option>
+        <option value="auto">Auto Detect (Use shift window to detect)</option>
+      </select>
+      <button class="btn btn-primary" style="width:100%;" onclick="assignShifts()">✅ Assign Shift</button>
+      <div id="assignResult" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="mini-card">
+      <div class="mini-title">📊 Bulk Assign via Excel</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        Excel format: <strong>emp_code</strong> | <strong>shift_code</strong><br>
+        Shift codes: {% for s in shifts %}<span style="background:rgba(0,82,204,.1);border-radius:3px;padding:1px 5px;font-size:11px;">{{ s.shift_code }}</span> {% endfor %}
+      </div>
+      <label class="btn btn-ghost" style="width:100%;cursor:pointer;text-align:center;">
+        📊 Upload Shift Assignment Excel
+        <input type="file" id="shiftXl" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadShiftExcel()">
+      </label>
+      <div id="xlResult" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignments Table -->
+<div class="table-card" style="margin-top:16px;">
+  <div class="table-header">
+    <span class="table-title">Current Shift Assignments ({{ assignments|length }})</span>
+    <input class="form-control" style="width:200px;" placeholder="🔍 Search..." id="srch" oninput="filterTable()">
+  </div>
+  <div style="overflow-x:auto;"><table id="assignTable">
+    <thead><tr><th style="cursor:pointer;" onclick="sortTable('assignTable',0)" data-sort-col="0">Employee<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',1)" data-sort-col="1">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',2)" data-sort-col="2">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',3)" data-sort-col="3">Assigned Shift<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',4)" data-sort-col="4">Start<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',5)" data-sort-col="5">End<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',6)" data-sort-col="6">Effective From<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('assignTable',7)" data-sort-col="7">Assigned By<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th></tr></thead>
+    <tbody>
+      {% for a in assignments %}
+      <tr>
+        <td><div style="font-weight:600">{{ a.emp_name }}</div><div style="font-size:11px;color:var(--muted)">{{ a.emp_code }}</div></td>
+        <td style="font-size:12px;color:var(--muted)">{{ a.department or "—" }}</td>
+        <td><span class="badge badge-{{ a.category.lower() }}" style="font-size:10px">{{ a.category[:4] }}</span></td>
+        <td style="font-weight:700;color:#0096dc">{{ a.shift_name }}</td>
+        <td style="color:var(--green)">—</td>
+        <td style="color:var(--accent2)">—</td>
+        <td style="font-size:12px;color:var(--muted)">{{ a.effective_from or "—" }}</td>
+        <td style="font-size:11px;color:var(--muted)">{{ a.assigned_by or "—" }}</td>
+      </tr>
+      {% endfor %}
+      {% if not assignments %}<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">No shift assignments yet</td></tr>{% endif %}
+    </tbody>
+  </table></div>
+</div>
+
+<!-- Add/Edit Shift Modal -->
+<div class="modal-overlay" id="addShiftModal">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header"><span class="modal-title" id="shiftModalTitle">➕ Add Shift</span><button class="modal-close" onclick="closeModal('addShiftModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="edit_shift_id">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Shift Name *</label><input class="form-control" id="s_name" placeholder="e.g. Morning Shift"></div>
+        <div class="form-group"><label class="form-label">Short Code *</label><input class="form-control" id="s_code" placeholder="e.g. MS" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="s_cat"><option>Associate</option><option>Staff</option></select></div>
+        <div class="form-group"><label class="form-label">Start Time *</label><input class="form-control" type="time" id="s_start" oninput="calcHours()"></div>
+        <div class="form-group"><label class="form-label">End Time *</label><input class="form-control" type="time" id="s_end" oninput="calcHours()"></div>
+        <div class="form-group">
+          <label class="form-label">Next Day End? 🌙</label>
+          <select class="form-select" id="s_next_day">
+            <option value="0">No (Day Shift)</option>
+            <option value="1">Yes (Night Shift)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Grace Minutes</label><input class="form-control" type="number" id="s_grace" value="15"></div>
+        <div class="form-group"><label class="form-label">Punch Begin Before (min)</label>
+          <input class="form-control" type="number" id="s_pbb" value="60">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Minutes before shift start IN accepted</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="font-weight:700;color:#0096dc;">📊 Attendance Range (Minutes)</label>
+          <div style="background:var(--surface);border-radius:10px;padding:12px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Set minimum minutes worked for each status:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="font-size:11px;color:#f59e0b;font-weight:600;">🟡 Half Day Range</label>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                  <input class="form-control" type="number" id="s_hd_min" value="180" min="0" max="720" style="width:80px;" title="Minimum minutes for Half Day">
+                  <span style="color:var(--muted);font-size:12px;">to</span>
+                  <input class="form-control" type="number" id="s_hd_max" value="390" min="0" max="720" style="width:80px;" title="Below this = Half Day (above = Full Day)">
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;">e.g. 180–390 min → Half Day</div>
+              </div>
+              <div>
+                <label style="font-size:11px;color:#10b981;font-weight:600;">✅ Full Day</label>
+                <div style="margin-top:4px;padding:6px 10px;background:rgba(16,185,129,.1);border-radius:6px;font-size:12px;color:#10b981;font-weight:600;" id="s_full_day_label">
+                  &gt; 390 min → Full Present
+                </div>
+                <label style="font-size:11px;color:#ef4444;font-weight:600;margin-top:8px;display:block;">❌ Absent (0 = rule off)</label>
+                <div style="margin-top:4px;">
+                  <input class="form-control" type="number" id="s_min_present" value="0" min="0" max="720" style="width:100%;" title="Below this many minutes worked → Absent. 0 disables this rule for this shift.">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Half-Day-on-Late-Arrival Cutoff</label>
+          <input class="form-control" type="time" id="s_hd_late_cutoff">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">IN after this time → Half Day instead of Late (blank = rule off)</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Count Late Marks</label>
+          <select class="form-select" id="s_count_late">
+            <option value="1">Yes — 2 lates in a month = Half Day</option>
+            <option value="0">No — late marks not counted</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Allowed IN From</label>
+          <input class="form-control" type="time" id="s_ai_start">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Auto-calc if blank</div>
+        </div>
+        <div class="form-group"><label class="form-label">Allowed IN Until</label>
+          <input class="form-control" type="time" id="s_ai_end">
+        </div>
+        <div class="form-group">
+          <label class="form-label">OT Formula</label>
+          <select class="form-select" id="s_ot_formula">
+            <option value="total_minus_shift">Total Worked − Shift Duration</option>
+            <option value="out_minus_shift_end">OUT Time − Shift End Time</option>
+            <option value="not_applicable">OT Not Applicable</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Missing OUT handling</label>
+          <select class="form-select" id="s_neglect_li">
+            <option value="0">Keep as Missing OUT alert</option>
+            <option value="1">Use Shift End as OUT (Neglect Last IN)</option>
+          </select>
+        </div>
+        <div class="form-group col-span-2" id="hoursPreview" style="background:var(--surface);border-radius:8px;padding:10px;display:none;font-size:13px;"></div>
+      </div>
+      <div id="shiftResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addShiftModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveShift()">💾 Save Shift</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("assign_date").value = new Date().toISOString().split("T")[0];
+
+function toggleAllEmps(cb){ document.querySelectorAll(".emp-cb").forEach(c=>c.checked=cb.checked); }
+
+function filterTable(){
+  const q=document.getElementById("srch").value.toLowerCase();
+  document.querySelectorAll("#assignTable tbody tr").forEach(tr=>{
+    tr.style.display=tr.textContent.toLowerCase().includes(q)?"":"none";
+  });
+}
+
+function calcHours(){
+  const s=document.getElementById("s_start").value; const e=document.getElementById("s_end").value;
+  if(!s||!e) return;
+  const sm=parseInt(s.split(":")[0])*60+parseInt(s.split(":")[1]);
+  let em=parseInt(e.split(":")[0])*60+parseInt(e.split(":")[1]);
+  if(em<sm){em+=24*60;}
+  const hrs=((em-sm)/60).toFixed(2);
+  const isNight=parseInt(e.split(":")[0])*60+parseInt(e.split(":")[1]) < sm;
+  const div=document.getElementById("hoursPreview");
+  div.style.display="block";
+  div.innerHTML=`Working Hours: <strong style="color:var(--green)">${hrs} hrs</strong> ${isNight?"🌙 Night Shift":""}`;
+}
+
+function editShift(id,name,code,cat,start,end,grace,aiStart,aiEnd,isNextDay,pbb,halfDay,otFml,neglect,hdMin,hdMax,minPresent,hdLateCutoff,countLate){
+  document.getElementById("edit_shift_id").value=id;
+  document.getElementById("s_name").value=name;
+  document.getElementById("s_code").value=code;
+  document.getElementById("s_cat").value=cat;
+  document.getElementById("s_start").value=start;
+  document.getElementById("s_end").value=end;
+  document.getElementById("s_grace").value=grace||15;
+  document.getElementById("s_ai_start").value=aiStart||'';
+  document.getElementById("s_ai_end").value=aiEnd||'';
+  document.getElementById("s_next_day").value=isNextDay||0;
+  document.getElementById("s_pbb").value=pbb||60;
+  document.getElementById("s_halfday") && (document.getElementById("s_halfday").value=halfDay||240);
+  document.getElementById("s_hd_min") && (document.getElementById("s_hd_min").value=hdMin||180);
+  document.getElementById("s_hd_max") && (document.getElementById("s_hd_max").value=hdMax||390);
+  document.getElementById("s_min_present") && (document.getElementById("s_min_present").value=minPresent||0);
+  document.getElementById("s_hd_late_cutoff") && (document.getElementById("s_hd_late_cutoff").value=hdLateCutoff||'');
+  document.getElementById("s_count_late") && (document.getElementById("s_count_late").value=(countLate===undefined?1:countLate));
+  updateRangeLabel();
+  document.getElementById("s_ot_formula").value=otFml||'total_minus_shift';
+  document.getElementById("s_neglect_li").value=neglect||0;
+  document.getElementById("shiftModalTitle").textContent="✏️ Edit Shift";
+  calcHours(); openModal("addShiftModal");
+}
+
+async function saveShift(){
+  const editId=document.getElementById("edit_shift_id").value;
+  const data={
+    shift_name:document.getElementById("s_name").value,
+    shift_code:document.getElementById("s_code").value.toUpperCase(),
+    category:document.getElementById("s_cat").value,
+    start_time:document.getElementById("s_start").value,
+    end_time:document.getElementById("s_end").value,
+    is_next_day:document.getElementById("s_next_day").value,
+    grace_minutes:document.getElementById("s_grace").value,
+    punch_begin_before:document.getElementById("s_pbb").value,
+    half_day_minutes:document.getElementById("s_hd_min")?document.getElementById("s_hd_min").value:240,
+    half_day_min_minutes:parseInt(document.getElementById("s_hd_min")?.value||180),
+    full_day_min_minutes:parseInt(document.getElementById("s_hd_max")?.value||390),
+    min_present_minutes:parseInt(document.getElementById("s_min_present")?.value||0),
+    half_day_late_cutoff:document.getElementById("s_hd_late_cutoff")?.value||null,
+    count_late_marks:parseInt(document.getElementById("s_count_late")?.value||1),
+    ot_formula:document.getElementById("s_ot_formula").value,
+    neglect_last_in:document.getElementById("s_neglect_li").value,
+    allowed_in_start:document.getElementById("s_ai_start").value||null,
+    allowed_in_end:document.getElementById("s_ai_end").value||null,
+    is_active:true};
+  if(!data.shift_name||!data.shift_code||!data.start_time||!data.end_time){showToast("Fill all required fields!","error");return;}
+  const url=editId?`/shifts/edit/${editId}`:"/shifts/add";
+  const r=await api(url,"POST",data);
+  if(r.success){showToast("Shift saved!");setTimeout(()=>{closeModal("addShiftModal");location.reload();},1200);}
+  else document.getElementById("shiftResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+
+async function delShift(id,name){
+  if(!confirm(`Delete shift "${name}"?`)) return;
+  const r=await api(`/shifts/delete/${id}`,"POST",{});
+  if(r.success){showToast("Deleted!");location.reload();}
+  else showToast("Error!","error");
+}
+
+async function assignShifts(){
+  const codes=[...document.querySelectorAll(".emp-cb:checked")].map(c=>c.value);
+  if(!codes.length){showToast("Select at least one employee!","error");return;}
+  const mode=document.getElementById("assign_mode")?document.getElementById("assign_mode").value:"fixed";
+  const r=await api("/shifts/assign","POST",{shift_id:document.getElementById("assign_shift_id").value,emp_codes:codes,effective_from:document.getElementById("assign_date").value,shift_mode:mode});
+  const div=document.getElementById("assignResult");
+  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ Shift assigned to ${r.assigned} employee(s)!</div>`;setTimeout(()=>location.reload(),1500);}
+  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+
+async function uploadShiftExcel(){
+  const file=document.getElementById("shiftXl").files[0];if(!file)return;
+  const form=new FormData();form.append("file",file);
+  const j=await(await fetch("/shifts/assign-excel",{method:"POST",body:form})).json();
+  const div=document.getElementById("xlResult");
+  if(j.success){div.innerHTML=`<div class="alert alert-success">✅ ${j.assigned} assignments done!${j.errors&&j.errors.length?" ("+j.errors.length+" errors)":""}</div>`;setTimeout(()=>location.reload(),1500);}
+  else div.innerHTML=`<div class="alert alert-danger">❌ ${j.error}</div>`;
+}
+function updateRangeLabel(){
+  const mn = parseInt(document.getElementById("s_hd_min")?.value||180);
+  const mx = parseInt(document.getElementById("s_hd_max")?.value||390);
+  const lbl = document.getElementById("s_full_day_label");
+  if(lbl) lbl.textContent = `> ${mx} min → Full Present`;
+  // Update absent label
+  const absentDiv = document.querySelector('.form-group [style*="ef4444"][style*="border-radius"]');
+}
+document.addEventListener("DOMContentLoaded",function(){
+  const mn = document.getElementById("s_hd_min");
+  const mx = document.getElementById("s_hd_max");
+  if(mn) mn.addEventListener("input", updateRangeLabel);
+  if(mx) mx.addEventListener("input", updateRangeLabel);
+  updateRangeLabel();
+});
+</script>
+{% endblock %}

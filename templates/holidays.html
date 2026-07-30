@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}Holidays & Events{% endblock %}
+{% block page_title %}🎉 Holidays & Events{% endblock %}
+{% block content %}
+
+<div class="toolbar">
+  <div style="display:flex;gap:8px;">
+    {% if can_edit_holidays %}
+    <button class="btn btn-primary" onclick="openModal('addModal')">➕ Add Holiday / Event</button>
+    <button class="btn btn-ghost" onclick="clearAllHolidays()" style="background:rgba(244,63,94,.12);color:#f43f5e;border-color:rgba(244,63,94,.3);">🗑️ Clear All Holidays</button>
+    {% endif %}
+  </div>
+  <div class="month-selector">
+    <label>Year:</label>
+    <select id="selYear" onchange="location.href='/holidays?year='+this.value">
+      {% for y in [2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;gap:6px;margin-left:auto;">
+    <span class="badge" style="background:rgba(0,82,204,.15);color:#0096dc;">🏛️ National: {{ holidays|selectattr('holiday_type','eq','National')|list|length }}</span>
+    <span class="badge" style="background:rgba(245,158,11,.15);color:var(--yellow);">🕌 Religious: {{ holidays|selectattr('holiday_type','eq','Religious')|list|length }}</span>
+    <span class="badge" style="background:rgba(16,185,129,.15);color:var(--green);">🏢 Company: {{ holidays|selectattr('holiday_type','eq','Company')|list|length }}</span>
+    <span class="badge" style="background:rgba(139,92,246,.15);color:#a78bfa;">⭐ Optional: {{ holidays|selectattr('is_optional','eq',1)|list|length }}</span>
+  </div>
+</div>
+
+<!-- Month wise view -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+  {% for month_num in range(1,13) %}
+  {% set month_holidays = by_month.get(month_num, []) %}
+  <div class="mini-card" style="{% if not month_holidays %}opacity:.5{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-family:Syne,sans-serif;font-weight:800;font-size:14px;color:{% if month_num == today.month and year == today.year %}#0096dc{% else %}var(--text){% endif %}">
+        {{ months[month_num-1] }} {{ year }}
+        {% if month_num == today.month and year == today.year %}<span style="font-size:10px;background:rgba(0,150,220,.15);color:#0096dc;border-radius:4px;padding:2px 6px;margin-left:6px;">Current</span>{% endif %}
+      </div>
+      <span style="font-size:12px;color:var(--muted)">{{ month_holidays|length }} holidays</span>
+    </div>
+    {% if month_holidays %}
+      {% for h in month_holidays %}
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;background:var(--surface);border-left:3px solid {% if h.holiday_type=='National' %}#0052cc{% elif h.holiday_type=='Religious' %}#f59e0b{% elif h.holiday_type=='Company' %}#10b981{% else %}#8b5cf6{% endif %};">
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;color:var(--text);">
+            {% if h.holiday_type=='National' %}🏛️
+            {% elif h.holiday_type=='Religious' %}🕌
+            {% elif h.holiday_type=='Company' %}🏢
+            {% else %}⭐{% endif %}
+            {{ h.title }}
+            {% if h.is_optional %}<span style="font-size:9px;background:rgba(139,92,246,.15);color:#a78bfa;border-radius:3px;padding:1px 5px;margin-left:4px;">Optional</span>{% endif %}
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">
+            {{ h.holiday_date[8:10] }} {{ months[h.holiday_date[5:7]|int - 1][:3] }}
+            {% if h.description %} — {{ h.description }}{% endif %}
+          </div>
+          <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">
+            {% if h.get('applies_to','All') != 'All' %}
+            <span style="background:rgba(245,158,11,.15);color:var(--yellow);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">
+              👥 {{ h.get('applies_to','All') }} Only
+            </span>
+            {% endif %}
+            {% if h.get('is_paid',1) %}
+            <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:4px;padding:2px 8px;font-size:10px;">💰 Paid</span>
+            {% else %}
+            <span style="background:rgba(239,68,68,.1);color:var(--red);border-radius:4px;padding:2px 8px;font-size:10px;">Unpaid</span>
+            {% endif %}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;">
+          {% if can_edit_holidays %}
+          <button class="btn btn-ghost btn-sm" style="padding:2px 7px;font-size:10px;" onclick="editHol({{ h.id }})">✏️</button>
+          <button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;" onclick="delHol({{ h.id }},'{{ h.title }}')">🗑️</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;color:var(--muted);font-size:12px;padding:12px;">No holidays this month</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- All Holidays Table -->
+<div class="table-card" style="margin-top:18px;">
+  <div class="table-header">
+    <span class="table-title">📋 Complete Holiday List — {{ year }}</span>
+    <span style="font-size:12px;color:var(--muted)">{{ holidays|length }} total</span>
+  </div>
+  <table id="tblHolidays">
+    <thead><tr><th style="cursor:pointer;" onclick="sortTable('tblHolidays',0)" data-sort-col="0">#<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',1)" data-sort-col="1">Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',2)" data-sort-col="2">Day<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',3)" data-sort-col="3">Holiday / Event<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',4)" data-sort-col="4">Type<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',5)" data-sort-col="5">Description<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',6)" data-sort-col="6">Optional<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',7)" data-sort-col="7">Added By<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblHolidays',8)" data-sort-col="8">Action<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th></tr></thead>
+    <tbody>
+      {% for h in holidays %}
+      <tr>
+        <td style="color:var(--muted);font-size:12px">{{ loop.index }}</td>
+        <td style="font-weight:700;color:{% if h.holiday_type=='National' %}#0096dc{% elif h.holiday_type=='Religious' %}var(--yellow){% elif h.holiday_type=='Company' %}var(--green){% else %}#a78bfa{% endif %}">
+          {{ h.holiday_date }}
+        </td>
+        <td style="font-size:12px;color:var(--muted)">
+          {% set days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] %}
+          {{ days[h.holiday_date | datetimeformat('%w') | int - 1] if h.holiday_date else '—' }}
+        </td>
+        <td style="font-weight:600">
+          {% if h.holiday_type=='National' %}🏛️
+          {% elif h.holiday_type=='Religious' %}🕌
+          {% elif h.holiday_type=='Company' %}🏢
+          {% else %}⭐{% endif %}
+          {{ h.title }}
+        </td>
+        <td>
+          <span class="badge" style="background:{% if h.holiday_type=='National' %}rgba(0,82,204,.15){% elif h.holiday_type=='Religious' %}rgba(245,158,11,.15){% elif h.holiday_type=='Company' %}rgba(16,185,129,.15){% else %}rgba(139,92,246,.15){% endif %};color:{% if h.holiday_type=='National' %}#0096dc{% elif h.holiday_type=='Religious' %}var(--yellow){% elif h.holiday_type=='Company' %}var(--green){% else %}#a78bfa{% endif %}">
+            {{ h.holiday_type }}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--muted)">{{ h.description or '—' }}</td>
+        <td style="text-align:center">{% if h.is_optional %}<span style="color:#a78bfa">⭐ Yes</span>{% else %}—{% endif %}</td>
+        <td style="font-size:11px;color:var(--muted)">{{ h.added_by or 'System' }}</td>
+        <td>
+          <div style="display:flex;gap:4px;">
+            {% if can_edit_holidays %}
+            <button class="btn btn-ghost btn-sm" onclick="editHol({{ h.id }})">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="delHol({{ h.id }},'{{ h.title }}')">🗑️</button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not holidays %}
+      <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No holidays added yet</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ADD/EDIT Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal" style="width:540px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">➕ Add Holiday / Event</span>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Date *</label>
+          <input class="form-control" type="date" id="h_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <select class="form-select" id="h_type">
+            <option value="National">🏛️ National Holiday</option>
+            <option value="Religious">🕌 Religious Festival</option>
+            <option value="Company">🏢 Company Event</option>
+            <option value="Optional">⭐ Optional Holiday</option>
+          </select>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Title / Name *</label>
+          <input class="form-control" id="h_title" placeholder="e.g. Diwali, Annual Function, Holi...">
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Description (optional)</label>
+          <input class="form-control" id="h_desc" placeholder="e.g. Factory closed, Team outing...">
+        </div>
+
+        <!-- Applies To Section -->
+        <div class="form-group col-span-2">
+          <label class="form-label">👥 Assign Holiday To</label>
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <label style="cursor:pointer;background:rgba(0,150,220,.1);border:2px solid rgba(0,150,220,.3);border-radius:8px;padding:8px 14px;font-size:13px;" id="lbl_all">
+              <input type="radio" name="h_applies" id="h_all" value="All" checked onchange="toggleApplies()"> 🌐 All Employees
+            </label>
+            <label style="cursor:pointer;background:rgba(16,185,129,.05);border:2px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 14px;font-size:13px;" id="lbl_staff">
+              <input type="radio" name="h_applies" id="h_staff" value="Staff" onchange="toggleApplies()"> 👔 Staff Only
+            </label>
+            <label style="cursor:pointer;background:rgba(245,158,11,.05);border:2px solid rgba(245,158,11,.2);border-radius:8px;padding:8px 14px;font-size:13px;" id="lbl_ns">
+              <input type="radio" name="h_applies" id="h_ns" value="Associate" onchange="toggleApplies()"> 🏭 Associate Only
+            </label>
+            <label style="cursor:pointer;background:rgba(139,92,246,.05);border:2px solid rgba(139,92,246,.2);border-radius:8px;padding:8px 14px;font-size:13px;" id="lbl_dept">
+              <input type="radio" name="h_applies" id="h_dept" value="Department" onchange="toggleApplies()"> 🏢 Department Wise
+            </label>
+          </div>
+        </div>
+
+        <!-- Department Checkboxes (shown only when Dept selected) -->
+        <div class="form-group col-span-2" id="deptCheckboxDiv" style="display:none;">
+          <label class="form-label">Select Departments</label>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;">
+            {% for dept in departments %}
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;">
+              <input type="checkbox" class="dept-cb" value="{{ dept }}"> {{ dept }}
+            </label>
+            {% endfor %}
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllDepts(true)">Select All</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllDepts(false)">Clear All</button>
+          </div>
+        </div>
+
+        <div class="form-group col-span-2">
+          <label class="form-check" style="cursor:pointer;">
+            <input type="checkbox" id="h_optional"> ⭐ Mark as Optional Holiday
+          </label>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">💰 Paid Holiday?</label>
+          <select class="form-select" id="h_paid">
+            <option value="1">✅ Yes — Paid Holiday</option>
+            <option value="0">❌ No — Unpaid</option>
+          </select>
+        </div>
+      </div>
+      <div id="addResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHoliday()">💾 Save Holiday</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleApplies(){
+  const val = document.querySelector('input[name="h_applies"]:checked').value;
+  document.getElementById("deptCheckboxDiv").style.display = val==="Department" ? "block" : "none";
+}
+
+function selectAllDepts(check){
+  document.querySelectorAll(".dept-cb").forEach(cb => cb.checked = check);
+}
+
+async function saveHoliday(){
+  const editId = document.getElementById("editId").value;
+  const applies_to = document.querySelector('input[name="h_applies"]:checked').value;
+  const depts = applies_to === "Department"
+    ? Array.from(document.querySelectorAll(".dept-cb:checked")).map(cb=>cb.value)
+    : [];
+  if(applies_to === "Department" && depts.length === 0){
+    showToast("Please select at least one department!","error"); return;
+  }
+  const data = {
+    holiday_date: document.getElementById("h_date").value,
+    title:        document.getElementById("h_title").value.trim(),
+    holiday_type: document.getElementById("h_type").value,
+    description:  document.getElementById("h_desc").value.trim(),
+    applies_to:   applies_to,
+    departments:  depts,
+    is_optional:  document.getElementById("h_optional").checked,
+    is_paid:      document.getElementById("h_paid").value === "1",
+  };
+  if(!data.holiday_date || !data.title){showToast("Date and Title are required!","error");return;}
+  const url = editId ? `/holidays/edit/${editId}` : "/holidays/add";
+  const r = await api(url,"POST",data);
+  const div = document.getElementById("addResult");
+  if(r.success){
+    showToast(editId ? "Holiday updated!" : "Holiday added!");
+    setTimeout(()=>{ closeModal("addModal"); location.reload(); },1200);
+  } else {
+    div.innerHTML = `<div class="alert alert-danger">❌ ${r.error || "Already exists!"}</div>`;
+  }
+}
+
+async function editHol(id){
+  const h = await api(`/holidays/get/${id}`);
+  if(!h.id){showToast("Not found!","error");return;}
+  document.getElementById("editId").value    = h.id;
+  document.getElementById("h_date").value    = h.holiday_date;
+  document.getElementById("h_title").value   = h.title;
+  document.getElementById("h_type").value    = h.holiday_type || "National";
+  document.getElementById("h_desc").value    = h.description || "";
+  document.getElementById("h_optional").checked = h.is_optional == 1;
+  document.getElementById("h_paid").value    = h.is_paid == 1 ? "1" : "0";
+  // Set applies_to radio
+  const applies = h.applies_to || "All";
+  const radioMap = {"All":"h_all","Staff":"h_staff","Associate":"h_ns","Department":"h_dept"};
+  const rid = radioMap[applies] || "h_all";
+  document.getElementById(rid).checked = true;
+  toggleApplies();
+  // Check departments
+  if(applies === "Department" && h.department_list){
+    const depts = h.department_list.split(",");
+    document.querySelectorAll(".dept-cb").forEach(cb=>{
+      cb.checked = depts.includes(cb.value);
+    });
+  }
+  document.getElementById("modalTitle").textContent = "✏️ Edit Holiday";
+  document.getElementById("addResult").innerHTML = "";
+  openModal("addModal");
+}
+
+async function delHol(id, title){
+  if(!confirm(`Delete "${title}"?`))return;
+  const r = await api(`/holidays/delete/${id}`,"POST",{});
+  if(r.success){ showToast("Deleted!"); location.reload(); }
+  else showToast("Error!","error");
+}
+
+// Reset form when opening Add
+document.addEventListener("DOMContentLoaded", ()=>{
+  document.querySelector('[onclick="openModal(\'addModal\')"]')?.addEventListener("click",()=>{
+    document.getElementById("editId").value = "";
+    document.getElementById("h_date").value = "";
+    document.getElementById("h_title").value = "";
+    document.getElementById("h_desc").value = "";
+    document.getElementById("h_optional").checked = false;
+    document.getElementById("h_paid").value = "1";
+    document.getElementById("h_all").checked = true;
+    toggleApplies();
+    document.getElementById("modalTitle").textContent = "➕ Add Holiday / Event";
+    document.getElementById("addResult").innerHTML = "";
+  });
+});
+
+function clearAllHolidays(){
+  if(!confirm("⚠️ Are you sure? All holidays will be deleted!")) return;
+  fetch('/holidays/clear-all', {method:'POST'})
+    .then(r=>r.json()).then(res=>{
+      if(res.success){ location.reload(); }
+      else alert("Error: " + res.error);
+    });
+}
+</script>
+
+{% endblock %}

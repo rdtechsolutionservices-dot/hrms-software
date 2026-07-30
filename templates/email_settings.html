@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Email Settings{% endblock %}
+{% block page_title %}📧 Email Settings{% endblock %}
+{% block content %}
+
+{% if msg %}<div class="alert alert-success">✅ {{ msg }}</div>{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Left: Settings Form -->
+  <div>
+    <div class="mini-card">
+      <div class="mini-title">⚙️ Configure Email</div>
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Email Provider</label>
+          <select class="form-select" name="provider" id="provider" onchange="toggleProvider()">
+            <option value="gmail" {% if settings.provider=='gmail' %}selected{% endif %}>📧 Gmail (Google)</option>
+            <option value="outlook" {% if settings.provider=='outlook' %}selected{% endif %}>📨 Outlook / Office 365</option>
+            <option value="yahoo" {% if settings.provider=='yahoo' %}selected{% endif %}>💜 Yahoo Mail</option>
+            <option value="zoho" {% if settings.provider=='zoho' %}selected{% endif %}>📮 Zoho Mail</option>
+            <option value="icloud" {% if settings.provider=='icloud' %}selected{% endif %}>☁️ iCloud Mail</option>
+            <option value="sendgrid" {% if settings.provider=='sendgrid' %}selected{% endif %}>🚀 SendGrid</option>
+            <option value="mailgun" {% if settings.provider=='mailgun' %}selected{% endif %}>🔫 Mailgun</option>
+            <option value="godaddy" {% if settings.provider=='godaddy' %}selected{% endif %}>🌐 GoDaddy Email</option>
+            <option value="rediffmail" {% if settings.provider=='rediffmail' %}selected{% endif %}>📩 Rediffmail</option>
+            <option value="protonmail" {% if settings.provider=='protonmail' %}selected{% endif %}>🔒 ProtonMail (via Bridge)</option>
+            <option value="amazon_ses" {% if settings.provider=='amazon_ses' %}selected{% endif %}>📦 Amazon SES</option>
+            <option value="custom" {% if settings.provider=='custom' %}selected{% endif %}>⚙️ Custom SMTP</option>
+          </select>
+        </div>
+
+        <!-- Amazon SES region note -->
+        <div id="sesGuide" style="display:none;background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.25);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--muted);margin-bottom:8px;">
+          💡 Amazon SES host is region-specific, e.g. <code>email-smtp.us-east-1.amazonaws.com</code> or <code>email-smtp.ap-south-1.amazonaws.com</code>. Enter your region's endpoint and SMTP credentials (not your AWS root password — use SES SMTP credentials from the AWS console).
+        </div>
+
+        <!-- ProtonMail Bridge note -->
+        <div id="protonGuide" style="display:none;background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.25);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--muted);margin-bottom:8px;">
+          💡 ProtonMail requires the <a href="https://proton.me/mail/bridge" target="_blank" style="color:#0096dc;">ProtonMail Bridge</a> app running on this server — it exposes a local SMTP endpoint (usually 127.0.0.1:1025) with credentials shown in the Bridge app.
+        </div>
+
+        <!-- Outlook SMTP Auth Guidance -->
+        <div id="outlookGuide" style="display:none;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px;font-size:11px;color:#92400e;margin-bottom:8px;">
+          <strong>⚠️ Outlook SMTP Auth Issue — Microsoft has disabled this by default</strong><br>
+          <strong>Solution 1 (Recommended):</strong> Use Gmail — create a free Gmail account for company notifications,
+          Enable 2FA, <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:#d97706;">Generate App Password</a> and enter it here.<br>
+          <strong>Solution 2:</strong> Microsoft 365 Admin → Settings → Org Settings → Modern Auth → Enable SMTP AUTH<br>
+          <strong>Solution 3:</strong> Exchange Admin Center → Recipients → Mailboxes → Enable SMTP AUTH for user<br>
+          ⚠️ <strong>Outlook SMTP Auth Error (535)?</strong><br>
+          Microsoft has disabled Basic SMTP Auth by default. Fix options:<br>
+          1. <strong>Use Gmail</strong> with App Password (recommended)<br>
+          2. <strong>Enable SMTP AUTH</strong>: Microsoft 365 Admin → Settings → Org Settings → Modern Auth → Allow SMTP AUTH<br>
+          3. <strong>App Password</strong>: Microsoft account → Security → Advanced security → App passwords<br>
+          4. Use <strong>Port 587</strong> with your email + App Password in the password field
+        </div>
+
+        <div id="customSmtp" style="display:{% if settings.provider in ('custom','amazon_ses') %}block{% else %}none{% endif %}">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">SMTP Host</label><input class="form-control" name="smtp_host" value="{{ settings.smtp_host or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com"></div>
+            <div class="form-group"><label class="form-label">SMTP Port</label><input class="form-control" name="smtp_port" value="{{ settings.smtp_port or 587 }}" placeholder="587"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Company Email Address</label>
+          <input class="form-control" type="email" name="email" value="{{ settings.email or '' }}" placeholder="hr@rdhrms.com">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Password / App Password</label>
+          <input class="form-control" type="password" name="password" value="{{ settings.password or '' }}" placeholder="Enter password">
+          <div style="font-size:11px;color:var(--muted);margin-top:5px;">
+            💡 Gmail users: Use <strong>App Password</strong> (not your regular password)<br>
+            Go to: Google Account → Security → 2-Step Verification → App Passwords
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sender Name (shows in email)</label>
+          <input class="form-control" name="sender_name" value="{{ settings.sender_name or 'RD HRMS & Payroll Solution' }}" placeholder="RD HRMS & Payroll Solution">
+        </div>
+
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" name="is_active" {% if settings.is_active %}checked{% endif %}> Enable Email Notifications
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">💾 Save Settings</button>
+      </form>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+      <!-- Test Email -->
+      <div class="mini-title">🔌 Test Connection</div>
+      <div class="form-group">
+        <label class="form-label">Send Test Email To</label>
+        <input class="form-control" id="testTo" value="{{ settings.email or '' }}" placeholder="your@email.com">
+      </div>
+      <button class="btn btn-ghost" onclick="testEmail()" style="width:100%;">📤 Send Test Email</button>
+      <div id="testResult" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Right: Send Emails Panel -->
+  <div>
+    <div class="mini-card">
+      <div class="mini-title">📤 Send Emails</div>
+
+      <!-- Payslip Email -->
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;color:var(--green);margin-bottom:8px;">🧾 Send Payslips to All Employees</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Month</label>
+            <select class="form-select" id="ps_month">
+              {% set _months_list = ["January","February","March","April","May","June","July","August","September","October","November","December"] %}{% for mn in _months_list %}
+              <option value="{{ loop.index }}" {% if loop.index==today_month %}selected{% endif %}>{{ mn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Year</label>
+            <select class="form-select" id="ps_year">
+              {% for y in [2024,2025,2026,2027] %}<option {% if y==today_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-success" onclick="sendPayslips()" style="width:100%;">📧 Send Payslips to All</button>
+        <div id="psResult" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+
+      <!-- Birthday Wishes -->
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;color:var(--yellow);margin-bottom:8px;">🎂 Send Birthday Wishes (Today's Birthdays)</div>
+        <button class="btn btn-warning" onclick="sendBirthday()" style="width:100%;">🎂 Send Birthday Wishes</button>
+        <div id="bdResult" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+
+      <!-- Anniversary -->
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;color:#a78bfa;margin-bottom:8px;">🎊 Send Work Anniversary (Today)</div>
+        <button class="btn btn-ghost" onclick="sendAnniversary()" style="width:100%;background:rgba(139,92,246,.15);color:#a78bfa;">🎊 Send Anniversary Wishes</button>
+        <div id="annResult" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+
+      <!-- Monthly Summary -->
+      <div style="background:var(--surface);border-radius:10px;padding:14px;">
+        <div style="font-weight:700;font-size:13px;color:#0096dc;margin-bottom:8px;">📊 Send Monthly Summary to Management</div>
+        <div class="form-group">
+          <label class="form-label">Management Email</label>
+          <input class="form-control" id="mgmt_email" placeholder="director@rdhrms.com">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Month</label>
+            <select class="form-select" id="sm_month">
+              {% set _months_list = ["January","February","March","April","May","June","July","August","September","October","November","December"] %}{% for mn in _months_list %}
+              <option value="{{ loop.index }}" {% if loop.index==today_month %}selected{% endif %}>{{ mn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Year</label>
+            <select class="form-select" id="sm_year">
+              {% for y in [2024,2025,2026,2027] %}<option {% if y==today_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="sendSummary()" style="width:100%;">📊 Send Summary Email</button>
+        <div id="smResult" style="margin-top:8px;font-size:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Email Logs -->
+    <div class="mini-card">
+      <div class="mini-title">📋 Recent Email Logs</div>
+      {% if logs %}
+      <div style="max-height:200px;overflow-y:auto;">
+      <table style="width:100%;font-size:12px;">
+        <thead><tr><th style="text-align:left;padding:4px 8px;color:var(--muted)">To</th><th style="text-align:left;padding:4px 8px;color:var(--muted)">Type</th><th style="text-align:center;padding:4px 8px;color:var(--muted)">Status</th><th style="text-align:left;padding:4px 8px;color:var(--muted)">Time</th></tr></thead>
+        <tbody>{% for log in logs %}<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:4px 8px;color:var(--muted)">{{ log.to_email[:25] }}...</td>
+          <td style="padding:4px 8px;color:var(--accent2)">{{ log.type }}</td>
+          <td style="padding:4px 8px;text-align:center;"><span style="color:{% if log.status=='Sent' %}var(--green){% else %}var(--red){% endif %}">{{ '✅' if log.status=='Sent' else '❌' }}</span></td>
+          <td style="padding:4px 8px;color:var(--muted)">{{ log.sent_on[5:16] if log.sent_on else '—' }}</td>
+        </tr>{% endfor %}</tbody>
+      </table>
+      </div>
+      {% else %}
+      <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">No emails sent yet</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<!-- WhatsApp Settings -->
+<div class="table-card" style="padding:16px;margin-top:14px;">
+  <div style="font-weight:800;font-size:14px;margin-bottom:12px;color:#25D366;">
+    <span style="font-size:20px;">💬</span> WhatsApp Notifications
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(37,211,102,.08);border-radius:8px;border:1px solid rgba(37,211,102,.2);">
+    📱 <strong>Supported APIs:</strong><br><br>
+    <strong>TextMeBot (Current):</strong><br>
+    API URL: <code>http://api.textmebot.com/send.php</code><br>
+    API Key: Your TextMeBot API key<br><br>
+    <strong>CallMeBot (Free):</strong><br>
+    API URL: <code>https://api.callmebot.com/whatsapp.php</code><br>
+    API Key: Your CallMeBot API key<br><br>
+    <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="color:#25D366;">📖 CallMeBot setup guide</a>
+  </div>
+  <form onsubmit="saveWA(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="form-group" style="grid-column:1/-1;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+        <input type="checkbox" id="wa_enabled" {% if settings.whatsapp_enabled %}checked{% endif %} style="width:16px;height:16px;">
+        Enable WhatsApp Notifications
+      </label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">API URL</label>
+      <input class="form-control" id="wa_url" value="{{ settings.whatsapp_api_url or '' }}" placeholder="http://api.textmebot.com/send.php">
+    </div>
+    <div class="form-group">
+      <label class="form-label">API Token / Key</label>
+      <input class="form-control" id="wa_key" value="{{ settings.whatsapp_api_key or '' }}" placeholder="Your API token">
+    </div>
+    <div class="form-group col-span-2">
+      <label class="form-label">Test Phone Number (with country code)</label>
+      <div style="display:flex;gap:8px;">
+        <input class="form-control" id="wa_test_phone" placeholder="+919876543210" style="max-width:220px;">
+        <button type="button" class="btn btn-sm" style="background:#25D366;color:#fff;" onclick="testWA()">📱 Send Test</button>
+      </div>
+    </div>
+    <div class="form-group col-span-2">
+      <button type="submit" class="btn btn-primary btn-sm">💾 Save WhatsApp Settings</button>
+      <span id="wa_result" style="font-size:12px;margin-left:10px;"></span>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleProvider(){
+  const p=document.getElementById("provider").value;
+  document.getElementById("customSmtp").style.display=(p=="custom"||p=="amazon_ses")?"block":"none";
+  const og=document.getElementById("outlookGuide"); if(og) og.style.display=p=="outlook"?"block":"none";
+  const sg=document.getElementById("sesGuide"); if(sg) sg.style.display=p=="amazon_ses"?"block":"none";
+  const pg=document.getElementById("protonGuide"); if(pg) pg.style.display=p=="protonmail"?"block":"none";
+}
+
+async function testEmail(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="Sending...";btn.disabled=true;
+  const r=await api("/email-settings/test","POST",{to:document.getElementById("testTo").value});
+  btn.textContent="📤 Send Test Email";btn.disabled=false;
+  const div=document.getElementById("testResult");
+  if(r.success){div.innerHTML='<div class="alert alert-success" style="margin:0;padding:8px 12px;font-size:12px;">✅ '+r.message+'</div>';}
+  else{div.innerHTML='<div class="alert alert-danger" style="margin:0;padding:8px 12px;font-size:12px;">❌ '+r.message+'</div>';}
+}
+
+async function sendPayslips(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="⏳ Sending...";btn.disabled=true;
+  const r=await api("/email/send-payslip","POST",{month:parseInt(document.getElementById("ps_month").value),year:parseInt(document.getElementById("ps_year").value)});
+  btn.textContent="📧 Send Payslips to All";btn.disabled=false;
+  document.getElementById("psResult").innerHTML=r.success?`<span style="color:var(--green)">✅ Sent: ${r.sent} | Failed: ${r.failed} | No Email: ${r.no_email}</span>`:`<span style="color:var(--red)">❌ ${r.message||"Error"}</span>`;
+}
+
+async function sendBirthday(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="⏳ Sending...";btn.disabled=true;
+  const r=await api("/email/send-birthday-wishes","POST",{});
+  btn.textContent="🎂 Send Birthday Wishes";btn.disabled=false;
+  document.getElementById("bdResult").innerHTML=r.success?`<span style="color:var(--green)">✅ Sent: ${r.sent} | Today's birthdays: ${r.total}</span>`:`<span style="color:var(--red)">❌ Error</span>`;
+}
+
+async function sendAnniversary(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="⏳ Sending...";btn.disabled=true;
+  const r=await api("/email/send-anniversary","POST",{});
+  btn.textContent="🎊 Send Anniversary Wishes";btn.disabled=false;
+  document.getElementById("annResult").innerHTML=r.success?`<span style="color:#a78bfa">✅ Sent: ${r.sent} | Today's anniversaries: ${r.total}</span>`:`<span style="color:var(--red)">❌ Error</span>`;
+}
+
+async function sendSummary(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="⏳ Sending...";btn.disabled=true;
+  const r=await api("/email/send-monthly-summary","POST",{month:parseInt(document.getElementById("sm_month").value),year:parseInt(document.getElementById("sm_year").value),to_email:document.getElementById("mgmt_email").value});
+  btn.textContent="📊 Send Summary Email";btn.disabled=false;
+  document.getElementById("smResult").innerHTML=r.success?`<span style="color:var(--green)">✅ ${r.message}</span>`:`<span style="color:var(--red)">❌ ${r.message||r.error}</span>`;
+}
+
+// Provider guides are toggled via toggleProvider() (onchange on #provider)
+toggleProvider();
+
+async function saveWA(e){
+  e.preventDefault();
+  const btn = e.target.querySelector("button[type=submit]");
+  if(btn){ btn.textContent="Saving..."; btn.disabled=true; }
+  const fd=new FormData();
+  fd.append("whatsapp_enabled", document.getElementById("wa_enabled").checked?"1":"0");
+  fd.append("whatsapp_api_url", document.getElementById("wa_url").value.trim());
+  fd.append("whatsapp_api_key", document.getElementById("wa_key").value.trim());
+  try{
+    const r=await fetch("/email-settings/whatsapp",{method:"POST",body:fd}).then(r=>r.json());
+    const res=document.getElementById("wa_result");
+    if(r.success){
+      res.innerHTML='<span style="color:#10b981;font-weight:700;">✅ WhatsApp settings saved!</span>';
+    } else {
+      res.innerHTML='<span style="color:#ef4444;font-weight:700;">❌ '+(r.error||"Save failed")+'</span>';
+    }
+  } catch(err){
+    document.getElementById("wa_result").innerHTML='<span style="color:#ef4444;">❌ Network error: '+err.message+'</span>';
+  }
+  if(btn){ btn.textContent="💾 Save WhatsApp Settings"; btn.disabled=false; }
+}
+
+async function testWA(){
+  const phone=document.getElementById("wa_test_phone").value.trim();
+  if(!phone){showToast("Enter phone number","error");return;}
+  const r=await api("/email-settings/whatsapp-test","POST",{phone});
+  showToast(r.success?"✅ WhatsApp sent!":"❌ "+r.message, r.success?"success":"error");
+}
+</script>
+{% endblock %}

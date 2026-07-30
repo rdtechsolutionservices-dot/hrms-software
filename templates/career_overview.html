@@ -1,0 +1,675 @@
+{% extends "base.html" %}
+{% block title %}Career & Compensation Overview{% endblock %}
+{% block page_title %}📊 Career & Compensation Overview{% endblock %}
+{% block content %}
+
+{# ── Pre-compute safe values in Python-side via Jinja ── #}
+{% set total_gross = namespace(v=0) %}
+{% set desig_count = namespace(v=0) %}
+{% for e in emps %}{% set total_gross.v = total_gross.v + (e.basic or 0) + (e.hra or 0) + (e.special_allowance or 0) %}{% endfor %}
+{% for r in increments %}{% if r.new_designation %}{% set desig_count.v = desig_count.v + 1 %}{% endif %}{% endfor %}
+{% set avg_gross = (total_gross.v / emps|length)|round(0)|int if emps else 0 %}
+
+<!-- ─── KPI Cards ─────────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;">
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:24px;margin-bottom:4px;">👥</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Active Employees</div>
+    <div style="font-weight:800;font-size:22px;color:var(--text);margin-top:4px;" id="kpi_emp">{{ emps|length }}</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:24px;margin-bottom:4px;">📈</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Total Revisions</div>
+    <div style="font-weight:800;font-size:22px;color:#0096dc;margin-top:4px;" id="kpi_rev">{{ increments|length }}</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:24px;margin-bottom:4px;">💰</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Avg. Current Gross</div>
+    <div style="font-weight:800;font-size:22px;color:var(--green);margin-top:4px;" id="kpi_avg">
+      ₹{{ "{:,.0f}".format(avg_gross) }}
+    </div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:24px;margin-bottom:4px;">🏷️</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Designation Changes</div>
+    <div style="font-weight:800;font-size:22px;color:#f59e0b;margin-top:4px;" id="kpi_desig">
+      {{ desig_count.v }}
+    </div>
+  </div>
+</div>
+
+<!-- ─── Period-wise KPI Cards (Joining / Left / Salary+OT Earn) ── -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;">
+  <div class="mini-card kpi-click" style="text-align:center;cursor:pointer;" onclick="showJoiningDetails()">
+    <div style="font-size:24px;margin-bottom:4px;">🆕</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">No. of Joining (Staff/Associates)</div>
+    <div style="font-weight:800;font-size:22px;color:var(--green);margin-top:4px;" id="kpi_join">0</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="kpi_join_sub">M: 0 &nbsp;|&nbsp; F: 0</div>
+    <div style="font-size:10px;color:#0096dc;margin-top:4px;">Click for details ›</div>
+  </div>
+  <div class="mini-card kpi-click" style="text-align:center;cursor:pointer;" onclick="showLeftDetails()">
+    <div style="font-size:24px;margin-bottom:4px;">🚪</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">No. of Left/Resigned (Staff/Associates)</div>
+    <div style="font-weight:800;font-size:22px;color:var(--red);margin-top:4px;" id="kpi_left">0</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="kpi_left_sub">M: 0 &nbsp;|&nbsp; F: 0</div>
+    <div style="font-size:10px;color:#0096dc;margin-top:4px;">Click for details ›</div>
+  </div>
+  <div class="mini-card kpi-click" style="text-align:center;cursor:pointer;" onclick="showEarnDetails()">
+    <div style="font-size:24px;margin-bottom:4px;">💵</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Salary + OT Total Earn Value</div>
+    <div style="font-weight:800;font-size:22px;color:var(--green);margin-top:4px;" id="kpi_earn">₹0</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="kpi_earn_sub">Salary: ₹0 &nbsp;|&nbsp; OT: ₹0</div>
+    <div style="font-size:10px;color:#0096dc;margin-top:4px;">Click for details ›</div>
+  </div>
+</div>
+
+<!-- ─── Filters ───────────────────────────────────────── -->
+<div class="mini-card" style="margin-bottom:18px;">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">MONTH</label>
+      <select class="form-select" id="f_month" style="min-width:130px;" onchange="applyFilters()">
+        <option value="">All Months</option>
+        {% for m in months %}<option value="{{ loop.index }}">{{ m }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">YEAR</label>
+      <select class="form-select" id="f_year" style="min-width:110px;" onchange="applyFilters()">
+        <option value="">All Years</option>
+        {% for y in years_list %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">DEPARTMENT</label>
+      <select class="form-select" id="f_dept" style="min-width:160px;" onchange="applyFilters()">
+        <option value="">All Departments</option>
+        {% for d in departments %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">CATEGORY</label>
+      <select class="form-select" id="f_cat" style="min-width:130px;" onchange="applyFilters()">
+        <option value="">All Categories</option>
+        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">REVISION TYPE</label>
+      <select class="form-select" id="f_type" style="min-width:160px;" onchange="applyFilters()">
+        <option value="">All Types</option>
+        <option value="salary">Salary Increment Only</option>
+        <option value="designation">Designation Change</option>
+        <option value="both">Both Changed</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">SEARCH EMPLOYEE</label>
+      <input class="form-control" id="f_srch" placeholder="Name or Code…" oninput="applyFilters()" style="min-width:180px;">
+    </div>
+    <div style="margin-left:auto;margin-top:18px;">
+      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✖ Clear Filters</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Charts Row ────────────────────────────────────── -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px;">
+  <div class="mini-card">
+    <div class="mini-title" style="margin-bottom:12px;">📈 Increment Trend — Count by Month</div>
+    <canvas id="trendChart" style="max-height:200px;"></canvas>
+  </div>
+  <div class="mini-card">
+    <div class="mini-title" style="margin-bottom:12px;">🏆 Highest Increment</div>
+    <div id="topEarners" style="font-size:12px;"></div>
+  </div>
+</div>
+
+<!-- Salary Distribution Chart -->
+<div class="mini-card" style="margin-bottom:18px;">
+  <div class="mini-title" style="margin-bottom:12px;">💰 Salary Distribution — Gross Range (Active Employees)</div>
+  <canvas id="distChart" style="max-height:180px;"></canvas>
+</div>
+
+<!-- ─── Revision History Table ────────────────────────── -->
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">📋 All Career Revisions</span>
+    <span style="font-size:12px;color:var(--muted);" id="tbl_count">{{ increments|length }} records</span>
+  </div>
+  <table id="coTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Employee</th>
+        <th>Department</th>
+        <th>Category</th>
+        <th>Effective Date</th>
+        <th>Previous Basic</th>
+        <th>New Basic</th>
+        <th>Increment</th>
+        <th>% Change</th>
+        <th>Designation Change</th>
+        <th>Reason</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="coTbody">
+      {% for r in increments %}
+      {% set pct = ((r.new_basic - r.old_basic) / r.old_basic * 100)|round(1) if (r.old_basic and r.old_basic != r.new_basic) else 0 %}
+      {% set rtype = 'both' if (r.new_designation and r.new_basic != r.old_basic) else ('designation' if r.new_designation else 'salary') %}
+      {% set eff = r.effective_date or '' %}
+      <tr
+        data-dept="{{ r.department or '' }}"
+        data-cat="{{ r.category or '' }}"
+        data-type="{{ rtype }}"
+        data-name="{{ r.emp_name|lower }}"
+        data-code="{{ r.emp_code|lower }}"
+        data-month="{{ eff[5:7]|int if eff|length >= 7 else '' }}"
+        data-year="{{ eff[0:4] if eff|length >= 4 else '' }}"
+      >
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td>
+          <div style="font-weight:600;">{{ r.emp_name }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ r.emp_code }}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted);">{{ r.department or '—' }}</td>
+        <td><span class="badge badge-{{ r.category.lower() }}" style="font-size:10px;">{{ r.category }}</span></td>
+        <td style="font-weight:700;color:#0096dc;">{{ r.effective_date }}</td>
+        <td style="color:var(--muted);">₹{{ "{:,.0f}".format(r.old_basic or 0) }}</td>
+        <td style="font-weight:700;color:var(--green);">₹{{ "{:,.0f}".format(r.new_basic or 0) }}</td>
+        <td>
+          {% if r.new_basic and r.old_basic and r.new_basic != r.old_basic %}
+          <span style="color:var(--green);font-weight:700;">+₹{{ "{:,.0f}".format(r.new_basic - r.old_basic) }}</span>
+          {% else %}
+          <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <span style="color:{% if pct > 0 %}var(--green){% elif pct < 0 %}var(--red){% else %}var(--muted){% endif %};font-weight:700;">
+            {% if pct != 0 %}{{ pct }}%{% else %}—{% endif %}
+          </span>
+        </td>
+        <td style="font-size:12px;">
+          {% if r.new_designation %}
+            <div style="font-size:10px;color:var(--muted);">{{ r.old_designation or '—' }}</div>
+            <div style="color:#0096dc;font-weight:700;">→ {{ r.new_designation }}</div>
+          {% else %}
+            <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--muted);">{{ r.reason or '—' }}</td>
+        <td>
+          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📋 History</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not increments %}
+  <div style="text-align:center;padding:40px;color:var(--muted);">No career revisions recorded yet.</div>
+  {% endif %}
+</div>
+
+<!-- ─── Current Compensation Snapshot ────────────────── -->
+<div class="table-card" style="margin-top:18px;">
+  <div class="table-header">
+    <span class="table-title">👥 Current Compensation Snapshot</span>
+    <input class="form-control" id="f_snap" placeholder="🔍 Filter…" oninput="filterSnapshot()" style="width:200px;">
+  </div>
+  <table id="snapTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Employee</th>
+        <th>Department</th>
+        <th>Category</th>
+        <th>Current Designation</th>
+        <th>Basic</th>
+        <th>HRA</th>
+        <th>Special</th>
+        <th>Gross</th>
+        <th>Revisions</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {# Build a dict of revision counts per emp_code in Jinja — avoids selectattr on SQLite rows #}
+      {% set rev_map = {} %}
+      {% for r in increments %}
+        {% if r.emp_code not in rev_map %}{% set _ = rev_map.update({r.emp_code: 0}) %}{% endif %}
+        {% set _ = rev_map.update({r.emp_code: rev_map[r.emp_code] + 1}) %}
+      {% endfor %}
+      {% for e in emps %}
+      {% set gross = (e.basic or 0) + (e.hra or 0) + (e.special_allowance or 0) %}
+      {% set rc = rev_map.get(e.emp_code, 0) %}
+      <tr>
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td>
+          <div style="font-weight:600;">{{ e.emp_name }}</div>
+          <div style="font-size:11px;color:var(--muted);">{{ e.emp_code }}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted);">{{ e.department or '—' }}</td>
+        <td><span class="badge badge-{{ e.category.lower() }}" style="font-size:10px;">{{ e.category }}</span></td>
+        <td style="font-size:12px;">{{ e.designation or '—' }}</td>
+        <td style="color:var(--muted);">₹{{ "{:,.0f}".format(e.basic or 0) }}</td>
+        <td style="color:var(--muted);">₹{{ "{:,.0f}".format(e.hra or 0) }}</td>
+        <td style="color:var(--muted);">₹{{ "{:,.0f}".format(e.special_allowance or 0) }}</td>
+        <td style="font-weight:700;color:var(--green);">₹{{ "{:,.0f}".format(gross) }}</td>
+        <td style="text-align:center;">
+          {% if rc > 0 %}
+          <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:2px 8px;border-radius:10px;font-weight:700;font-size:11px;">{{ rc }}</span>
+          {% else %}
+          <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="/salary/history/{{ e.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📋 History</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── KPI Drill-down Modals ─────────────────────────── -->
+<div class="modal-overlay" id="joinModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">🆕 New Joining Details</span>
+      <button class="modal-close" onclick="closeModal('joinModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="joinModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <table style="width:100%;">
+        <thead>
+          <tr style="text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;">
+            <th style="padding:6px 4px;">Employee</th>
+            <th style="padding:6px 4px;">Department</th>
+            <th style="padding:6px 4px;">Category</th>
+            <th style="padding:6px 4px;">Gender</th>
+            <th style="padding:6px 4px;">Date of Joining</th>
+          </tr>
+        </thead>
+        <tbody id="joinModalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leftModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">🚪 Left / Resigned Details</span>
+      <button class="modal-close" onclick="closeModal('leftModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="leftModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <table style="width:100%;">
+        <thead>
+          <tr style="text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;">
+            <th style="padding:6px 4px;">Employee</th>
+            <th style="padding:6px 4px;">Department</th>
+            <th style="padding:6px 4px;">Category</th>
+            <th style="padding:6px 4px;">Gender</th>
+            <th style="padding:6px 4px;">Last Working Day</th>
+          </tr>
+        </thead>
+        <tbody id="leftModalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="earnModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">💵 Salary + OT Total Earn — Individual Breakup</span>
+      <button class="modal-close" onclick="closeModal('earnModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="earnModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <table style="width:100%;">
+        <thead>
+          <tr style="text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;">
+            <th style="padding:6px 4px;">Employee</th>
+            <th style="padding:6px 4px;">Department</th>
+            <th style="padding:6px 4px;">Category</th>
+            <th style="padding:6px 4px;">Earn Salary</th>
+            <th style="padding:6px 4px;">Earn OT</th>
+            <th style="padding:6px 4px;">Total Amount</th>
+          </tr>
+        </thead>
+        <tbody id="earnModalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+const RAW_INCREMENTS = [
+  {% for r in increments %}
+  {
+    emp_code:"{{ r.emp_code|replace('"','') }}",
+    emp_name:"{{ r.emp_name|replace('"','') }}",
+    dept:"{{ (r.department or '')|replace('"','') }}",
+    cat:"{{ (r.category or '')|replace('"','') }}",
+    eff_date:"{{ r.effective_date or '' }}",
+    old_basic:{{ r.old_basic or 0 }},
+    new_basic:{{ r.new_basic or 0 }},
+    new_designation:"{{ (r.new_designation or '')|replace('"','') }}",
+    type:"{{ 'both' if (r.new_designation and r.new_basic != r.old_basic) else ('designation' if r.new_designation else 'salary') }}"
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+const RAW_EMPS = [
+  {% for e in emps %}
+  {
+    emp_code:"{{ e.emp_code|replace('"','') }}",
+    emp_name:"{{ e.emp_name|replace('"','') }}",
+    dept:"{{ (e.department or '')|replace('"','') }}",
+    cat:"{{ (e.category or '')|replace('"','') }}",
+    gross:{{ (e.basic or 0)+(e.hra or 0)+(e.special_allowance or 0) }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+// All employees (every status) — feeds the Joining / Left(Resigned) KPIs
+const RAW_ALL_EMPS = [
+  {% for e in all_emps %}
+  {
+    emp_code:"{{ e.emp_code|replace('"','') }}",
+    emp_name:"{{ e.emp_name|replace('"','') }}",
+    dept:"{{ (e.department or '')|replace('"','') }}",
+    cat:"{{ (e.category or '')|replace('"','') }}",
+    gender:"{{ (e.gender or '')|replace('"','') }}",
+    doj:"{{ e.date_of_joining or '' }}",
+    status:"{{ (e.status or '')|replace('"','') }}",
+    resignation_date:"{{ e.resignation_date or '' }}",
+    last_working_day:"{{ e.last_working_day or '' }}"
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+// Locked salary records (per employee per month) — feeds the Salary + OT Total Earn KPI
+const RAW_EARN = [
+  {% for r in earn_records %}
+  {
+    emp_code:"{{ r.emp_code|replace('"','') }}",
+    emp_name:"{{ r.emp_name|replace('"','') }}",
+    dept:"{{ (r.department or '')|replace('"','') }}",
+    cat:"{{ (r.category or '')|replace('"','') }}",
+    month:{{ r.month or 0 }},
+    year:{{ r.year or 0 }},
+    salary:{{ r.gross or 0 }},
+    ot:{{ r.ot_amount or 0 }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+let trendChart, distChart;
+
+function buildTrendChart(data){
+  const byMonth = {};
+  data.forEach(r => {
+    const m = (r.eff_date||"").substring(0,7);
+    if(m) byMonth[m] = (byMonth[m]||0)+1;
+  });
+  const sorted = Object.keys(byMonth).sort();
+  const labels = sorted.map(m=>{
+    const [y,mo]=m.split("-");
+    return ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(mo)]+" "+y;
+  });
+  const vals = sorted.map(m=>byMonth[m]);
+  const ctx = document.getElementById("trendChart").getContext("2d");
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx,{
+    type:"bar",
+    data:{ labels, datasets:[{
+      label:"Revisions", data:vals,
+      backgroundColor:"rgba(0,150,220,.6)", borderColor:"#0096dc",
+      borderWidth:1.5, borderRadius:5
+    }]},
+    options:{
+      responsive:true,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y} revision(s)`}} },
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.05)"},ticks:{color:"#64748b",font:{size:10}}},
+        y:{grid:{color:"rgba(255,255,255,.05)"},ticks:{color:"#64748b",precision:0},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function buildDistChart(data){
+  const buckets={"₹0–10k":0,"₹10–15k":0,"₹15–20k":0,"₹20–30k":0,"₹30–50k":0,"₹50k+":0};
+  data.forEach(e=>{
+    const g=e.gross;
+    if(g<10000)      buckets["₹0–10k"]++;
+    else if(g<15000) buckets["₹10–15k"]++;
+    else if(g<20000) buckets["₹15–20k"]++;
+    else if(g<30000) buckets["₹20–30k"]++;
+    else if(g<50000) buckets["₹30–50k"]++;
+    else             buckets["₹50k+"]++;
+  });
+  const ctx = document.getElementById("distChart").getContext("2d");
+  if(distChart) distChart.destroy();
+  distChart = new Chart(ctx,{
+    type:"bar",
+    data:{ labels:Object.keys(buckets), datasets:[{
+      label:"Employees", data:Object.values(buckets),
+      backgroundColor:["rgba(139,92,246,.6)","rgba(0,150,220,.6)","rgba(16,185,129,.6)",
+                        "rgba(245,158,11,.6)","rgba(239,68,68,.6)","rgba(236,72,153,.6)"],
+      borderRadius:5, borderSkipped:false
+    }]},
+    options:{
+      responsive:true, indexAxis:"y",
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{grid:{color:"rgba(255,255,255,.05)"},ticks:{color:"#64748b",precision:0},beginAtZero:true},
+        y:{grid:{display:false},ticks:{color:"#64748b"}}
+      }
+    }
+  });
+}
+
+function buildTopEarners(data){
+  const byEmp={};
+  data.forEach(r=>{
+    if(!byEmp[r.emp_code]) byEmp[r.emp_code]={name:r.emp_name,total:0,count:0};
+    byEmp[r.emp_code].total += (r.new_basic - r.old_basic);
+    byEmp[r.emp_code].count++;
+  });
+  const sorted=Object.values(byEmp).filter(e=>e.total>0).sort((a,b)=>b.total-a.total).slice(0,5);
+  const div=document.getElementById("topEarners");
+  if(!sorted.length){ div.innerHTML='<div style="color:var(--muted);text-align:center;padding:20px;">No data</div>'; return; }
+  div.innerHTML=sorted.map((e,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;${i<sorted.length-1?'border-bottom:1px solid rgba(255,255,255,.06);':''}">
+      <div>
+        <div style="font-weight:600;font-size:12px;">${e.name}</div>
+        <div style="font-size:10px;color:var(--muted);">${e.count} revision(s)</div>
+      </div>
+      <div style="font-weight:700;color:var(--green);font-size:13px;">+₹${e.total.toLocaleString('en-IN')}</div>
+    </div>
+  `).join("");
+}
+
+function applyFilters(){
+  const month = document.getElementById("f_month").value;
+  const year  = document.getElementById("f_year").value;
+  const dept = document.getElementById("f_dept").value.toLowerCase();
+  const cat  = document.getElementById("f_cat").value.toLowerCase();
+  const type = document.getElementById("f_type").value;
+  const srch = document.getElementById("f_srch").value.toLowerCase();
+
+  const rows = document.querySelectorAll("#coTbody tr");
+  let vis=0;
+  rows.forEach(tr=>{
+    const show = (!dept || (tr.dataset.dept||"").toLowerCase()===dept)
+              && (!cat  || (tr.dataset.cat||"").toLowerCase()===cat)
+              && (!type || tr.dataset.type===type)
+              && (!month || tr.dataset.month===month)
+              && (!year  || tr.dataset.year===year)
+              && (!srch || ((tr.dataset.name||"")+" "+(tr.dataset.code||"")).includes(srch));
+    tr.style.display = show ? "" : "none";
+    if(show) vis++;
+  });
+  document.getElementById("tbl_count").textContent = vis+" records";
+  let idx=1; rows.forEach(tr=>{ if(tr.style.display!=="none") tr.cells[0].textContent=idx++; });
+
+  const filtered=RAW_INCREMENTS.filter(r=>
+    (!dept || r.dept.toLowerCase()===dept)
+    && (!cat || r.cat.toLowerCase()===cat)
+    && (!type || r.type===type)
+    && (!month || String(parseInt((r.eff_date||"").substring(5,7),10)||"")===month)
+    && (!year  || (r.eff_date||"").substring(0,4)===year)
+    && (!srch || (r.emp_name.toLowerCase()+" "+r.emp_code.toLowerCase()).includes(srch))
+  );
+  buildTrendChart(filtered);
+  buildTopEarners(filtered);
+  document.getElementById("kpi_rev").textContent=vis;
+
+  computePeriodKPIs(month, year, dept, cat, srch);
+}
+
+function filterSnapshot(){
+  const q=document.getElementById("f_snap").value.toLowerCase();
+  document.querySelectorAll("#snapTable tbody tr").forEach(tr=>{
+    tr.style.display=tr.textContent.toLowerCase().includes(q)?"":"none";
+  });
+}
+
+function clearFilters(){
+  ["f_month","f_year","f_dept","f_cat","f_type"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("f_srch").value="";
+  applyFilters();
+}
+
+/* ── Period-wise KPIs: Joining / Left(Resigned) / Salary+OT Total Earn ── */
+let CUR_JOIN=[], CUR_LEFT=[], CUR_EARN=[];
+
+function inPeriod(dateStr, month, year){
+  if(!dateStr || dateStr.length < 4) return false;
+  const y = dateStr.substring(0,4);
+  const m = String(parseInt(dateStr.substring(5,7),10)||"");
+  if(year && y!==year) return false;
+  if(month && m!==month) return false;
+  return true;
+}
+
+function computePeriodKPIs(month, year, dept, cat, srch){
+  // ── Joining ──
+  CUR_JOIN = RAW_ALL_EMPS.filter(e =>
+    inPeriod(e.doj, month, year)
+    && (!dept || e.dept.toLowerCase()===dept)
+    && (!cat  || e.cat.toLowerCase()===cat)
+    && (!srch || (e.emp_name.toLowerCase()+" "+e.emp_code.toLowerCase()).includes(srch))
+  );
+  const joinM = CUR_JOIN.filter(e=>(e.gender||"").toLowerCase().startsWith("m")).length;
+  const joinF = CUR_JOIN.filter(e=>(e.gender||"").toLowerCase().startsWith("f")).length;
+  document.getElementById("kpi_join").textContent = CUR_JOIN.length;
+  document.getElementById("kpi_join_sub").textContent = `M: ${joinM}  |  F: ${joinF}`;
+
+  // ── Left / Resigned ──
+  CUR_LEFT = RAW_ALL_EMPS.filter(e =>
+    (e.status==="Resigned" || e.status==="Terminated")
+    && inPeriod(e.last_working_day || e.resignation_date, month, year)
+    && (!dept || e.dept.toLowerCase()===dept)
+    && (!cat  || e.cat.toLowerCase()===cat)
+    && (!srch || (e.emp_name.toLowerCase()+" "+e.emp_code.toLowerCase()).includes(srch))
+  );
+  const leftM = CUR_LEFT.filter(e=>(e.gender||"").toLowerCase().startsWith("m")).length;
+  const leftF = CUR_LEFT.filter(e=>(e.gender||"").toLowerCase().startsWith("f")).length;
+  document.getElementById("kpi_left").textContent = CUR_LEFT.length;
+  document.getElementById("kpi_left_sub").textContent = `M: ${leftM}  |  F: ${leftF}`;
+
+  // ── Salary + OT Total Earn ──
+  CUR_EARN = RAW_EARN.filter(r =>
+    (!month || String(r.month)===month)
+    && (!year || String(r.year)===year)
+    && (!dept || r.dept.toLowerCase()===dept)
+    && (!cat  || r.cat.toLowerCase()===cat)
+    && (!srch || (r.emp_name.toLowerCase()+" "+r.emp_code.toLowerCase()).includes(srch))
+  );
+  const totSalary = CUR_EARN.reduce((s,r)=>s+(r.salary||0),0);
+  const totOT     = CUR_EARN.reduce((s,r)=>s+(r.ot||0),0);
+  document.getElementById("kpi_earn").textContent = "₹"+(totSalary+totOT).toLocaleString('en-IN');
+  document.getElementById("kpi_earn_sub").textContent = `Salary: ₹${totSalary.toLocaleString('en-IN')}  |  OT: ₹${totOT.toLocaleString('en-IN')}`;
+}
+
+function periodBadges(list, staffKey){
+  const staff = list.filter(e=>(e[staffKey]||"").toLowerCase()==="staff").length;
+  const assoc = list.filter(e=>(e[staffKey]||"").toLowerCase()==="associate").length;
+  return `
+    <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700;">Staff: ${staff}</span>
+    <span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700;">Associate: ${assoc}</span>
+  `;
+}
+
+function showJoiningDetails(){
+  document.getElementById("joinModalSummary").innerHTML = periodBadges(CUR_JOIN,"cat");
+  document.getElementById("joinModalBody").innerHTML = CUR_JOIN.length ? CUR_JOIN.map(e=>`
+    <tr style="border-top:1px solid rgba(255,255,255,.06);">
+      <td style="padding:7px 4px;"><div style="font-weight:600;">${e.emp_name}</div><div style="font-size:10px;color:var(--muted);">${e.emp_code}</div></td>
+      <td style="padding:7px 4px;font-size:12px;color:var(--muted);">${e.dept||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">${e.cat||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">${e.gender||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;color:#0096dc;font-weight:700;">${e.doj||'—'}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);">No joinings in the selected period.</td></tr>`;
+  openModal('joinModal');
+}
+
+function showLeftDetails(){
+  document.getElementById("leftModalSummary").innerHTML = periodBadges(CUR_LEFT,"cat");
+  document.getElementById("leftModalBody").innerHTML = CUR_LEFT.length ? CUR_LEFT.map(e=>`
+    <tr style="border-top:1px solid rgba(255,255,255,.06);">
+      <td style="padding:7px 4px;"><div style="font-weight:600;">${e.emp_name}</div><div style="font-size:10px;color:var(--muted);">${e.emp_code}</div></td>
+      <td style="padding:7px 4px;font-size:12px;color:var(--muted);">${e.dept||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">${e.cat||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">${e.gender||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;color:var(--red);font-weight:700;">${e.last_working_day||e.resignation_date||'—'}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);">No exits in the selected period.</td></tr>`;
+  openModal('leftModal');
+}
+
+function showEarnDetails(){
+  // Aggregate by employee (a period spanning multiple months could repeat an employee)
+  const byEmp = {};
+  CUR_EARN.forEach(r=>{
+    if(!byEmp[r.emp_code]) byEmp[r.emp_code] = {name:r.emp_name, dept:r.dept, cat:r.cat, salary:0, ot:0};
+    byEmp[r.emp_code].salary += (r.salary||0);
+    byEmp[r.emp_code].ot += (r.ot||0);
+  });
+  const list = Object.values(byEmp).sort((a,b)=>(b.salary+b.ot)-(a.salary+a.ot));
+  const totSalary = list.reduce((s,e)=>s+e.salary,0);
+  const totOT = list.reduce((s,e)=>s+e.ot,0);
+  document.getElementById("earnModalSummary").innerHTML = `
+    <span style="background:rgba(16,185,129,.15);color:var(--green);padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700;">Total Salary: ₹${totSalary.toLocaleString('en-IN')}</span>
+    <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700;">Total OT: ₹${totOT.toLocaleString('en-IN')}</span>
+    <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700;">Grand Total: ₹${(totSalary+totOT).toLocaleString('en-IN')}</span>
+  `;
+  document.getElementById("earnModalBody").innerHTML = list.length ? list.map(e=>`
+    <tr style="border-top:1px solid rgba(255,255,255,.06);">
+      <td style="padding:7px 4px;font-weight:600;">${e.name}</td>
+      <td style="padding:7px 4px;font-size:12px;color:var(--muted);">${e.dept||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">${e.cat||'—'}</td>
+      <td style="padding:7px 4px;font-size:12px;">₹${e.salary.toLocaleString('en-IN')}</td>
+      <td style="padding:7px 4px;font-size:12px;">₹${e.ot.toLocaleString('en-IN')}</td>
+      <td style="padding:7px 4px;font-weight:700;color:var(--green);">₹${(e.salary+e.ot).toLocaleString('en-IN')}</td>
+    </tr>
+  `).join("") : `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);">No earning records in the selected period.</td></tr>`;
+  openModal('earnModal');
+}
+
+buildTrendChart(RAW_INCREMENTS);
+buildDistChart(RAW_EMPS);
+buildTopEarners(RAW_INCREMENTS);
+computePeriodKPIs("", "", "", "", "");
+</script>
+{% endblock %}

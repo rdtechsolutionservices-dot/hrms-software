@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}My Payslips{% endblock %}
+{% block page_title %}My Salary Slips{% endblock %}
+{% block content %}
+<style>
+@page { size: A4 portrait; margin: 8mm 10mm; }
+#printArea { font-family:'Arial',sans-serif;font-size:10.5px;color:#1a1a1a;background:#fff;max-width:794px;margin:0 auto;border:1px solid #c8d0db; }
+.ps-lh-top  { width:100%;display:block;max-height:100px;object-fit:cover; }
+.ps-lh-bot  { width:100%;display:block;max-height:65px;object-fit:cover; }
+.ps-title-bar { background:linear-gradient(135deg,#003580,#0055b3);color:#fff;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #ffc107; }
+.ps-co-name { font-size:16px;font-weight:800;letter-spacing:.3px; }
+.ps-co-sub  { font-size:9px;opacity:.75;margin-top:2px; }
+.ps-slip-rhs { text-align:right; }
+.ps-slip-head { font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase; }
+.ps-slip-per  { font-size:10px;opacity:.82;margin-top:2px; }
+.ps-slip-ref  { font-size:8px;opacity:.6;margin-top:1px; }
+.ps-emp-grid { display:grid;grid-template-columns:1fr 1fr;border:1px solid #c8d0db;border-top:none; }
+.ps-emp-col  { padding:10px 16px; }
+.ps-emp-col:first-child { border-right:1px solid #c8d0db; }
+.ps-row  { display:flex;margin-bottom:5px;gap:5px;align-items:baseline; }
+.ps-lbl  { font-size:8.5px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;min-width:106px;flex-shrink:0; }
+.ps-val  { font-size:10.5px;font-weight:600;color:#111; }
+.ps-att  { display:grid;grid-template-columns:repeat(6,1fr);background:#f7f8fa;border:1px solid #c8d0db;border-top:none; }
+.ps-ac   { padding:8px 8px;text-align:center;border-right:1px solid #c8d0db; }
+.ps-ac:last-child { border-right:none; }
+.ps-al   { font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px; }
+.ps-av   { font-size:14px;font-weight:700; }
+.ps-sh   { padding:5px 16px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#374151;background:#edf2f7;border:1px solid #c8d0db;border-top:none; }
+.ps-body { display:grid;grid-template-columns:1fr 1fr;border:1px solid #c8d0db;border-top:none;min-height:195px; }
+.ps-earn { border-right:1px solid #c8d0db; }
+.ps-ch   { padding:5px 13px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #c8d0db;display:grid; }
+.ps-eh   { background:#ebf5ff;color:#003580;grid-template-columns:1fr 78px 88px; }
+.ps-dh   { background:#fff5f5;color:#b91c1c;grid-template-columns:1fr 88px; }
+.ps-t    { width:100%;border-collapse:collapse;font-size:10px; }
+.ps-t td { padding:5px 13px;border-bottom:1px solid #f0f2f5;vertical-align:middle; }
+.ps-d    { color:#374151; }
+.ps-m    { text-align:right;color:#6b7280;font-size:9.5px; }
+.ps-a    { text-align:right;font-weight:600; }
+.ps-da   { text-align:right;font-weight:600;color:#b91c1c; }
+.ps-sp   { height:14px;border:none !important; }
+.ps-tot td { background:#f0f4f8 !important;font-weight:700 !important;font-size:10.5px !important;border-top:2px solid #c8d0db !important;border-bottom:none !important;padding:7px 13px !important; }
+.ps-net  { background:linear-gradient(135deg,#003580,#0055b3);color:#fff;padding:13px 20px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #ffc107; }
+.ps-nl   { font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;opacity:.9; }
+.ps-nw   { font-size:9px;opacity:.72;margin-top:4px;max-width:470px;font-style:italic; }
+.ps-nf   { font-size:25px;font-weight:800;letter-spacing:-.5px; }
+.ps-foot { display:flex;justify-content:space-between;align-items:flex-end;padding:11px 20px 9px;border:1px solid #c8d0db;border-top:none; }
+.ps-fn   { font-size:8.5px;color:#6b7280;line-height:1.7;max-width:56%; }
+.ps-sb   { text-align:center; }
+.ps-si   { width:70px;height:70px;object-fit:contain;display:block;margin:0 auto; }
+.ps-sl   { font-size:8.5px;color:#374151;font-weight:700;border-top:1px solid #9ca3af;padding-top:4px;margin-top:16px;min-width:128px; }
+.ps-sc   { font-size:8px;color:#6b7280;margin-bottom:2px; }
+.ps-disc { padding:5px 16px;background:#f9fafb;border:1px solid #c8d0db;border-top:none;font-size:8px;color:#9ca3af;text-align:center;font-style:italic; }
+</style>
+
+{% if error %}
+<div class="alert alert-danger" style="margin-bottom:16px;">⚠️ {{ error }}</div>
+{% endif %}
+
+{% if emp %}<div class="mini-card" style="margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="emp-av" style="width:52px;height:52px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#0052cc,#0096dc)">{{ (emp.emp_name or "?")[:2].upper() }}</div>
+    <div><div style="font-family:Syne,sans-serif;font-weight:800;font-size:17px">{{ emp.emp_name }}</div>
+    <div style="color:var(--muted);font-size:13px;margin-top:2px">{{ emp.emp_code }} · {{ emp.designation or 'Employee' }} · {{ emp.department or '—' }}</div>
+    <div style="margin-top:5px;"><span class="badge badge-{{ emp.category.lower() }}">{{ emp.category }}</span> <span class="badge badge-active">{{ emp.status }}</span></div></div>
+  </div>
+</div>{% endif %}
+
+<div class="table-card">
+  <div class="table-header"><span class="table-title">My Salary History</span></div>
+  <div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Month / Year</th>
+        <th>Month Gross</th>
+        <th>Earn Gross</th>
+        <th>Present Days</th>
+        <th>Payable Days</th>
+        <th>PF Deducted</th>
+        <th>ESIC Deducted</th>
+        <th>Canteen</th>
+        <th>Loan</th>
+        <th>Total Deduction</th>
+        <th style="color:var(--green);">Net Salary</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      {% set mn = ["January","February","March","April","May","June","July","August","September","October","November","December"][r.month-1] %}
+      <tr>
+        <td style="font-weight:700;color:#0096dc;">{{ mn }} {{ r.year }}</td>
+        <td>₹{{ "{:,.0f}".format(r.gross or 0) }}</td>
+        <td>₹{{ "{:,.0f}".format((r.basic_earned or 0)+(r.hra_earned or 0)+(r.special_earned or 0)) }}</td>
+        <td style="text-align:center;">{{ r.present_days or 0 }}</td>
+        <td style="text-align:center;">{{ r.payable_days or r.present_days or 0 }}</td>
+        <td style="color:var(--red);">₹{{ "{:,.0f}".format(r.pf or 0) }}</td>
+        <td style="color:var(--red);">₹{{ "{:,.0f}".format(r.esi or 0) }}</td>
+        <td style="color:var(--red);">₹{{ "{:,.0f}".format(r.canteen_deduction or 0) }}</td>
+        <td style="color:var(--red);">₹{{ "{:,.0f}".format(r.loan_deduction or 0) }}</td>
+        <td style="color:var(--red);font-weight:700;">₹{{ "{:,.0f}".format(r.total_deductions or 0) }}</td>
+        <td style="color:var(--green);font-weight:800;font-size:14px;">₹{{ "{:,.0f}".format(r.net_salary or 0) }}</td>
+      </tr>
+      {% endfor %}
+      {% if not records %}
+      <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);">No payslips available yet. Payslips are visible only after HR finalizes and locks the monthly payroll.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if emp_increments %}
+<div class="table-card" style="margin-top:18px;">
+  <div class="table-header">
+    <span class="table-title">📈 My Salary & Designation History</span>
+    <span style="font-size:12px;color:var(--muted);">{{ emp_increments|length }} revision(s)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Effective Date</th>
+        <th>Previous Basic</th>
+        <th>New Basic</th>
+        <th>Increment</th>
+        <th>% Change</th>
+        <th>Designation Change</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in emp_increments %}
+      <tr>
+        <td style="color:var(--muted);font-size:12px">{{ loop.index }}</td>
+        <td style="font-weight:700;color:#0096dc">{{ inc.effective_date }}</td>
+        <td style="color:var(--muted)">₹{{ "{:,.0f}".format(inc.old_basic) }}</td>
+        <td style="font-weight:700;color:var(--green)">₹{{ "{:,.0f}".format(inc.new_basic) }}</td>
+        <td style="color:var(--green);font-weight:700">+₹{{ "{:,.0f}".format(inc.new_basic - inc.old_basic) }}</td>
+        <td>
+          {% set pct = ((inc.new_basic - inc.old_basic) / inc.old_basic * 100)|round(1) if inc.old_basic else 0 %}
+          <span style="color:{% if pct > 0 %}var(--green){% else %}var(--red){% endif %};font-weight:700;">{{ pct }}%</span>
+        </td>
+        <td style="font-size:12px;">
+          {% if inc.new_designation %}
+            <div style="font-size:10px;color:var(--muted);">{{ inc.old_designation or '—' }}</div>
+            <div style="color:#0096dc;font-weight:700;">→ {{ inc.new_designation }}</div>
+          {% else %}
+            <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--muted)">{{ inc.reason or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}

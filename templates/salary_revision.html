@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+{% block title %}Salary Revision Report{% endblock %}
+{% block page_title %}📊 Salary Revision Report{% endblock %}
+{% block content %}
+
+<div class="toolbar">
+  <span style="font-size:13px;color:var(--muted);">{{ revisions|length }} total revisions</span>
+  <button class="btn btn-primary btn-sm" onclick="openModal('incModal')">📈 Apply Increment</button>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;color:#10b981;">📤 Bulk Upload <input type="file" accept=".xlsx" onchange="bulkInc(this)" style="display:none;"></label>
+  <a href="/salary/increment/template" class="btn btn-ghost btn-sm">📥 Template</a>
+  <a href="/export/salary-revision" class="btn btn-ghost btn-sm" style="color:#0096dc;">📥 Export Report</a>
+  <div style="margin-left:auto;">
+    <input class="form-control" style="width:220px;" placeholder="🔍 Search employee..." id="srch" oninput="filterTable()">
+  </div>
+</div>
+
+<!-- Increment Modal -->
+<div class="modal-overlay" id="incModal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header"><span class="modal-title">📈 Apply Salary / Designation Change</span><button class="modal-close" onclick="closeModal('incModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+
+        <!-- Employee Code + Live Name/Designation Preview -->
+        <div class="form-group col-span-2">
+          <label class="form-label">Employee Code *</label>
+          <input class="form-control" id="i_emp" placeholder="1001" oninput="onEmpCodeChange()">
+          <div id="i_empinfo" style="display:none;margin-top:6px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:8px 12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="i_empav" style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#0052cc,#0096dc);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0;"></div>
+              <div>
+                <div id="i_empname" style="font-weight:700;font-size:14px;color:var(--green);"></div>
+                <div id="i_empdesc" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
+              </div>
+            </div>
+          </div>
+          <div id="i_emp_err" style="font-size:11px;color:var(--red);margin-top:3px;display:none;"></div>
+        </div>
+
+        <!-- Effective Date & Reason (always visible) -->
+        <div class="form-group">
+          <label class="form-label">Effective Date *</label>
+          <input class="form-control" type="date" id="i_date" value="{{ date.today().strftime('%Y-%m-%d') if date else '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <input class="form-control" id="i_reason" placeholder="Annual increment 2026">
+        </div>
+
+        <!-- ── Salary Increment Section ── -->
+        <div class="form-group col-span-2" style="margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleSalarySection()">
+            <input type="checkbox" id="i_chk_salary" style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;" onclick="event.stopPropagation();toggleSalarySection()" checked>
+            <label for="i_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">💰 Salary Increment</label>
+          </div>
+        </div>
+
+        <div id="i_salary_grp" class="form-group col-span-2" style="padding:12px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:8px;">
+          <div class="form-grid" style="margin:0;">
+            <div class="form-group col-span-2" style="margin-bottom:10px;">
+              <label class="form-label">Increment Type *</label>
+              <div style="display:flex;gap:4px;background:var(--surface);border-radius:8px;padding:4px;">
+                <button onclick="setIncType('percent')" id="btn_pct" class="btn btn-primary btn-sm" style="flex:1;">% Percentage</button>
+                <button onclick="setIncType('amount')" id="btn_amt" class="btn btn-ghost btn-sm" style="flex:1;">₹ Fixed Amount</button>
+              </div>
+              <input type="hidden" id="i_type" value="percent">
+            </div>
+            <div class="form-group col-span-2" style="margin-bottom:0;">
+              <label class="form-label" id="i_val_lbl">Increment % *</label>
+              <input class="form-control" type="number" id="i_value" placeholder="10" oninput="previewIncrement()">
+            </div>
+            <div class="form-group" id="i_new_basic_grp" style="display:none;margin-bottom:0;">
+              <label class="form-label">New Basic (calculated)</label>
+              <input class="form-control" type="number" id="i_new_basic" readonly style="background:var(--surface);">
+            </div>
+          </div>
+          <div id="i_preview" style="margin-top:10px;font-size:12px;background:var(--surface);border-radius:8px;padding:10px;display:none;">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;" id="i_prev_name"></div>
+        <table style="width:100%;font-size:12px;margin-bottom:10px;">
+          <tr>
+            <td style="color:var(--muted);padding:2px 4px;">Old Gross:</td>
+            <td><strong id="i_prev_old_gross">—</strong></td>
+            <td style="color:var(--muted);padding:2px 4px;">New Gross:</td>
+            <td><strong id="i_prev_new_gross" style="color:#10b981;">—</strong></td>
+          </tr>
+        </table>
+        <!-- Editable Basic & HRA — available to all users with access to this page -->
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px;margin-top:6px;">
+          <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:8px;">✏️ Adjust New Basic &amp; HRA</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW BASIC (₹)</label>
+              <input class="form-control" type="number" id="i_adj_basic" placeholder="Auto" oninput="onAdjBasicHra()" style="font-size:13px;">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW HRA (₹)</label>
+              <input class="form-control" type="number" id="i_adj_hra" placeholder="Auto" oninput="onAdjBasicHra()" style="font-size:13px;">
+            </div>
+          </div>
+          <div id="i_adj_err" style="font-size:11px;color:var(--red);margin-top:5px;display:none;"></div>
+          <div id="i_adj_ok"  style="font-size:11px;color:var(--green);margin-top:5px;display:none;"></div>
+        </div>
+      </div>
+        </div>
+
+        <!-- ── Change Designation Section ── -->
+        <div class="form-group col-span-2" style="margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleDesigChange()">
+            <input type="checkbox" id="i_chk_desig" style="width:16px;height:16px;cursor:pointer;accent-color:#0096dc;" onclick="event.stopPropagation();toggleDesigChange()">
+            <label for="i_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:#0096dc;">🏷️ Change Designation</label>
+          </div>
+        </div>
+
+        <div class="form-group col-span-2" id="i_desig_grp" style="display:none;">
+          <label class="form-label">New Designation</label>
+          <select class="form-select" id="i_new_desig">
+            <option value="">— Select Designation —</option>
+            {% for d in designations %}
+            <option value="{{ d }}">{{ d }}</option>
+            {% endfor %}
+          </select>
+          <div id="i_desig_hint" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+        </div>
+
+      </div>
+      <div id="i_result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('incModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="applyIncrement()">✅ Apply Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">All Salary Revisions & Increments</span>
+    <span style="font-size:12px;color:var(--muted);">Historical records are permanently preserved per month</span>
+  </div>
+  <table id="revTable">
+    <thead>
+      <tr>
+        <th style="cursor:pointer;" onclick="sortTable('revTable',0)" data-sort-col="0">#<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',1)" data-sort-col="1">Employee<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',2)" data-sort-col="2">Department<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',3)" data-sort-col="3">Category<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        <th style="cursor:pointer;" onclick="sortTable('revTable',4)" data-sort-col="4">Previous Basic<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',5)" data-sort-col="5">New Basic<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',6)" data-sort-col="6">Increment<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',7)" data-sort-col="7">% Change<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        <th style="cursor:pointer;" onclick="sortTable('revTable',8)" data-sort-col="8">Designation Change<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+        <th style="cursor:pointer;" onclick="sortTable('revTable',9)" data-sort-col="9">Effective Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',10)" data-sort-col="10">Reason<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('revTable',11)" data-sort-col="11">Action<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in revisions %}
+      <tr>
+        <td style="color:var(--muted);font-size:12px">{{ loop.index }}</td>
+        <td>
+          <div style="font-weight:600;">{{ r.emp_name }}</div>
+          <div style="font-size:11px;color:var(--muted)">{{ r.emp_code }}</div>
+        </td>
+        <td style="font-size:12px;color:var(--muted)">{{ r.department or '—' }}</td>
+        <td><span class="badge badge-{{ r.category.lower() }}" style="font-size:10px">{{ r.category }}</span></td>
+        <td style="color:var(--muted)">₹{{ "{:,.0f}".format(r.old_basic) }}</td>
+        <td style="font-weight:700;color:var(--green)">₹{{ "{:,.0f}".format(r.new_basic) }}</td>
+        <td style="font-weight:700;color:var(--green)">+₹{{ "{:,.0f}".format(r.new_basic - r.old_basic) }}</td>
+        <td>
+          {% set pct = ((r.new_basic - r.old_basic) / r.old_basic * 100)|round(1) if r.old_basic else 0 %}
+          <span style="color:{% if pct > 0 %}var(--green){% else %}var(--red){% endif %};font-weight:700;">{{ pct }}%</span>
+        </td>
+        <td style="font-size:12px;">
+          {% if r.new_designation %}
+            <div style="font-size:10px;color:var(--muted);">{{ r.old_designation or '—' }}</div>
+            <div style="color:#0096dc;font-weight:700;">→ {{ r.new_designation }}</div>
+          {% else %}
+            <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td style="font-weight:600;color:#0096dc">{{ r.effective_date }}</td>
+        <td style="font-size:12px;color:var(--muted)">{{ r.reason or '—' }}</td>
+        <td style="display:flex;gap:6px;align-items:center;">
+          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm">📋 History</a>
+          {% if is_admin_page %}
+          <button class="btn btn-ghost btn-sm" style="color:#f59e0b;"
+            onclick="openEditModal({{ r.id }}, '{{ r.emp_code }}', '{{ r.emp_name }}',
+              {{ r.old_basic }}, {{ r.new_basic }},
+              '{{ r.effective_date }}', '{{ (r.reason or '') | replace("'","") }}',
+              '{{ (r.old_designation or '') | replace("'","") }}',
+              '{{ (r.new_designation or '') | replace("'","") }}')">✏️ Edit</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not revisions %}
+      <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No salary revisions recorded yet</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mini-card" style="margin-top:14px;">
+  <div class="mini-title">ℹ️ Important — How Historical Salary Works</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+    <div style="background:rgba(16,185,129,.08);border-radius:10px;padding:14px;">
+      <div style="font-weight:700;color:var(--green);margin-bottom:8px;">✅ What is preserved</div>
+      <div style="color:var(--muted);line-height:2;">
+        • Each month's salary is saved permanently<br>
+        • Old reports always show old salary amounts<br>
+        • Increment history is fully tracked<br>
+        • Payslips reflect salary at time of generation
+      </div>
+    </div>
+    <div style="background:rgba(0,82,204,.08);border-radius:10px;padding:14px;">
+      <div style="font-weight:700;color:#0096dc;margin-bottom:8px;">💡 How to update salary</div>
+      <div style="color:var(--muted);line-height:2;">
+        • Go to Employees → Edit → Change Basic/HRA/Special<br>
+        • Or use Salary History → Apply Increment button<br>
+        • Recalculate salary for new month<br>
+        • Previous months remain unchanged ✅
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<!-- ── Edit Increment Modal (Admin Only) ─────────────── -->
+<div class="modal-overlay" id="editIncModal">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Edit Increment Record</span>
+      <button class="modal-close" onclick="closeModal('editIncModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit_inc_id">
+      <div style="background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
+        <div id="edit_emp_label" style="font-weight:700;font-size:14px;"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">⚠️ Editing will update the increment record. If this is the latest increment, employee's current basic will also be updated.</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group col-span-2">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleEditSalarySection()">
+            <input type="checkbox" id="edit_chk_salary" style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;" onclick="event.stopPropagation();toggleEditSalarySection()" checked>
+            <label for="edit_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">💰 Salary Increment</label>
+          </div>
+        </div>
+        <div id="edit_salary_section" style="display:contents;">
+          <div class="form-group">
+            <label class="form-label">Previous Basic (₹)</label>
+            <input class="form-control" type="number" id="edit_old_basic" readonly style="background:var(--surface);">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Gross (₹) *</label>
+            <input class="form-control" type="number" id="edit_new_gross" placeholder="Enter new gross salary" oninput="onEditGrossChange()" style="border-color:#0096dc;">
+          </div>
+          <div class="form-group col-span-2" style="margin-top:0;">
+            <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px;">
+              <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:6px;">✏️ Adjust New Basic &amp; HRA</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                  <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW BASIC (₹)</label>
+                  <input class="form-control" type="number" id="edit_new_basic" placeholder="Auto (60% of gross)" oninput="onEditBasicChange()" style="font-size:13px;">
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW HRA (₹)</label>
+                  <input class="form-control" type="number" id="edit_new_hra" placeholder="Auto (40% of gross)" oninput="onEditBasicChange()" style="font-size:13px;">
+                </div>
+              </div>
+              <div id="edit_salary_preview" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
+              <div id="edit_adj_err" style="font-size:11px;color:var(--red);margin-top:5px;display:none;"></div>
+              <div id="edit_adj_ok"  style="font-size:11px;color:var(--green);margin-top:5px;display:none;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Effective Date</label>
+          <input class="form-control" type="date" id="edit_eff_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason *</label>
+          <input class="form-control" id="edit_reason" placeholder="Reason is required" required>
+        </div>
+        <div class="form-group col-span-2" style="margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleEditDesigSection()">
+            <input type="checkbox" id="edit_chk_desig" style="width:16px;height:16px;cursor:pointer;accent-color:#0096dc;" onclick="event.stopPropagation();toggleEditDesigSection()">
+            <label for="edit_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;">🏷️ Change Designation</label>
+          </div>
+        </div>
+        <div id="edit_desig_section" style="display:none;grid-column:span 2;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div>
+              <label class="form-label">Previous Designation</label>
+              <input class="form-control" id="edit_old_desig" readonly style="background:var(--surface);">
+            </div>
+            <div>
+              <label class="form-label">New Designation</label>
+              <select class="form-select" id="edit_new_desig">
+                <option value="">— No Change —</option>
+                {% for d in designations %}<option value="{{ d }}">{{ d }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="edit_result"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editIncModal')">Cancel</button>
+      <button class="btn btn-primary" style="background:#f59e0b;border-color:#f59e0b;" onclick="saveEditIncrement()">✏️ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterTable(){
+  const q = document.getElementById("srch").value.toLowerCase();
+  document.querySelectorAll("#revTable tbody tr").forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+}
+function setIncType(type){
+  document.getElementById("i_type").value = type;
+  const isPct = (type === "percent");
+  document.getElementById("btn_pct").className = isPct ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm";
+  document.getElementById("btn_amt").className = isPct ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm";
+  document.getElementById("i_val_lbl").textContent = isPct ? "Increment % *" : "Increment Amount (₹) *";
+  document.getElementById("i_value").placeholder = isPct ? "10" : "5000";
+  previewIncrement();
+}
+function toggleSalarySection(){
+  const chk = document.getElementById("i_chk_salary");
+  const grp = document.getElementById("i_salary_grp");
+  grp.style.display = chk.checked ? "block" : "none";
+  if(!chk.checked){ document.getElementById("i_preview").style.display="none"; document.getElementById("i_new_basic_grp").style.display="none"; }
+}
+let _empInfoCache = null, _empCodeTimer = null;
+function onEmpCodeChange(){
+  _empInfoCache = null; clearTimeout(_empCodeTimer);
+  const emp = document.getElementById("i_emp").value.trim();
+  document.getElementById("i_empinfo").style.display = "none";
+  document.getElementById("i_emp_err").style.display = "none";
+  document.getElementById("i_preview").style.display = "none";
+  document.getElementById("i_new_basic_grp").style.display = "none";
+  const adjB = document.getElementById("i_adj_basic"); const adjH = document.getElementById("i_adj_hra");
+  if(adjB) delete adjB.dataset.touched; if(adjH) delete adjH.dataset.touched;
+  if(!emp) return;
+  _empCodeTimer = setTimeout(() => fetchEmpInfo(emp), 400);
+}
+async function fetchEmpInfo(emp){
+  try{
+    const r = await fetch(`/api/emp-info?emp_code=${emp}`).then(r => r.json());
+    if(!r.success){ document.getElementById("i_emp_err").textContent = "❌ Employee not found"; document.getElementById("i_emp_err").style.display = "block"; return; }
+    _empInfoCache = r;
+    document.getElementById("i_empav").textContent = r.emp_name.substring(0,2).toUpperCase();
+    document.getElementById("i_empname").textContent = "✅ " + r.emp_name;
+    document.getElementById("i_empdesc").textContent = (r.designation||"—") + " · " + (r.department||"—") + " · " + (r.category||"—");
+    document.getElementById("i_empinfo").style.display = "block";
+    if(document.getElementById("i_chk_desig").checked) document.getElementById("i_desig_hint").textContent = "Current: " + (r.designation||"—");
+    if(document.getElementById("i_chk_salary").checked) previewIncrement();
+  } catch(e){}
+}
+function toggleDesigChange(){
+  const chk = document.getElementById("i_chk_desig");
+  document.getElementById("i_desig_grp").style.display = chk.checked ? "block" : "none";
+  if(chk.checked && _empInfoCache) document.getElementById("i_desig_hint").textContent = "Current: " + (_empInfoCache.designation||"—");
+}
+async function previewIncrement(){
+  if(!_empInfoCache || !document.getElementById("i_chk_salary").checked) return;
+  const r = _empInfoCache;
+  const type = document.getElementById("i_type").value;
+  const val = parseFloat(document.getElementById("i_value").value)||0;
+  if(!val) return;
+  const basic = parseFloat(r.basic||0);
+  const oldGross = basic + parseFloat(r.hra||0) + parseFloat(r.special_allowance||0);
+  const incAmt = type==="percent" ? oldGross*val/100 : val;
+  const newGross = oldGross + incAmt;
+  const distrib = newGross - parseFloat(r.special_allowance||0);
+  const nBasic = Math.round(distrib*0.60); const nHra = Math.round(distrib*0.40);
+  window._previewNewGross = newGross;
+  document.getElementById("i_new_basic_grp").style.display = "block";
+  document.getElementById("i_new_basic").value = nBasic.toFixed(2);
+  document.getElementById("i_preview").style.display = "block";
+  document.getElementById("i_prev_name").textContent = r.emp_name;
+  document.getElementById("i_prev_old_gross").textContent = "₹" + oldGross.toFixed(0);
+  document.getElementById("i_prev_new_gross").textContent = "₹" + newGross.toFixed(0) + " (+₹" + incAmt.toFixed(0) + ")";
+  const pb = document.getElementById("i_prev_basic"); const ph = document.getElementById("i_prev_hra");
+  if(pb) pb.textContent = "₹" + nBasic; if(ph) ph.textContent = "₹" + nHra;
+  const adjB = document.getElementById("i_adj_basic"); const adjH = document.getElementById("i_adj_hra");
+  if(adjB && !adjB.dataset.touched) adjB.value = nBasic;
+  if(adjH && !adjH.dataset.touched) adjH.value = nHra;
+  if(adjB && adjH) onAdjBasicHra();
+}
+function onAdjBasicHra(){
+  const adjB = document.getElementById("i_adj_basic"); const adjH = document.getElementById("i_adj_hra");
+  if(!adjB || !adjH) return;
+  adjB.dataset.touched = "1"; adjH.dataset.touched = "1";
+  const newGross = window._previewNewGross || 0;
+  const b = parseFloat(adjB.value)||0; const h = parseFloat(adjH.value)||0;
+  const errDiv = document.getElementById("i_adj_err"); const okDiv = document.getElementById("i_adj_ok");
+  if(b+h > newGross+0.01){
+    errDiv.textContent = `❌ Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} exceeds Gross ₹${newGross.toFixed(0)}.`;
+    errDiv.style.display="block"; okDiv.style.display="none"; window._adjValid=false;
+  } else {
+    errDiv.style.display="none";
+    okDiv.textContent = `✅ Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} (Gross ₹${newGross.toFixed(0)})`;
+    okDiv.style.display="block"; window._adjValid=true;
+  }
+}
+async function applyIncrement(){
+  const emp = document.getElementById("i_emp").value.trim();
+  if(!emp){ showToast("Employee code required","error"); return; }
+  const doSalary = document.getElementById("i_chk_salary").checked;
+  const chkDesig = document.getElementById("i_chk_desig").checked;
+  if(!doSalary && !chkDesig){ showToast("Select Salary Increment and/or Designation Change","error"); return; }
+  const val = doSalary ? (parseFloat(document.getElementById("i_value").value)||0) : 0;
+  if(doSalary && !val){ showToast("Increment value required","error"); return; }
+  const adjB = document.getElementById("i_adj_basic"); const adjH = document.getElementById("i_adj_hra");
+  if(adjB && adjH && doSalary && window._adjValid===false){ showToast("Basic + HRA exceeds Gross. Please correct.","error"); return; }
+  const newDesig = chkDesig ? document.getElementById("i_new_desig").value : "";
+  if(chkDesig && !newDesig){ showToast("Please select a designation","error"); return; }
+  const data = {
+    emp_code: emp, salary_change: doSalary,
+    increment_type: document.getElementById("i_type").value,
+    increment_value: val,
+    effective_date: document.getElementById("i_date").value || new Date().toISOString().split("T")[0],
+    reason: document.getElementById("i_reason").value,
+    new_designation: newDesig
+  };
+  if(adjB && adjH && adjB.dataset.touched){ data.override_basic = parseFloat(adjB.value)||null; data.override_hra = parseFloat(adjH.value)||null; }
+  const r = await api("/salary/increment","POST",data);
+  if(r.success){
+    let msg = `✅ Applied!`;
+    if(r.salary_changed) msg += `<br>Gross: ₹${r.new_gross?.toLocaleString()} | Basic: ₹${r.new_basic} | HRA: ₹${r.new_hra}`;
+    if(r.new_designation) msg += `<br>🏷️ ${r.old_designation} → <strong>${r.new_designation}</strong>`;
+    document.getElementById("i_result").innerHTML = `<div class="alert alert-success">${msg}</div>`;
+    setTimeout(()=>{ closeModal("incModal"); location.reload(); },1800);
+  } else { document.getElementById("i_result").innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`; }
+}
+async function bulkInc(input){
+  const f=input.files[0]; if(!f) return;
+  if(!confirm("Apply bulk increment to all employees in this file?")) return;
+  const fd=new FormData(); fd.append("file",f);
+  const r=await fetch("/salary/increment/bulk",{method:"POST",body:fd}).then(r=>r.json());
+  if(r.success){ showToast(`✅ ${r.done} employees updated`); setTimeout(()=>location.reload(),1500); }
+  else showToast(`❌ ${r.error}`,"error");
+  input.value="";
+}
+// ── Edit Modal ────────────────────────────────────────
+let _editOldBasic = 0;
+function openEditModal(id,emp_code,emp_name,old_basic,new_basic,eff_date,reason,old_desig,new_desig){
+  _editOldBasic = parseFloat(old_basic)||0; window._editAdjValid=true;
+  document.getElementById("edit_inc_id").value = id;
+  document.getElementById("edit_emp_label").textContent = emp_name+" ("+emp_code+")";
+  document.getElementById("edit_old_basic").value = old_basic;
+  // Populate new_gross from new_basic (60% split estimate)
+  const estGross = Math.round(parseFloat(new_basic||0)/0.60);
+  document.getElementById("edit_new_gross").value = estGross;
+  document.getElementById("edit_new_basic").value = new_basic;
+  document.getElementById("edit_new_hra").value = Math.round(parseFloat(new_basic||0)*0.40/0.60);
+  document.getElementById("edit_eff_date").value = eff_date;
+  document.getElementById("edit_reason").value = reason||"";
+  document.getElementById("edit_old_desig").value = old_desig||"";
+  document.getElementById("edit_result").innerHTML = "";
+  const hasDesig = !!(old_desig||new_desig);
+  document.getElementById("edit_chk_desig").checked = hasDesig;
+  document.getElementById("edit_desig_section").style.display = hasDesig ? "block" : "none";
+  document.getElementById("edit_new_desig").value = new_desig||"";
+  document.getElementById("edit_chk_salary").checked = true;
+  document.getElementById("edit_salary_section").style.display = "contents";
+  onEditBasicChange(); openModal("editIncModal");
+}
+function toggleEditSalarySection(){
+  const chk=document.getElementById("edit_chk_salary");
+  document.getElementById("edit_salary_section").style.display = chk.checked ? "contents" : "none";
+}
+function toggleEditDesigSection(){
+  const chk=document.getElementById("edit_chk_desig");
+  document.getElementById("edit_desig_section").style.display = chk.checked ? "block" : "none";
+}
+function onEditGrossChange(){
+  const gross=parseFloat(document.getElementById("edit_new_gross").value)||0;
+  if(gross>0){
+    document.getElementById("edit_new_basic").value = Math.round(gross*0.60);
+    document.getElementById("edit_new_hra").value   = Math.round(gross*0.40);
+  }
+  onEditBasicChange();
+}
+function onEditBasicChange(){
+  const gross   =parseFloat(document.getElementById("edit_new_gross").value)||0;
+  const newBasic=parseFloat(document.getElementById("edit_new_basic").value)||0;
+  const newHra  =parseFloat(document.getElementById("edit_new_hra").value)||0;
+  const errDiv=document.getElementById("edit_adj_err"); const okDiv=document.getElementById("edit_adj_ok");
+  const prevDiv=document.getElementById("edit_salary_preview");
+  if(!newBasic&&!gross){ errDiv.style.display="none"; okDiv.style.display="none"; prevDiv.textContent=""; return; }
+  const diff=newBasic-_editOldBasic;
+  prevDiv.innerHTML=`Old Basic: <strong>₹${_editOldBasic.toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; Change: <strong style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}₹${diff.toLocaleString('en-IN')}</strong>`;
+  if(gross>0&&newBasic>0&&newHra>0){
+    if(newBasic+newHra>gross+0.01){ errDiv.textContent=`❌ Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} exceeds Gross ₹${gross.toLocaleString('en-IN')}.`; errDiv.style.display="block"; okDiv.style.display="none"; window._editAdjValid=false; }
+    else { errDiv.style.display="none"; okDiv.textContent=`✅ Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} = ₹${(newBasic+newHra).toLocaleString('en-IN')} (Gross ₹${gross.toLocaleString('en-IN')})`; okDiv.style.display="block"; window._editAdjValid=true; }
+  } else { errDiv.style.display="none"; okDiv.style.display="none"; window._editAdjValid=true; }
+}
+async function saveEditIncrement(){
+  const doSalary=document.getElementById("edit_chk_salary").checked;
+  const doDesig=document.getElementById("edit_chk_desig").checked;
+  if(!doSalary&&!doDesig){ document.getElementById("edit_result").innerHTML='<div class="alert alert-danger">Select at least one option.</div>'; return; }
+  if(doSalary&&window._editAdjValid===false){ document.getElementById("edit_result").innerHTML='<div class="alert alert-danger">Basic+HRA exceeds Gross. Please correct.</div>'; return; }
+  const reason=document.getElementById("edit_reason").value.trim();
+  if(!reason){ document.getElementById("edit_result").innerHTML='<div class="alert alert-danger">Reason is required.</div>'; return; }
+  const newBasic=doSalary?parseFloat(document.getElementById("edit_new_basic").value):null;
+  const newHra=parseFloat(document.getElementById("edit_new_hra").value)||null;
+  const newGross=parseFloat(document.getElementById("edit_new_gross").value)||null;
+  const effDate=document.getElementById("edit_eff_date").value;
+  if(doSalary&&(!newBasic||!effDate)){ document.getElementById("edit_result").innerHTML='<div class="alert alert-danger">New Basic and Effective Date required.</div>'; return; }
+  const payload={ salary_change:doSalary, old_basic:parseFloat(document.getElementById("edit_old_basic").value), new_basic:doSalary?newBasic:null, override_hra:newHra, override_gross:newGross, effective_date:effDate, reason:reason, designation_change:doDesig, old_designation:document.getElementById("edit_old_desig").value, new_designation:doDesig?document.getElementById("edit_new_desig").value:"" };
+  const r=await api(`/salary/increment/edit/${document.getElementById("edit_inc_id").value}`,"POST",payload);
+  if(r.success){ document.getElementById("edit_result").innerHTML='<div class="alert alert-success">✅ Updated successfully.</div>'; setTimeout(()=>{ closeModal("editIncModal"); location.reload(); },1200); }
+  else { document.getElementById("edit_result").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`; }
+}
+</script>
+{% endblock %}

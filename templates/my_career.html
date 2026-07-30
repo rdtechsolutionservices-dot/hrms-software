@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}My Career Journey{% endblock %}
+{% block page_title %}🚀 My Career Journey{% endblock %}
+{% block content %}
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% elif emp %}
+
+<!-- Top Summary Cards -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:26px;margin-bottom:6px;">👤</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Current Designation</div>
+    <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--text);">{{ emp.designation or '—' }}</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:26px;margin-bottom:6px;">💰</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Current CTC (Monthly)</div>
+    <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--green);">₹{{ "{:,.0f}".format(monthly_ctc or 0) }}</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:26px;margin-bottom:6px;">📈</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Total Revisions</div>
+    <div style="font-weight:800;font-size:15px;margin-top:4px;color:#0096dc;">{{ milestones|length }}</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:26px;margin-bottom:6px;">🏢</div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Department</div>
+    <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--text);">{{ emp.department or '—' }}</div>
+  </div>
+</div>
+
+<!-- Salary Growth Chart — only if salary actually changed at least once -->
+{% set salary_milestones = [] %}
+{% for m in milestones %}{% if m.new_basic != m.old_basic %}{% set _ = salary_milestones.append(m) %}{% endif %}{% endfor %}
+{% if salary_milestones %}
+<div class="mini-card" style="margin-bottom:18px;">
+  <div class="mini-title" style="margin-bottom:14px;">📊 My Salary Growth Timeline</div>
+  <canvas id="careerChart" style="max-height:220px;"></canvas>
+</div>
+{% endif %}
+
+<!-- Career Timeline -->
+<div class="mini-card" style="margin-bottom:18px;">
+  <div class="mini-title" style="margin-bottom:16px;">🗓️ Career Milestones</div>
+  {% if milestones %}
+  <div style="position:relative;padding-left:24px;">
+    <!-- vertical line -->
+    <div style="position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:linear-gradient(to bottom,#0096dc,#10b981);border-radius:2px;"></div>
+
+    {% for m in milestones|reverse %}
+    <div style="position:relative;margin-bottom:20px;">
+      <!-- dot -->
+      <div style="position:absolute;left:-20px;top:8px;width:14px;height:14px;border-radius:50%;
+        background:{% if m.new_designation %}#0096dc{% else %}#10b981{% endif %};
+        border:2px solid var(--card);box-shadow:0 0 0 2px {% if m.new_designation %}#0096dc{% else %}#10b981{% endif %};"></div>
+
+      <div style="background:var(--surface);border-radius:10px;padding:12px 14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--muted);">{{ m.effective_date }}</div>
+            <div style="font-weight:700;margin-top:2px;">
+              {% if m.new_basic != m.old_basic %}
+                💰 Salary Revised
+                <span style="font-size:12px;color:var(--green);margin-left:6px;">
+                  ₹{{ "{:,.0f}".format(m.old_basic) }} → ₹{{ "{:,.0f}".format(m.new_basic) }} Basic
+                  {% set pct = ((m.new_basic - m.old_basic) / m.old_basic * 100)|round(1) if m.old_basic else 0 %}
+                  <span style="background:rgba(16,185,129,.15);color:var(--green);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;">+{{ pct }}%</span>
+                </span>
+              {% endif %}
+              {% if m.new_designation %}
+                {% if m.new_basic != m.old_basic %}<br>{% endif %}
+                🏷️ Designation Changed
+                <span style="font-size:12px;color:#0096dc;margin-left:6px;">
+                  {{ m.old_designation or '—' }} → <strong>{{ m.new_designation }}</strong>
+                </span>
+              {% endif %}
+            </div>
+          </div>
+          {% if m.reason %}
+          <div style="font-size:11px;color:var(--muted);font-style:italic;background:var(--card);padding:4px 10px;border-radius:6px;">
+            "{{ m.reason }}"
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- Joining -->
+    {% if emp.joining_date %}
+    <div style="position:relative;margin-bottom:4px;">
+      <div style="position:absolute;left:-20px;top:8px;width:14px;height:14px;border-radius:50%;background:#8b5cf6;border:2px solid var(--card);"></div>
+      <div style="background:var(--surface);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--muted);">{{ emp.joining_date }}</div>
+        <div style="font-weight:700;color:#8b5cf6;">🎉 Joined VPL — {{ emp.designation or emp.category }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:40px;color:var(--muted);">
+    <div style="font-size:40px;margin-bottom:10px;">📋</div>
+    No career milestones recorded yet.<br>
+    <span style="font-size:12px;">Contact HR for any salary or designation changes.</span>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Monthly Salary Records -->
+{% if records %}
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">📋 Recent Salary Records (Last 12 Months)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Month</th><th>Year</th><th>Basic Earned</th><th>HRA</th><th>Gross</th><th>Deductions</th><th>Net Salary</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td style="font-weight:600;">{{ months[r.month-1] }}</td>
+        <td>{{ r.year }}</td>
+        <td>₹{{ "{:,.0f}".format(r.basic_earned) }}</td>
+        <td>₹{{ "{:,.0f}".format(r.hra_earned) }}</td>
+        <td style="font-weight:600;">₹{{ "{:,.0f}".format(r.gross) }}</td>
+        <td style="color:var(--red);">₹{{ "{:,.0f}".format((r.pf or 0)+(r.esi or 0)+(r.tds or 0)) }}</td>
+        <td style="font-weight:800;color:var(--green);">₹{{ "{:,.0f}".format(r.net_salary) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if salary_milestones %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+// Only milestones where salary actually changed, ordered oldest→newest
+const salaryPoints = [
+  {% for m in salary_milestones|sort(attribute='effective_date') %}
+  {
+    date: "{{ m.effective_date }}",
+    gross: {{ (m.new_basic or 0) }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+// Format YYYY-MM-DD → DD/MM/YYYY
+function fmtDate(d){
+  if(!d) return d;
+  const p = d.split("-");
+  return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : d;
+}
+
+const labels   = salaryPoints.map(p => fmtDate(p.date));
+const grossData = salaryPoints.map(p => p.gross);
+
+const ctx = document.getElementById("careerChart").getContext("2d");
+new Chart(ctx, {
+  type: "line",
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "Basic Salary",
+      data: grossData,
+      borderColor: "#10b981",
+      backgroundColor: "rgba(16,185,129,.12)",
+      borderWidth: 2.5,
+      pointBackgroundColor: "#10b981",
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      fill: true,
+      tension: 0,
+      stepped: true
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => "Basic: ₹" + ctx.parsed.y.toLocaleString("en-IN")
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: "rgba(255,255,255,.05)" },
+        ticks: { color: "#64748b", maxRotation: 30 }
+      },
+      y: {
+        grid: { color: "rgba(255,255,255,.05)" },
+        ticks: {
+          color: "#64748b",
+          callback: v => "₹" + v.toLocaleString("en-IN")
+        },
+        beginAtZero: false
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

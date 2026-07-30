@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Leave (Associates){% endblock %}
+{% block page_title %}📝 Leave (Associates) — OT Authorization Request{% endblock %}
+{% block content %}
+
+<div class="alert alert-info" style="font-size:12px;margin-bottom:16px;">
+  ℹ️ Submit absent dates for Associates in your department for OT Authorization. Once HR approves, those day(s) OT hours will be marked as <strong>Authorized</strong> in payroll.
+</div>
+
+{% if not my_depts %}
+<div class="alert alert-danger" style="font-size:13px;">
+  ⚠️ No departments assigned to you. Please contact Admin to set up your Department Head access.
+</div>
+{% else %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+  <!-- Submit Form -->
+  <div class="table-card" style="padding:20px;">
+    <div style="font-weight:800;font-size:15px;margin-bottom:14px;">➕ New OT Authorization Request</div>
+
+    {% if my_depts|length > 1 %}
+    <div class="form-group">
+      <label class="form-label">Department</label>
+      <select class="form-select" id="sel_dept" onchange="window.location='/assoc-leave/apply?dept='+this.value">
+        {% for d in my_depts %}
+        <option value="{{ d }}" {% if d==show_dept %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% else %}
+    <div style="font-weight:700;font-size:13px;color:#0096dc;margin-bottom:14px;">🏢 {{ show_dept }}</div>
+    {% endif %}
+
+    <div class="form-group">
+      <label class="form-label">Employee (Associate) *</label>
+      <input class="form-control" id="sel_emp_input" list="emp_list" placeholder="🔍 Type code or name to search..." oninput="syncEmpCode()" autocomplete="off">
+      <datalist id="emp_list">
+        {% for a in associates %}
+        <option data-code="{{ a.emp_code }}" value="{{ a.emp_code }} — {{ a.emp_name }}"></option>
+        {% endfor %}
+      </datalist>
+      <input type="hidden" id="sel_emp">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="form-group">
+        <label class="form-label">From Date *</label>
+        <input class="form-control" type="date" id="sel_from" onchange="calcDays()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">To Date *</label>
+        <input class="form-control" type="date" id="sel_to" onchange="calcDays()">
+      </div>
+    </div>
+
+    <div id="days_info" style="display:none;font-size:12px;font-weight:700;color:#0096dc;margin-bottom:10px;padding:6px 10px;background:rgba(0,150,220,.08);border-radius:6px;"></div>
+
+    <div class="form-group">
+      <label class="form-label">Reason *</label>
+      <input class="form-control" id="sel_reason" placeholder="Reason for OT authorization (required)...">
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="submitRequest()">📤 Submit for HR Approval</button>
+    <div id="submitResult" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- Recent Requests -->
+  <div class="table-card" style="padding:16px;">
+    <div style="font-weight:800;font-size:14px;margin-bottom:12px;">📋 Recent Requests (Last 90 Days)</div>
+    {% if existing %}
+    <div style="overflow-y:auto;max-height:440px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface);">
+          <th style="padding:7px 8px;text-align:left;">Employee</th>
+          <th style="padding:7px;text-align:center;">Date</th>
+          <th style="padding:7px;text-align:center;">Status</th>
+        </tr></thead>
+        <tbody>
+        {% for r in existing %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px 8px;">
+            <div style="font-weight:600;">{{ r.emp_name }}</div>
+            <div style="font-size:10px;color:var(--muted);">{{ r.emp_code }} · {{ r.department }}</div>
+            {% if r.reason %}<div style="font-size:10px;color:var(--muted);">{{ r.reason }}</div>{% endif %}
+          </td>
+          <td style="padding:6px;text-align:center;font-size:11px;font-weight:700;color:#0096dc;">{{ r.from_date or r.absent_date }}</td>
+          <td style="padding:6px;text-align:center;">
+            {% if r.status == 'Approved' %}
+            <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
+            {% elif r.status == 'Rejected' %}
+            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
+            {% else %}
+            <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Pending</span>
+            {% endif %}
+            {% if r.remarks %}<div style="font-size:10px;color:var(--muted);">{{ r.remarks }}</div>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="color:var(--muted);font-size:12px;padding:20px 0;text-align:center;">No requests submitted yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function calcDays(){
+  const f=document.getElementById("sel_from").value;
+  const t=document.getElementById("sel_to").value;
+  const div=document.getElementById("days_info");
+  if(!f||!t){div.style.display="none";return;}
+  const fd=new Date(f), td=new Date(t);
+  if(td<fd){div.style.display="block";div.textContent="⚠️ To Date must be after From Date";div.style.color="#ef4444";return;}
+  const total=Math.round((td-fd)/86400000)+1;
+  // Count working days (skip Sundays only — holidays checked server-side)
+  let working=0, cur=new Date(fd);
+  while(cur<=td){ if(cur.getDay()!==0) working++; cur.setDate(cur.getDate()+1); }
+  div.style.display="block";
+  div.style.color="#0096dc";
+  const skipped=total-working;
+  div.textContent=`📅 ${total} day(s) selected → ~${working} working day(s)${skipped>0?' ('+skipped+' Sunday(s) excluded, holidays also skipped)':''}`;
+}
+
+function syncEmpCode(){
+  const val = document.getElementById('sel_emp_input').value.trim();
+  const opts = document.querySelectorAll('#emp_list option');
+  let found = '';
+  for(const o of opts){
+    if(o.value === val){ found = o.dataset.code || val.split(' — ')[0]; break; }
+  }
+  // Also try partial — if user typed just code
+  if(!found){
+    const code = val.split(' — ')[0].trim();
+    for(const o of opts){
+      if((o.dataset.code||'') === code){ found = code; break; }
+    }
+  }
+  document.getElementById('sel_emp').value = found;
+}
+
+async function submitRequest(){
+  const emp  = document.getElementById("sel_emp").value;
+  const from = document.getElementById("sel_from").value;
+  const to   = document.getElementById("sel_to").value;
+  const reason = document.getElementById("sel_reason").value.trim();
+  const div  = document.getElementById("submitResult");
+
+  if(!emp){  div.innerHTML='<div class="alert alert-danger">❌ Please select an employee.</div>'; return; }
+  if(!from){ div.innerHTML='<div class="alert alert-danger">❌ Please select From Date.</div>';   return; }
+  if(!to){   div.innerHTML='<div class="alert alert-danger">❌ Please select To Date.</div>';     return; }
+  if(to < from){ div.innerHTML='<div class="alert alert-danger">❌ To Date must be after From Date.</div>'; return; }
+  if(!reason){ div.innerHTML='<div class="alert alert-danger">❌ Reason is required.</div>'; return; }
+
+  div.innerHTML='<div class="alert alert-info">⏳ Submitting...</div>';
+  const r = await api("/assoc-leave/apply","POST",{
+    emp_code: emp, from_date: from, to_date: to, reason: reason
+  });
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">✅ ${r.message}</div>`;
+    document.getElementById("sel_emp").value="";
+    document.getElementById("sel_emp_input").value="";
+    document.getElementById("sel_from").value="";
+    document.getElementById("sel_to").value="";
+    document.getElementById("sel_reason").value="";
+    document.getElementById("days_info").style.display="none";
+    setTimeout(()=>location.reload(),2000);
+  } else {
+    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+</script>
+{% endblock %}

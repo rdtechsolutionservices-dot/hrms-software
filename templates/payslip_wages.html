@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Wages Slip{% endblock %}
+{% block page_title %}🏭 Wages Slip — Associates{% endblock %}
+{% block content %}
+
+<!-- TOOLBAR -->
+<div class="toolbar no-print">
+  <div class="month-selector">
+    <label>Month:</label>
+    <select id="selMonth" onchange="reloadPage()">
+      {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+    </select>
+    <label>Year:</label>
+    <select id="selYear" onchange="reloadPage()">
+      {% for y in [2023,2024,2025,2026,2027] %}<option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+    <label style="margin-left:10px;">Type:</label>
+    <select id="selSlipType" onchange="switchType(this.value)" style="font-weight:700;color:#f59e0b;">
+      <option value="salary">💰 Salary</option>
+      <option value="wages" selected>🏭 Wages (Associates)</option>
+    </select>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <select id="fDept" class="form-select" style="width:160px;font-size:12px;" onchange="reloadPage()">
+      <option value="" {% if not selected_dept %}selected{% endif %}>All Departments</option>
+      {% for d in departments %}<option value="{{ d }}" {% if d==selected_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select id="fScheme" class="form-select" style="width:150px;font-size:12px;" onchange="reloadPage()">
+      <option value="" {% if not selected_scheme %}selected{% endif %}>All Schemes</option>
+      {% for s in schemes %}<option value="{{ s }}" {% if s==selected_scheme %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <input type="text" id="wSearch" placeholder="🔍 Search name / code..." class="form-control" style="width:200px;font-size:12px;" oninput="filterTable(this.value)">
+    <span id="visCount" style="font-size:12px;color:var(--muted);">{{ emp_list|length }} Associates</span>
+  </div>
+
+  <div style="display:flex;gap:6px;margin-left:auto;">
+    <button class="btn btn-ghost btn-sm" onclick="toggleAll()">☑️ Select All</button>
+    <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" id="waSelBtn" onclick="sendWASelected()">📱 WhatsApp Selected</button>
+    <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;" onclick="sendWAAll()">📱 WhatsApp All</button>
+  </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#f59e0b;">{{ emp_list|length }}</div>
+    <div style="font-size:11px;color:var(--muted);">Total Associates</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#10b981;">₹{{ "{:,.0f}".format(emp_list|sum(attribute='net_ot_pay')) }}</div>
+    <div style="font-size:11px;color:var(--muted);">Total Gross Wages</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#ef4444;">₹{{ "{:,.0f}".format(emp_list|sum(attribute='esic_on_ot')) }}</div>
+    <div style="font-size:11px;color:var(--muted);">Total ESIC</div>
+  </div>
+  <div class="mini-card" style="text-align:center;">
+    <div style="font-size:22px;font-weight:800;color:#0096dc;">₹{{ "{:,.0f}".format(emp_list|sum(attribute='net_ot_final')) }}</div>
+    <div style="font-size:11px;color:var(--muted);">Total Net Payable</div>
+  </div>
+</div>
+
+<!-- WAGES TABLE -->
+<div class="table-card">
+  <div style="overflow-x:auto;">
+    <table id="wagesTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);background:var(--surface);">
+          <th style="padding:8px;text-align:center;width:36px;"><input type="checkbox" id="masterCb" onchange="toggleAllCb(this)"></th>
+          <th style="padding:8px;text-align:left;">Emp ID</th>
+          <th style="padding:8px;text-align:left;">Name</th>
+          <th style="padding:8px;">Department</th>
+          <th style="padding:8px;text-align:right;">Gross Base (₹)</th>
+          <th style="padding:8px;text-align:right;color:#10b981;">Gross Wages (₹)</th>
+          <th style="padding:8px;text-align:right;color:#ef4444;">ESIC Deduction (₹)</th>
+          <th style="padding:8px;text-align:right;color:#0096dc;font-weight:700;">Net Payable (₹)</th>
+          <th style="padding:8px;text-align:center;">WA</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in emp_list %}
+        <tr class="w-row" data-code="{{ e.emp_code|lower }}" data-name="{{ e.emp_name|lower }}"
+            style="border-bottom:1px solid var(--border);">
+          <td style="padding:7px;text-align:center;"><input type="checkbox" class="w-cb" value="{{ e.emp_code }}" onchange="updateWaBtn()"></td>
+          <td style="padding:7px;color:#0096dc;font-weight:700;">{{ e.emp_code }}</td>
+          <td style="padding:7px;">
+            <div style="font-weight:600;">{{ e.emp_name }}</div>
+            <div style="font-size:10px;color:var(--muted);">{{ e.designation or '' }}</div>
+          </td>
+          <td style="padding:7px;font-size:11px;">{{ e.department or '—' }}</td>
+          <td style="padding:7px;text-align:right;">{{ "{:,.0f}".format(e.gross_base) }}</td>
+          <td style="padding:7px;text-align:right;font-weight:600;color:#10b981;">{{ "{:,.0f}".format(e.net_ot_pay) }}</td>
+          <td style="padding:7px;text-align:right;color:#ef4444;">{{ "{:,.0f}".format(e.esic_on_ot) }}</td>
+          <td style="padding:7px;text-align:right;font-weight:800;color:#0096dc;font-size:13px;">{{ "{:,.0f}".format(e.net_ot_final) }}</td>
+          <td style="padding:7px;text-align:center;">
+            <button onclick="sendSingleWA('{{ e.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;" title="Send WhatsApp to {{ e.emp_name }}">📱</button>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not emp_list %}
+        <tr><td colspan="9" style="padding:40px;text-align:center;color:var(--muted);">No wages data for {{ month_name }} {{ year }}. Process OT in Overtime Processing first.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div id="waResult" style="padding:10px 14px;font-size:12px;"></div>
+</div>
+
+<!-- Store employee data for WA messages -->
+<script>
+const EMP_DATA = {{ emp_list|tojson }};
+const MONTH_NAME = "{{ month_name }}";
+const YEAR = {{ year }};
+
+function reloadPage(){
+  const m=document.getElementById("selMonth").value;
+  const y=document.getElementById("selYear").value;
+  const d=document.getElementById("fDept").value;
+  const s=document.getElementById("fScheme").value;
+  const t=document.getElementById("selSlipType").value;
+  if(t==="salary"){ location.href=`/payslip?month=${m}&year=${y}`; return; }
+  location.href=`/payslip/wages?month=${m}&year=${y}&dept=${encodeURIComponent(d)}&scheme=${encodeURIComponent(s)}`;
+}
+function switchType(t){
+  const m=document.getElementById("selMonth").value;
+  const y=document.getElementById("selYear").value;
+  if(t==="salary") location.href=`/payslip?month=${m}&year=${y}`;
+}
+
+function filterTable(q){
+  const lq=(q||"").toLowerCase();
+  let vis=0;
+  document.querySelectorAll(".w-row").forEach(r=>{
+    const show=!lq||r.dataset.code.includes(lq)||r.dataset.name.includes(lq);
+    r.style.display=show?"":"none";
+    if(show)vis++;
+  });
+  document.getElementById("visCount").textContent=vis+" Associates";
+}
+
+function toggleAll(){
+  const cbs=document.querySelectorAll(".w-cb");
+  const allOn=[...cbs].every(c=>c.checked);
+  cbs.forEach(c=>c.checked=!allOn);
+  updateWaBtn();
+}
+function toggleAllCb(cb){ document.querySelectorAll(".w-cb").forEach(c=>c.checked=cb.checked); updateWaBtn(); }
+function updateWaBtn(){
+  const cnt=document.querySelectorAll(".w-cb:checked").length;
+  const btn=document.getElementById("waSelBtn");
+  if(btn) btn.textContent=cnt>0?'📱 WhatsApp Selected ('+cnt+')':'📱 WhatsApp Selected';
+}
+
+function buildMsg(e){
+  const lines=[
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `🏭 *VPL Wages Slip — ${MONTH_NAME} ${YEAR}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `Employee Code : ${e.emp_code}`,
+    `Employee Name : ${e.emp_name}`,
+    ``,
+    `💰 *Wages Details*`,
+    `Gross Wages   : ₹${fmt(e.net_ot_pay)}`,
+    ``,
+    `📉 *Deductions*`,
+    `ESIC          : ₹${fmt(e.esic_on_ot)}`,
+    ``,
+    `✅ *Net Payable : ₹${fmt(e.net_ot_final)}*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `RD HRMS & Payroll Solution`,
+  ];
+  return lines.join("\n");
+}
+function fmt(v){ return Number(v||0).toLocaleString("en-IN",{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+async function sendSingleWA(code){
+  const e=EMP_DATA.find(x=>x.emp_code===code);
+  if(!e){showToast("Not found","error");return;}
+  const r=await api("/wa/send-wages","POST",{emp_code:code,message:buildMsg(e)});
+  document.getElementById("waResult").innerHTML=r.success
+    ?`<div class="alert alert-success">✅ Sent to ${e.emp_name}</div>`
+    :`<div class="alert alert-danger">❌ ${r.error||"Failed"}</div>`;
+}
+
+async function sendWASelected(){
+  const codes=[...document.querySelectorAll(".w-cb:checked")].map(c=>c.value);
+  if(!codes.length){showToast("Select at least one employee","error");return;}
+  await sendBulk(codes);
+}
+async function sendWAAll(){
+  const visible=[...document.querySelectorAll(".w-row:not([style*='display: none']) .w-cb")].map(c=>c.value);
+  if(!visible.length){showToast("No data to send","error");return;}
+  if(!confirm(`Send WhatsApp to ${visible.length} Associates?`))return;
+  await sendBulk(visible);
+}
+async function sendBulk(codes){
+  const res=document.getElementById("waResult");
+  res.innerHTML='<div class="alert alert-info">⏳ Sending...</div>';
+  const msgs=codes.map(code=>{
+    const e=EMP_DATA.find(x=>x.emp_code===code);
+    return e?{emp_code:code,message:buildMsg(e)}:null;
+  }).filter(Boolean);
+  const r=await api("/wa/send-wages-bulk","POST",{messages:msgs});
+  res.innerHTML=r.success
+    ?`<div class="alert alert-success">✅ Sent: ${r.sent} | Failed: ${r.failed} | No Phone: ${r.no_phone}</div>`
+    :`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+</script>
+{% endblock %}

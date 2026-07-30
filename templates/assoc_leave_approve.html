@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Approval Center (Associates){% endblock %}
+{% block page_title %}✅ Approval Center — Associates OT Authorization{% endblock %}
+{% block content %}
+
+<!-- Summary badge -->
+{% if pending_count > 0 %}
+<div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:14px 20px;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+  <div style="font-size:28px;font-weight:800;">{{ pending_count }}</div>
+  <div><div style="font-weight:700;">Pending OT Authorization Requests</div><div style="font-size:11px;opacity:.85;">Approve to authorize Associates' OT hours</div></div>
+</div>
+{% endif %}
+
+<div class="alert alert-info" style="font-size:12px;margin-bottom:14px;">
+  ℹ️ Approving a request marks that Associate's absent date as <strong>OT Authorized</strong> in payroll. The OT hours for that date will be counted as <strong>Approved OT</strong> (paid at 1.3× rate).
+</div>
+
+<!-- Filters -->
+<div class="table-card" style="padding:14px;margin-bottom:14px;">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:11px;">Status</label>
+      <select class="form-select" id="f_status" style="width:120px;" onchange="applyFilter()">
+        <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>⏳ Pending</option>
+        <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>✅ Approved</option>
+        <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>❌ Rejected</option>
+        <option value="All" {% if status_filter=='All' %}selected{% endif %}>All</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:11px;">Department</label>
+      <select class="form-select" id="f_dept" style="width:160px;" onchange="applyFilter()">
+        <option value="">All Depts</option>
+        {% for d in depts %}<option value="{{ d }}" {% if d==dept_filter %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:11px;">Month</label>
+      <select class="form-select" id="f_month" style="width:110px;" onchange="applyFilter()">
+        {% for mn in months %}
+        <option value="{{ loop.index }}" {% if loop.index==month_filter %}selected{% endif %}>{{ mn }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label class="form-label" style="font-size:11px;">Year</label>
+      <select class="form-select" id="f_year" style="width:90px;" onchange="applyFilter()">
+        {% for y in range(2024,2028) %}<option {% if y==year_filter %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </div>
+    {% if status_filter == 'Pending' and requests %}
+    <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="bulkAction('Approved')">✅ Approve All Pending</button>
+    <button class="btn btn-ghost btn-sm" style="color:#f43f5e;border-color:rgba(244,63,94,.4);" onclick="bulkAction('Rejected')">❌ Reject All</button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Requests Table -->
+<div class="table-card">
+  {% if requests %}
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);background:var(--surface);">
+        <th style="padding:8px;text-align:center;width:36px;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)" style="cursor:pointer;"></th>
+        <th style="padding:8px;text-align:left;">Employee</th>
+        <th style="padding:8px;text-align:center;">Department</th>
+        <th style="padding:8px;text-align:center;">Absent Date</th>
+        <th style="padding:8px;text-align:center;">Days</th>
+        <th style="padding:8px;text-align:left;">Reason</th>
+        <th style="padding:8px;text-align:left;">Submitted By</th>
+        <th style="padding:8px;text-align:center;">Status</th>
+        <th style="padding:8px;text-align:center;">Action</th>
+      </tr></thead>
+      <tbody>
+      {% for r in requests %}
+      <tr style="border-bottom:1px solid var(--border);" id="row_{{ r.id }}">
+        <td style="padding:8px;text-align:center;">
+          {% if r.status=='Pending' %}<input type="checkbox" class="req-cb" value="{{ r.id }}" style="cursor:pointer;">{% endif %}
+        </td>
+        <td style="padding:8px;">
+          <div style="font-weight:700;">{{ r.emp_name }}</div>
+          <div style="font-size:10px;color:var(--muted);">{{ r.emp_code }}</div>
+        </td>
+        <td style="padding:8px;text-align:center;font-size:11px;">{{ r.department }}</td>
+        <td style="padding:8px;text-align:center;font-weight:700;color:#0096dc;">
+          {{ r.from_date or r.absent_date }}
+          {% if r.to_date and r.to_date != r.from_date %}<br><span style="font-size:10px;">→ {{ r.to_date }}</span>{% endif %}
+        </td>
+        <td style="padding:8px;text-align:center;">
+          {% if r.working_days %}<span style="font-weight:700;color:#10b981;">{{ r.working_days }}d</span>
+          {% elif r.to_date and r.to_date != r.from_date %}
+            <span style="font-size:10px;color:var(--muted);">—</span>
+          {% else %}<span style="font-weight:700;color:#10b981;">1d</span>{% endif %}
+        </td>
+        <td style="padding:8px;font-size:11px;color:var(--muted);">{{ r.reason or '—' }}</td>
+        <td style="padding:8px;font-size:11px;">{{ r.submitted_by or '—' }}<br><span style="color:var(--muted);font-size:10px;">{{ (r.submitted_on or '')[:10] }}</span></td>
+        <td style="padding:8px;text-align:center;">
+          {% if r.status=='Approved' %}
+          <span style="background:rgba(16,185,129,.15);color:#10b981;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;">✅ Approved</span>
+          {% elif r.status=='Rejected' %}
+          <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;">❌ Rejected</span>
+          {% else %}
+          <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;">⏳ Pending</span>
+          {% endif %}
+          {% if r.remarks %}<div style="font-size:10px;color:var(--muted);margin-top:2px;">{{ r.remarks }}</div>{% endif %}
+        </td>
+        <td style="padding:8px;text-align:center;">
+          {% if r.status=='Pending' %}
+          <div style="display:flex;gap:4px;justify-content:center;">
+            <button class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="singleAction({{ r.id }},'Approved')">✅</button>
+            <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;color:#f43f5e;border-color:rgba(244,63,94,.4);" onclick="singleAction({{ r.id }},'Rejected')">❌</button>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:40px;text-align:center;color:var(--muted);">
+    <div style="font-size:32px;margin-bottom:8px;">✅</div>
+    <div style="font-weight:700;">No requests found</div>
+    <div style="font-size:12px;margin-top:4px;">Try changing the filters above</div>
+  </div>
+  {% endif %}
+</div>
+
+<div id="actionResult" style="margin-top:12px;"></div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function applyFilter(){
+  const s=document.getElementById("f_status").value;
+  const d=document.getElementById("f_dept").value;
+  const m=document.getElementById("f_month").value;
+  const y=document.getElementById("f_year").value;
+  window.location=`/assoc-leave/approve?status=${s}&dept=${encodeURIComponent(d)}&month=${m}&year=${y}`;
+}
+function toggleAll(cb){ document.querySelectorAll(".req-cb").forEach(c=>c.checked=cb.checked); }
+
+async function singleAction(id, action){
+  const remarks = action==='Rejected' ? (prompt("Reason for rejection (optional):")||"") : "";
+  await doAction([id], action, remarks);
+}
+async function bulkAction(action){
+  const ids=[...document.querySelectorAll(".req-cb:checked")].map(c=>parseInt(c.value));
+  if(!ids.length){ showToast("No requests selected","error"); return; }
+  const remarks = action==='Rejected' ? (prompt("Reason for rejection (optional):")||"") : "";
+  if(action==='Approved' && !confirm(`Approve ${ids.length} request(s)? This will authorize their OT hours.`)) return;
+  await doAction(ids, action, remarks);
+}
+async function doAction(ids, action, remarks){
+  const div=document.getElementById("actionResult");
+  const r=await api("/assoc-leave/approve","POST",{ids,action,remarks});
+  if(r.success){
+    div.innerHTML=`<div class="alert alert-success">✅ ${r.message}</div>`;
+    setTimeout(()=>location.reload(),1500);
+  } else {
+    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Salary History{% endblock %}
+{% block page_title %}📈 Salary History — {{ emp.emp_name }}{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+  <!-- Employee Card -->
+  <div class="mini-card">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="emp-av" style="width:50px;height:50px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#0052cc,#0096dc)">{{ emp.emp_name[:2].upper() }}</div>
+      <div>
+        <div style="font-family:Syne,sans-serif;font-weight:800;font-size:17px;">{{ emp.emp_name }}</div>
+        <div style="font-size:13px;color:var(--muted);">{{ emp.emp_code }} · {{ emp.designation }} · {{ emp.department }}</div>
+        <div style="margin-top:5px;"><span class="badge badge-{{ emp.category.lower() }}">{{ emp.category }}</span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;font-size:12px;">
+      <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;">Current Basic</div>
+        <div style="font-weight:700;color:var(--green);font-size:14px;">₹{{ "{:,.0f}".format(emp.basic) }}</div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;">HRA</div>
+        <div style="font-weight:700;color:var(--green);font-size:14px;">₹{{ "{:,.0f}".format(emp.hra) }}</div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;">Current Gross</div>
+        <div style="font-weight:700;color:#0096dc;font-size:14px;">₹{{ "{:,.0f}".format((emp.basic or 0)+(emp.hra or 0)+(emp.special_allowance or 0)) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="mini-card">
+    <div class="mini-title">⚡ Quick Actions</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-primary" onclick="openModal('incrModal')">📈 Apply Increment</button>
+      <a href="/salary/increment-letter/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">📄 Increment Letter</a>
+      <a href="/employees?q={{ emp.emp_code }}" class="btn btn-ghost">✏️ Edit Employee Details</a>
+    </div>
+  </div>
+</div>
+
+<!-- Increment History -->
+<div class="table-card" style="margin-bottom:16px;">
+  <div class="table-header">
+    <span class="table-title">📈 Increment / Salary Revision History</span>
+    <span style="font-size:12px;color:var(--muted)">{{ increments|length }} revisions</span>
+  </div>
+  <table id="tblSalHis">
+    <thead><tr><th style="cursor:pointer;" onclick="sortTable('tblSalHis',0)" data-sort-col="0">#<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',1)" data-sort-col="1">Effective Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',2)" data-sort-col="2">Previous Basic<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',3)" data-sort-col="3">New Basic<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',4)" data-sort-col="4">Increment<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',5)" data-sort-col="5">% Change<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',6)" data-sort-col="6">Designation Change<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',7)" data-sort-col="7">Reason<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th><th style="cursor:pointer;" onclick="sortTable('tblSalHis',8)" data-sort-col="8">Done On<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th></tr></thead>
+    <tbody>
+      {% for inc in increments %}
+      <tr>
+        <td style="color:var(--muted);font-size:12px">{{ loop.index }}</td>
+        <td style="font-weight:700;color:#0096dc">{{ inc.effective_date }}</td>
+        <td style="color:var(--muted)">₹{{ "{:,.0f}".format(inc.old_basic) }}</td>
+        <td style="font-weight:700;color:var(--green)">₹{{ "{:,.0f}".format(inc.new_basic) }}</td>
+        <td style="color:var(--green);font-weight:700">
+          +₹{{ "{:,.0f}".format(inc.new_basic - inc.old_basic) }}
+        </td>
+        <td>
+          {% set pct = ((inc.new_basic - inc.old_basic) / inc.old_basic * 100)|round(1) if inc.old_basic else 0 %}
+          <span style="color:{% if pct > 0 %}var(--green){% else %}var(--red){% endif %};font-weight:700;">
+            {{ pct }}%
+          </span>
+        </td>
+        <td style="font-size:12px;">
+          {% if inc.new_designation %}
+            <div style="font-size:10px;color:var(--muted);">{{ inc.old_designation or '—' }}</div>
+            <div style="color:#0096dc;font-weight:700;">→ {{ inc.new_designation }}</div>
+          {% else %}
+            <span style="color:var(--muted);font-size:11px;">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px;color:var(--muted)">{{ inc.reason or '—' }}</td>
+        <td style="font-size:11px;color:var(--muted)">{{ inc.done_on or '—' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not increments %}
+      <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">No increment history found</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Monthly Salary Records -->
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">📋 Monthly Salary Records (Last 24 Months)</span>
+    <span style="font-size:12px;color:var(--muted)">Historical records are preserved permanently</span>
+  </div>
+  <table>
+    <thead><tr><th>Month</th><th>Year</th><th>Present Days</th><th>Basic Earned</th><th>HRA</th><th>Special</th><th>OT Amount</th><th>Gross</th><th>PF</th><th>ESI</th><th>TDS</th><th>Net Salary</th></tr></thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td style="font-weight:600">{{ months[r.month-1] }}</td>
+        <td>{{ r.year }}</td>
+        <td style="text-align:center">{{ r.present_days }}/{{ r.working_days }}</td>
+        <td>₹{{ "{:,.0f}".format(r.basic_earned) }}</td>
+        <td>₹{{ "{:,.0f}".format(r.hra_earned) }}</td>
+        <td>₹{{ "{:,.0f}".format(r.special_earned) }}</td>
+        <td>{% if r.ot_amount %}₹{{ "{:,.0f}".format(r.ot_amount) }}{% else %}—{% endif %}</td>
+        <td style="font-weight:600">₹{{ "{:,.0f}".format(r.gross) }}</td>
+        <td style="color:var(--red)">₹{{ "{:,.0f}".format(r.pf) }}</td>
+        <td style="color:var(--red)">₹{{ "{:,.0f}".format(r.esi) }}</td>
+        <td style="color:var(--red)">₹{{ "{:,.0f}".format(r.tds) }}</td>
+        <td style="font-weight:800;color:var(--green)">₹{{ "{:,.0f}".format(r.net_salary) }}</td>
+      </tr>
+      {% endfor %}
+      {% if not records %}
+      <tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted)">No salary records found</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Increment Modal -->
+<div class="modal-overlay" id="incrModal">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header"><span class="modal-title">📈 Apply Salary Increment</span><button class="modal-close" onclick="closeModal('incrModal')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:var(--surface);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px;">
+        <strong>{{ emp.emp_name }}</strong>
+        <span style="color:var(--muted);font-size:11px;margin-left:8px;">{{ emp.designation or '' }}</span>
+        — Current Basic: <strong style="color:var(--green)">₹{{ "{:,.0f}".format(emp.basic) }}</strong>
+      </div>
+      <div class="form-grid">
+
+        <!-- Salary Increment Checkbox -->
+        <div class="form-group col-span-2">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleHistSalarySection()">
+            <input type="checkbox" id="hist_chk_salary" style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;" onclick="event.stopPropagation();toggleHistSalarySection()" checked>
+            <label for="hist_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">💰 Salary Increment</label>
+          </div>
+        </div>
+
+        <!-- Salary Section (toggled) -->
+        <div id="hist_salary_section" class="form-group col-span-2" style="display:contents;">
+          <div class="form-group col-span-2">
+            <label class="form-label">New Basic Salary (₹)</label>
+            <input class="form-control" type="number" id="incr_new" placeholder="Enter new basic" oninput="previewIncr()">
+          </div>
+        </div>
+
+        <!-- Effective Date & Reason — always visible -->
+        <div class="form-group">
+          <label class="form-label">Effective Date</label>
+          <input class="form-control" type="date" id="incr_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reason</label>
+          <select class="form-select" id="incr_reason_type" onchange="updateIncrReason()">
+            <option value="Annual Increment">Annual Increment</option>
+            <option value="Promotion">Promotion</option>
+            <option value="Performance Bonus">Performance Bonus</option>
+            <option value="Salary Revision">Salary Revision</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group col-span-2" id="incrCustomDiv" style="display:none;">
+          <input class="form-control" id="incr_custom" placeholder="Specify reason...">
+        </div>
+
+        <!-- Change Designation Checkbox -->
+        <div class="form-group col-span-2" style="margin-top:4px;">
+          <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleHistDesigChange()">
+            <input type="checkbox" id="hist_chk_desig" style="width:16px;height:16px;cursor:pointer;accent-color:#0096dc;" onclick="event.stopPropagation();toggleHistDesigChange()">
+            <label for="hist_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;">🏷️ Change Designation</label>
+          </div>
+        </div>
+        <div class="form-group col-span-2" id="hist_desig_grp" style="display:none;">
+          <label class="form-label">New Designation</label>
+          <select class="form-select" id="hist_new_desig">
+            <option value="">— Select Designation —</option>
+            {% for d in designations %}
+            <option value="{{ d }}">{{ d }}</option>
+            {% endfor %}
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Current: {{ emp.designation or '—' }}</div>
+        </div>
+      </div>
+      <div id="incr_preview" style="display:none;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('incrModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveIncrement()">✅ Apply Increment</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const EMP_CODE = "{{ emp.emp_code }}";
+const CURRENT_BASIC = {{ emp.basic or 0 }};
+
+document.getElementById("incr_date").value = new Date().toISOString().split('T')[0];
+
+function updateIncrReason(){
+  document.getElementById("incrCustomDiv").style.display =
+    document.getElementById("incr_reason_type").value === "Other" ? "block" : "none";
+}
+
+function toggleHistSalarySection(){
+  const chk = document.getElementById("hist_chk_salary");
+  const sec = document.getElementById("hist_salary_section");
+  // display:contents trick doesn't allow toggling — use individual field visibility
+  const fld = document.getElementById("incr_new");
+  const preview = document.getElementById("incr_preview");
+  if(chk.checked){
+    fld.closest(".form-group").style.display = "";
+  } else {
+    fld.closest(".form-group").style.display = "none";
+    preview.style.display = "none";
+  }
+}
+
+function toggleHistDesigChange(){
+  const chk = document.getElementById("hist_chk_desig");
+  document.getElementById("hist_desig_grp").style.display = chk.checked ? "block" : "none";
+}
+
+function previewIncr(){
+  if(!document.getElementById("hist_chk_salary").checked) return;
+  const newBasic = parseFloat(document.getElementById("incr_new").value) || 0;
+  if(newBasic > 0){
+    const diff = newBasic - CURRENT_BASIC;
+    const pct  = CURRENT_BASIC > 0 ? ((diff/CURRENT_BASIC)*100).toFixed(1) : 0;
+    const newHRA = Math.round(newBasic * 0.4);
+    const newGross = newBasic + newHRA;
+    const div = document.getElementById("incr_preview");
+    div.style.display = "block";
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div><div style="font-size:10px;color:var(--muted)">INCREMENT</div><div style="font-weight:700;color:var(--green)">+₹${diff.toLocaleString('en-IN')} (${pct}%)</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">NEW HRA (Auto)</div><div style="font-weight:700;color:var(--green)">₹${newHRA.toLocaleString('en-IN')}</div></div>
+        <div><div style="font-size:10px;color:var(--muted)">NEW GROSS</div><div style="font-weight:700;color:#0096dc">₹${newGross.toLocaleString('en-IN')}</div></div>
+      </div>`;
+  }
+}
+
+async function saveIncrement(){
+  const doSalary = document.getElementById("hist_chk_salary").checked;
+  const chkDesig = document.getElementById("hist_chk_desig").checked;
+  if(!doSalary && !chkDesig){ showToast("Select at least Salary Increment or Change Designation","error"); return; }
+
+  const newBasic = doSalary ? parseFloat(document.getElementById("incr_new").value) : null;
+  if(doSalary && (!newBasic || newBasic <= 0)){ showToast("Please enter new basic salary!","error"); return; }
+
+  const newDesig = chkDesig ? document.getElementById("hist_new_desig").value : "";
+  if(chkDesig && !newDesig){ showToast("Please select a designation","error"); return; }
+
+  const reasonType = document.getElementById("incr_reason_type").value;
+  const reason = reasonType === "Other" ? document.getElementById("incr_custom").value : reasonType;
+
+  const payload = {
+    emp_code: EMP_CODE,
+    salary_change: doSalary,
+    increment_type: "amount",
+    increment_value: doSalary ? (newBasic - CURRENT_BASIC) : 0,
+    effective_date: document.getElementById("incr_date").value,
+    reason: reason,
+    new_designation: newDesig
+  };
+
+  const r = await api("/salary/increment","POST", payload);
+  if(r.success){
+    let msg = "";
+    if(r.salary_changed) msg += `Salary updated. New Basic: ₹${r.new_basic?.toLocaleString('en-IN')}`;
+    if(r.new_designation) msg += (msg ? " | " : "") + `Designation → ${r.new_designation}`;
+    showToast("✅ " + (msg || "Changes applied!"));
+    closeModal("incrModal");
+    setTimeout(()=>location.reload(),1200);
+  }
+  else showToast(r.error||"Error!","error");
+}
+</script>
+{% endblock %}

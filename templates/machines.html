@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block title %}Biometric Machines{% endblock %}
+{% block page_title %}🖥️ Machine Master{% endblock %}
+{% block content %}
+
+<!-- Auto Import Status Card -->
+<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <span style="font-size:20px;">⚡</span>
+  <div style="flex:1;">
+    <div style="font-weight:700;font-size:13px;color:#10b981;">Auto Import — Every 1 Minute
+      <span id="autoImportDot" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-left:6px;animation:pulse 1.5s infinite;"></span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);">Attendance is automatically imported from all active machines every 1 minute</div>
+  </div>
+  <div style="font-size:12px;color:#10b981;font-weight:600;" id="lastAutoImportTime">● Live</div>
+</div>
+<style>
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+@keyframes downloadAnim {
+  0%   { transform: translateY(-8px); opacity:0; }
+  30%  { transform: translateY(0);    opacity:1; }
+  70%  { transform: translateY(0);    opacity:1; }
+  100% { transform: translateY(8px);  opacity:0; }
+}
+@keyframes ripple {
+  0%   { transform:scale(0);   opacity:.6; }
+  100% { transform:scale(2.5); opacity:0;  }
+}
+.dl-btn-anim { position:relative; overflow:hidden; }
+.dl-btn-anim:active::after {
+  content:'';position:absolute;top:50%;left:50%;
+  width:60px;height:60px;margin:-30px;
+  background:rgba(255,255,255,.3);border-radius:50%;
+  animation:ripple .4s ease-out;
+}
+</style>
+
+
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="resetForm();openModal('addModal')">➕ Add Machine</button>
+  {% if machines %}
+  <button class="btn btn-success" onclick="openModal('importAllModal')">⚡ Import All Machines</button>
+
+  {% endif %}
+  <div style="margin-left:auto;font-size:13px;color:var(--muted);">{{ machines|length }} machine{{ 's' if machines|length != 1 else '' }} configured</div>
+</div>
+
+{% if not machines %}
+<div style="text-align:center;padding:80px 20px;color:var(--muted);">
+  <div style="font-size:56px;margin-bottom:16px;">🖥️</div>
+  <div style="font-family:Syne,sans-serif;font-weight:800;font-size:20px;color:var(--text);margin-bottom:8px;">No Machines Added Yet</div>
+  <div style="font-size:14px;margin-bottom:24px;">Add your biometric machines to start importing attendance</div>
+  <button class="btn btn-primary" onclick="resetForm();openModal('addModal')" style="padding:10px 28px;">➕ Add Your First Machine</button>
+</div>
+{% else %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;">
+  {% for m in machines %}
+  <div style="background:var(--card);border:1.5px solid {% if m.is_active %}rgba(0,150,220,.35){% else %}var(--border){% endif %};border-radius:16px;padding:20px;position:relative;">
+    <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;align-items:center;">
+      {% if m.connection_mode == 'adms' %}
+      <span style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">📡 ADMS</span>
+      {% else %}
+      <span style="background:rgba(0,150,220,.15);color:#0096dc;border:1px solid rgba(0,150,220,.3);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">🔌 ZK</span>
+      {% endif %}
+      {% if not m.is_active %}
+        <span class="badge badge-inactive">● Inactive</span>
+      {% elif m.connection_mode == 'adms' %}
+        {% if m.adms_online %}
+        <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">🟢 Online</span>
+        {% elif m.adms_last_seen %}
+        <span style="background:rgba(239,68,68,.15);color:#ef4444;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">🔴 Offline</span>
+        {% else %}
+        <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">⏳ Never Connected</span>
+        {% endif %}
+      {% else %}
+        <span class="badge badge-active">● Active</span>
+      {% endif %}
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-family:Syne,sans-serif;font-weight:800;font-size:16px;color:#0096dc;margin-bottom:4px;">🖥️ {{ m.machine_name }}</div>
+      {% if m.location %}<div style="font-size:12px;color:var(--muted);">📍 {{ m.location }}</div>{% endif %}
+    </div>
+    <div style="background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="color:var(--muted);">IP Address</span>
+        <strong style="color:#0096dc;">{{ m.ip_address }}:{{ m.port }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--muted);">Password</span>
+        <span>{{ '****' if m.password else 'None' }}</span>
+      </div>
+      {% if m.connection_mode == 'adms' %}
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">
+          {% if m.serial_number %}<div>SN: <strong style="color:var(--text);">{{ m.serial_number }}</strong></div>{% endif %}
+          {% if m.adms_last_seen %}<div>Last Seen: <strong style="color:{% if m.adms_online %}#10b981{% else %}#ef4444{% endif %};">{{ m.adms_last_seen }}</strong></div>{% endif %}
+          {% if m.last_sync %}<div>Last Push: {{ m.last_sync }} · {{ m.last_sync_count or 0 }} records</div>{% endif %}
+        </div>
+      {% elif m.last_sync %}
+        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);">Last Sync: {{ m.last_sync }} · {{ m.last_sync_count or 0 }} records</div>
+      {% endif %}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="testConn('{{ m.ip_address }}',{{ m.port }},{{ m.password or 0 }},this)">🔌 Test</button>
+      <button class="btn btn-primary btn-sm" onclick="openImport('{{ m.id }}','{{ m.machine_name }}','{{ m.ip_address }}',{{ m.port }},{{ m.password or 0 }})">📥 Import</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 40px 40px;gap:6px;">
+
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="getInfoCard('{{ m.ip_address }}',{{ m.port }},{{ m.password or 0 }})">📊 Info</button>
+      <button class="btn btn-ghost btn-sm" style="padding:4px;" onclick="editMachine({{ m.id }})">✏️</button>
+      <button class="btn btn-danger btn-sm" style="padding:4px;" onclick="delMachine({{ m.id }},'{{ m.machine_name }}')">🗑️</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ADD/EDIT Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header"><span class="modal-title" id="addModalTitle">➕ Add Biometric Machine</span><button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+
+      <!-- Connection Type -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Connection Type</label>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <label style="flex:1;cursor:pointer;background:rgba(0,150,220,.1);border:2px solid rgba(0,150,220,.3);border-radius:10px;padding:12px;text-align:center;" id="zkTypeLabel">
+            <input type="radio" name="conn_type" id="type_zk" value="zk" checked onchange="toggleConnType()">
+            <div style="font-size:20px;margin:4px 0;">🔌</div>
+            <div style="font-weight:700;font-size:13px;color:#0096dc;">ZK Direct</div>
+            <div style="font-size:11px;color:var(--muted);">Software connects to Machine</div>
+          </label>
+          <label style="flex:1;cursor:pointer;background:rgba(16,185,129,.1);border:2px solid rgba(16,185,129,.3);border-radius:10px;padding:12px;text-align:center;" id="admsTypeLabel">
+            <input type="radio" name="conn_type" id="type_adms" value="adms" onchange="toggleConnType()">
+            <div style="font-size:20px;margin:4px 0;">📡</div>
+            <div style="font-weight:700;font-size:13px;color:#10b981;">ADMS Push</div>
+            <div style="font-size:11px;color:var(--muted);">Machine pushes data to Software</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group col-span-2"><label class="form-label">Machine Name *</label><input class="form-control" id="m_name" placeholder="e.g. Main Gate, Hall-2 Machine"></div>
+        <div class="form-group"><label class="form-label">IP Address *</label><input class="form-control" id="m_ip" placeholder="192.168.0.125"></div>
+
+        <!-- ZK fields -->
+        <div class="form-group" id="port_field">
+          <label class="form-label">Port</label>
+          <input class="form-control" id="m_port" value="4370">
+        </div>
+        <div class="form-group" id="pass_field">
+          <label class="form-label">Password (0 = none)</label>
+          <input class="form-control" id="m_pass" value="0">
+        </div>
+
+        <!-- ADMS info -->
+        <div class="form-group col-span-2" id="adms_info" style="display:none;">
+          <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:14px;font-size:12px;">
+            <div style="font-weight:700;color:#10b981;margin-bottom:10px;">📡 ADMS Machine Setup</div>
+            <div style="color:var(--muted);margin-bottom:10px;">Machine me ye settings karo:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Server Address (AWS IP)</div>
+                <input class="form-control" id="adms_server_ip_input" value="{{ adms_server_address }}"
+                  placeholder="e.g. 65.2.181.134 ya domain" style="font-size:12px;">
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Server Port</div>
+                <input class="form-control" id="adms_server_port_input" value="{{ adms_server_port }}"
+                  placeholder="5000" style="font-size:12px;">
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;margin-bottom:10px;" onclick="saveAdmsSettings()">💾 Save Server Address</button>
+            <div id="admsSettingResult"></div>
+            <div style="background:var(--surface);border-radius:8px;padding:10px;font-size:11px;line-height:2;">
+              <strong>Machine me daalo:</strong><br>
+              Server Address: <strong style="color:#0096dc;" id="adms_display_ip">{{ adms_server_address if adms_server_address else "—" }}</strong><br>
+              Server Port: <strong style="color:#0096dc;" id="adms_display_port">{{ adms_server_port }}</strong><br>
+              Server Mode: <strong style="color:#0096dc;">ADMS</strong>
+            </div>
+            <div style="color:#10b981;margin-top:8px;">✅ Machine automatically push karegi attendance data!</div>
+          </div>
+        </div>
+
+        <div class="form-group"><label class="form-label">Location</label><input class="form-control" id="m_loc" placeholder="e.g. Hall-1, Main Gate"></div>
+        <div class="form-group"><label class="form-label">Serial Number (SN) <span style="font-size:10px;color:var(--muted);">ADMS ke liye</span></label><input class="form-control" id="m_sn" placeholder="Machine ka SN number daalo"></div>
+        <div class="form-group col-span-2"><label class="form-check" style="cursor:pointer;"><input type="checkbox" id="m_active" checked> Machine is Active</label></div>
+      </div>
+      <div id="addResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMachine()">💾 Save Machine</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Single Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:18px 18px 0 0;">
+      <span class="modal-title" id="importModalTitle" style="color:white;">📥 Import Attendance</span>
+      <button class="modal-close" onclick="closeModal('importModal')" style="background:rgba(255,255,255,.2)">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="imp_ip"><input type="hidden" id="imp_port"><input type="hidden" id="imp_pass">
+      <div id="machineInfoBox" style="display:none;background:var(--surface);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;"></div>
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:12px;color:var(--muted);margin-bottom:10px;">📅 Import Options:</div>
+        <label class="form-check" style="display:block;cursor:pointer;margin-bottom:8px;"><input type="radio" name="imp_opt" id="imp_curr" checked> <span style="font-weight:600;color:#0096dc;">Current Month Only</span> <span style="font-size:11px;color:var(--muted);">({{ today_month_name }} {{ today_year }})</span></label>
+        <label class="form-check" style="display:block;cursor:pointer;"><input type="radio" name="imp_opt" id="imp_all_opt"> <span style="font-weight:600;color:var(--yellow);">Import All Months</span> <span style="font-size:11px;color:var(--muted);">(all data on machine)</span></label>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="getInfo()" style="margin-bottom:10px;width:100%;">📊 Check Machine Data First</button>
+      <div id="importResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('importModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doImport()">📥 Import Attendance</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import ALL Modal -->
+<div class="modal-overlay" id="importAllModal">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#10b981,#059669);border-radius:18px 18px 0 0;">
+      <span class="modal-title" style="color:white;">⚡ Import All Machines at Once</span>
+      <button class="modal-close" onclick="closeModal('importAllModal')" style="background:rgba(255,255,255,.2)">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">All {{ machines|length }} active machines will be imported simultaneously.</div>
+      <div style="background:var(--surface);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <label class="form-check" style="display:block;cursor:pointer;margin-bottom:8px;"><input type="radio" name="all_opt" id="all_curr" checked> <span style="font-weight:600;color:#0096dc;">Current Month Only</span></label>
+        <label class="form-check" style="display:block;cursor:pointer;"><input type="radio" name="all_opt" id="all_months"> <span style="font-weight:600;color:var(--yellow);">Import All Months</span> <span style="font-size:11px;color:var(--muted);">(3-5 min per machine)</span></label>
+      </div>
+      <div id="importAllResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('importAllModal')">Cancel</button>
+      <button class="btn btn-success" onclick="doImportAll()">⚡ Import All Now</button>
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+{% block scripts %}
+<script>
+const TODAY_MONTH={{ today_month }}, TODAY_YEAR={{ today_year }};
+
+function toggleConnType(){
+  const isAdms = document.getElementById("type_adms").checked;
+  document.getElementById("port_field").style.display  = isAdms ? "none" : "block";
+  document.getElementById("pass_field").style.display  = isAdms ? "none" : "block";
+  document.getElementById("adms_info").style.display   = isAdms ? "block" : "none";
+  document.getElementById("zkTypeLabel").style.borderColor   = isAdms ? "rgba(0,150,220,.3)"   : "#0096dc";
+  document.getElementById("admsTypeLabel").style.borderColor = isAdms ? "#10b981" : "rgba(16,185,129,.3)";
+  if(isAdms){
+    document.getElementById("m_port").value = "5000";
+    document.getElementById("m_pass").value = "0";
+  } else {
+    document.getElementById("m_port").value = "4370";
+  }
+}
+
+async function saveAdmsSettings(){
+  const ip   = document.getElementById("adms_server_ip_input").value.trim();
+  const port = document.getElementById("adms_server_port_input").value.trim();
+  if(!ip){showToast("Server Address daalo!","error");return;}
+  const r = await api("/machines/save-adms-settings","POST",{adms_server_address:ip, adms_server_port:port});
+  if(r.success){
+    document.getElementById("admsSettingResult").innerHTML='<div style="color:#10b981;font-size:11px;margin-top:4px;">✅ Saved!</div>';
+    document.getElementById("adms_display_ip").textContent=ip;
+    document.getElementById("adms_display_port").textContent=port;
+    showToast("ADMS Server Address saved!");
+  } else {
+    showToast("Error: "+r.error,"error");
+  }
+}
+
+function resetForm(){
+  document.getElementById("editId").value="";
+  document.getElementById("m_name").value="";
+  document.getElementById("m_ip").value="";
+  document.getElementById("m_port").value="4370";
+  document.getElementById("m_pass").value="0";
+  document.getElementById("m_loc").value="";
+  document.getElementById("m_sn").value="";
+  document.getElementById("m_active").checked=true;
+  document.getElementById("addResult").innerHTML="";
+  document.getElementById("addModalTitle").textContent="➕ Add Biometric Machine";
+  // Reset to ZK type
+  document.getElementById("type_zk").checked=true;
+  toggleConnType();
+}
+
+async function saveMachine(){
+  const eid=document.getElementById("editId").value;
+  const connMode=document.getElementById("type_adms").checked?"adms":"zk";
+  const data={machine_name:document.getElementById("m_name").value.trim(),ip_address:document.getElementById("m_ip").value.trim(),port:parseInt(document.getElementById("m_port").value),password:parseInt(document.getElementById("m_pass").value||0),location:document.getElementById("m_loc").value.trim(),serial_number:document.getElementById("m_sn").value.trim(),connection_mode:connMode,is_active:document.getElementById("m_active").checked};
+  if(!data.machine_name||!data.ip_address){showToast("Name and IP are required!","error");return;}
+  const url=eid?`/attendance/machines/edit/${eid}`:"/attendance/machines/add";
+  const r=await api(url,"POST",data);
+  if(r.success){showToast("Machine saved!");setTimeout(()=>{closeModal("addModal");location.reload();},1200);}
+  else document.getElementById("addResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+}
+
+async function editMachine(id){
+  const r=await api(`/machines/get/${id}`);
+  if(!r.id){showToast("Not found!","error");return;}
+  document.getElementById("editId").value=r.id;
+  document.getElementById("m_name").value=r.machine_name;
+  document.getElementById("m_ip").value=r.ip_address;
+  document.getElementById("m_port").value=r.port;
+  document.getElementById("m_pass").value=r.password||0;
+  document.getElementById("m_sn").value=r.serial_number||"";
+  document.getElementById("m_loc").value=r.location||"";
+  document.getElementById("m_active").checked=r.is_active==1;
+  // Set connection type radio
+  if(r.connection_mode==="adms"){
+    document.getElementById("type_adms").checked=true;
+  } else {
+    document.getElementById("type_zk").checked=true;
+  }
+  toggleConnType();
+  document.getElementById("addModalTitle").textContent="✏️ Edit Machine";
+  document.getElementById("addResult").innerHTML="";
+  openModal("addModal");
+}
+
+async function delMachine(id,name){
+  if(!confirm(`Delete machine "${name}"?`))return;
+  const r=await api(`/attendance/machines/delete/${id}`,"POST",{});
+  if(r.success){showToast("Deleted!");location.reload();}
+  else showToast("Error!","error");
+}
+
+async function testConn(ip,port,pass_,btn){
+  btn.textContent="Testing...";btn.disabled=true;
+  const r=await api("/attendance/connect-machine","POST",{ip,port,password:pass_});
+  btn.textContent="🔌 Test";btn.disabled=false;
+  if(r.success)showToast(`✅ Connected! ${r.device||""}`);
+  else showToast("❌ "+r.error,"error");
+}
+
+function openImport(id,name,ip,port,pass_){
+  document.getElementById("imp_ip").value=ip;
+  document.getElementById("imp_port").value=port;
+  document.getElementById("imp_pass").value=pass_;
+  document.getElementById("importModalTitle").textContent=`📥 Import — ${name}`;
+  document.getElementById("importResult").innerHTML="";
+  document.getElementById("machineInfoBox").style.display="none";
+  openModal("importModal");
+}
+
+async function getInfoCard(ip,port,pass_){
+  showToast("Fetching...");
+  const r=await api("/attendance/machine-info","POST",{ip,port:parseInt(port),password:parseInt(pass_||0)});
+  if(r.success)showToast(`${r.total} logs | ${r.first} to ${r.last}`);
+  else showToast("❌ "+r.error,"error");
+}
+
+async function getInfo(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="Checking...";btn.disabled=true;
+  const r=await api("/attendance/machine-info","POST",{ip:document.getElementById("imp_ip").value,port:parseInt(document.getElementById("imp_port").value),password:parseInt(document.getElementById("imp_pass").value||0)});
+  btn.textContent="📊 Check Machine Data First";btn.disabled=false;
+  const box=document.getElementById("machineInfoBox");
+  if(r.success){
+    box.style.display="block";
+    const mList=Object.entries(r.months||{}).map(([m,c])=>`<span style="background:rgba(0,150,220,.1);border-radius:4px;padding:2px 7px;font-size:11px;">${m}: ${c}</span>`).join(" ");
+    box.innerHTML=`<strong style="color:#0096dc;">Machine Data:</strong> ${r.total} logs | ${r.first} → ${r.last}<br><div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">${mList}</div>`;
+  }else{box.style.display="block";box.innerHTML=`<span style="color:var(--red)">❌ ${r.error}</span>`;}
+}
+
+async function doImport(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;
+  btn.textContent="⏳ Importing...";btn.disabled=true;
+  const allM=document.getElementById("imp_all_opt").checked;
+  const div=document.getElementById("importResult");
+  div.innerHTML=`<div class="alert alert-info">⏳ Starting import... Please wait.<div style="margin-top:6px;height:4px;background:var(--border);border-radius:2px;"><div id="pbar" style="height:4px;background:linear-gradient(90deg,#0052cc,#0096dc);width:5%;border-radius:2px;transition:width 0.8s;"></div></div><div id="pstage" style="font-size:11px;margin-top:4px;color:var(--muted);"></div></div>`;
+  try{
+    // Start import in background (returns immediately)
+    await api("/attendance/import-machine","POST",{
+      ip:document.getElementById("imp_ip").value,
+      port:parseInt(document.getElementById("imp_port").value),
+      password:parseInt(document.getElementById("imp_pass").value||0),
+      month:TODAY_MONTH,year:TODAY_YEAR,all_months:allM
+    });
+    // Poll progress until done
+    let attempts=0;
+    const poll=setInterval(async()=>{
+      attempts++;
+      try{
+        const p=await fetch("/attendance/import-progress").then(r=>r.json());
+        const pbar=document.getElementById("pbar");
+        const pstage=document.getElementById("pstage");
+        if(pbar) pbar.style.width=(p.percent||5)+"%";
+        if(pstage) pstage.textContent=p.stage||"";
+        if(p.status==="done"||p.status==="error"||attempts>300){
+          clearInterval(poll);
+          btn.textContent="📥 Import Attendance";btn.disabled=false;
+          if(p.status==="done"||p.success){
+            let msg=`<div class="alert alert-success" style="font-size:12px;line-height:1.9;">`;
+            msg+=`📊 Total logs on machine: <strong>${p.total||0}</strong><br>`;
+            msg+=`✅ Records imported: <strong>${p.imported||0}</strong><br>`;
+            if((p.duplicates_removed||0)>0)
+              msg+=`🔁 Duplicate punches removed: <strong>${p.duplicates_removed}</strong><br>`;
+            if((p.no_out_punch||0)>0)
+              msg+=`⚠️ No OUT punch — shift end used: <strong>${p.no_out_punch}</strong><br>`;
+            if((p.unmatched_count||0)>0)
+              msg+=`❓ Unmatched machine IDs: <strong>${p.unmatched_count}</strong> <span style="color:var(--muted);font-size:11px;">(${(p.unmatched_ids||[]).join(", ")})</span><br>`;
+            msg+=`</div>`;
+            div.innerHTML=msg;
+          } else {
+            div.innerHTML=`<div class="alert alert-danger">❌ ${p.error||"Import failed"}</div>`;
+          }
+        }
+      }catch(pe){ /* ignore poll errors */ }
+    },1500);
+  }catch(e){
+    btn.textContent="📥 Import Attendance";btn.disabled=false;
+    div.innerHTML=`<div class="alert alert-danger">❌ ${e.message||"Network error"}</div>`;
+  }
+}
+
+async function doImportAll(){
+  const btn=(typeof event!=="undefined"&&event?.target)||document.activeElement;btn.textContent="⏳ Importing...";btn.disabled=true;
+  const allM=document.getElementById("all_months").checked;
+  const div=document.getElementById("importAllResult");
+  div.innerHTML=`<div class="alert alert-info">⏳ Importing from all machines...</div>`;
+  const r=await api("/attendance/import-all-machines","POST",{month:TODAY_MONTH,year:TODAY_YEAR,all_months:allM});
+  btn.textContent="⚡ Import All Now";btn.disabled=false;
+  if(r.success){
+    const rows=r.machines.map(m=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span>🖥️ ${m.machine} (${m.ip})</span><span style="color:${m.status==='success'?'var(--green)':'var(--red)'};">${m.status==='success'?`✅ ${m.imported} imported`:`❌ ${m.error||'Error'}`}</span></div>`).join("");
+    div.innerHTML=`<div style="background:var(--surface);border-radius:10px;padding:12px;margin-top:8px;"><div style="font-weight:700;margin-bottom:8px;color:var(--green);">Total Imported: ${r.total_imported}</div>${rows}</div>`;
+    setTimeout(()=>{closeModal("importAllModal");location.reload();},3000);
+  }else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Error"}</div>`;
+}
+
+
+
+// Auto import time setting
+async function saveAutoTime(){
+  const t = document.getElementById("autoImportTime").value;
+  const r = await api("/machines/auto-import-settings","POST",{auto_import_time:t});
+  if(r.success){
+    const el = document.getElementById("autoTimeSaved");
+    el.style.display="inline";
+    setTimeout(()=>el.style.display="none", 2000);
+    showToast(`✅ Auto import set to ${t} daily!`);
+  }
+}
+
+// Load saved time on page load
+(async()=>{
+  try{
+    const r = await fetch("/machines/auto-import-settings");
+    const d = await r.json();
+    if(d.time) document.getElementById("autoImportTime").value = d.time;
+  }catch(e){}
+})();
+</script>
+{% endblock %}

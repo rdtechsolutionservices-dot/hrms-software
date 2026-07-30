@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Add Templates{% endblock %}
+{% block page_title %}🧩 Add Templates{% endblock %}
+{% block content %}
+
+<div class="table-card" style="padding:16px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-weight:700;font-size:15px;">🧩 Build Your Own Letter Formats</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6;">
+        Create any letter format you need (Appointment, Show Cause, Termination, or anything else) — write the content once,
+        mark the changeable parts as fields, and save it. It will then show up on the
+        <a href="/letters" style="color:#0096dc;">Letter Generator</a> page, ready to fill in and generate.
+      </div>
+    </div>
+    <a href="/letters/templates/new" class="btn btn-success" style="white-space:nowrap;">+ New Letter Template</a>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">📋 Saved Templates</span>
+    <span style="font-size:12px;color:var(--muted);">{{ templates|length }} template(s)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Template Name</th>
+        <th>Letter Title</th>
+        <th>Doc Prefix</th>
+        <th>Header</th>
+        <th>Footer</th>
+        <th>Last Updated</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in templates %}
+      <tr>
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td style="font-weight:700;">{{ t.template_name }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ t.letter_title or '—' }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ t.doc_code_prefix or '—' }}</td>
+        <td style="text-align:center;">{{ '✅' if t.show_header else '—' }}</td>
+        <td style="text-align:center;">{{ '✅' if t.show_footer else '—' }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ t.updated_on or t.created_on or '—' }}</td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <a href="/letters/templates/edit/{{ t.id }}" class="btn btn-ghost btn-sm" style="font-size:11px;">✏️ Edit</a>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#ef4444;border-color:#ef4444;" onclick="deleteTemplate({{ t.id }}, '{{ t.template_name|replace("'", "") }}')">🗑️ Delete</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not templates %}
+  <div style="text-align:center;padding:40px;color:var(--muted);">
+    No letter templates yet. Click "+ New Letter Template" to build your first one.
+  </div>
+  {% endif %}
+  <div style="padding:12px 16px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);">
+    To generate a letter from a saved template, go to the <a href="/letters" style="color:#0096dc;">Letter Generator</a> page — every active template shows up there.
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function deleteTemplate(id, name){
+  if(!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+  const r = await fetch(`/letters/templates/delete/${id}`, {method:"POST"}).then(r=>r.json());
+  if(r.success){ showToast("Template deleted","success"); setTimeout(()=>location.reload(), 500); }
+  else showToast(r.error || "Delete failed","error");
+}
+</script>
+{% endblock %}

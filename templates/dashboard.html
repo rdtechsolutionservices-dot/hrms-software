@@ -1,0 +1,866 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+{% set cel = celebrations if celebrations else {} %}
+
+{# ══ TODAY WISHES ══ #}
+{% set bdays_today = cel.birthdays_today if cel.birthdays_today else [] %}
+{% set annis_today = cel.anniversaries_today if cel.anniversaries_today else [] %}
+{% if bdays_today or annis_today %}
+<div style="background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08));border:2px solid rgba(245,158,11,.5);border-radius:14px;padding:16px 20px;margin-bottom:14px;box-shadow:0 4px 24px rgba(245,158,11,.12);">
+  <div style="font-weight:800;font-size:15px;color:#f59e0b;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+    🎉 <span>Today's Celebrations — {{ today }}</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;">
+    {% for b in bdays_today %}
+    <div style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:26px;">🎂</span>
+      <div>
+        <div style="font-weight:800;font-size:13px;">{{ b.name }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">🎂 Birthday Today! &nbsp;·&nbsp; {{ b.dept or '' }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    {% for a in annis_today %}
+    <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:26px;">🎊</span>
+      <div>
+        <div style="font-weight:800;font-size:13px;">{{ a.name }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">🎊 {{ a.years }} Year Anniversary! &nbsp;·&nbsp; {{ a.dept or '' }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ══ TOMORROW REMINDERS ══ #}
+{% set bdays_tom = cel.birthdays_tomorrow if cel.birthdays_tomorrow else [] %}
+{% set annis_tom = cel.anniversaries_tomorrow if cel.anniversaries_tomorrow else [] %}
+{% if bdays_tom or annis_tom %}
+<div style="background:rgba(0,82,204,.1);border:1px solid rgba(0,82,204,.3);border-radius:12px;padding:12px 18px;margin-bottom:14px;">
+  <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:8px;">🔔 Tomorrow's Reminders</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;">
+    {% for b in bdays_tom %}
+    <span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#f59e0b;">🎂 {{ b.name }}'s Birthday Tomorrow</span>
+    {% endfor %}
+    {% for a in annis_tom %}
+    <span style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#10b981;">🎊 {{ a.name }}'s {{ a.years }}yr Work Anniversary Tomorrow</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── 4 MAIN KPI BOXES ── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+
+  <!-- Box 1: Active Employees -->
+  <div class="kpi-box" onclick="showDrilldown('active')" style="cursor:pointer;background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">👥</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Active Employees</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ total }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
+      <span>🏭 Associate: <b>{{ assoc }}</b></span>
+      <span>👔 Staff: <b>{{ staff }}</b></span>
+    </div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">👥</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
+  </div>
+
+  <!-- Box 2: Present Today -->
+  <div class="kpi-box" onclick="showDrilldown('present')" style="cursor:pointer;background:linear-gradient(135deg,#059669,#10b981);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">✅</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Present Today</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ present_staff + present_assoc }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
+      <span>🏭 Associate: <b>{{ present_assoc }}</b></span>
+      <span>👔 Staff: <b>{{ present_staff }}</b></span>
+    </div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">✅</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
+  </div>
+
+  <!-- Box 3: Absent Today -->
+  <div class="kpi-box" onclick="showDrilldown('absent')" style="cursor:pointer;background:linear-gradient(135deg,#dc2626,#f43f5e);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">❌</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Absent Today</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ absent_staff + absent_assoc }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
+      <span>🏭 Associate: <b>{{ absent_assoc }}</b></span>
+      <span>👔 Staff: <b>{{ absent_staff }}</b></span>
+    </div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">❌</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
+  </div>
+
+  <!-- Box 3b: Yet to Arrive -->
+  <div class="kpi-box" onclick="toggleYetToArrive()" style="cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">⏳</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Yet to Arrive</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ yet_to_arrive }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;">Shift assigned, not punched yet</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">⏳</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
+  </div>
+
+  <!-- Box 3c: WOP Today -->
+  <div class="kpi-box" onclick="toggleWOP()" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">📅</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WOP Today</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ wop_today }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off but Present</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">📅</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
+  </div>
+
+  <!-- Box 3d: On Leave Today -->
+  <div class="kpi-box" onclick="toggleLeave()" style="cursor:pointer;background:linear-gradient(135deg,#0891b2,#06b6d4);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">🏖️</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">On Leave Today</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ leave_today }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;">Approved leave for today</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">🏖️</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
+  </div>
+
+  <!-- Box 4: OT This Month -->
+  <div class="kpi-box" onclick="showDrilldown('ot')" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">⏱️</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Associate OT ({{ month_name }})</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ ot_assoc_hrs }} hrs</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
+      <span>Associate: <b>{{ ot_assoc_hrs }} hrs</b> this month</span>
+    </div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">⏱️</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
+  </div>
+  <!-- Box 5: Week Off & Absent -->
+  <div class="kpi-box" onclick="toggleWOAbsent()" style="cursor:pointer;background:linear-gradient(135deg,#374151,#6b7280);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="font-size:28px;margin-bottom:4px;">📵</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WO & Absent</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ wo_absent }}</div>
+    <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off day, did not come</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">📵</div>
+    <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
+  </div>
+</div>
+
+<!-- ── WO & ABSENT PANEL ── -->
+<div id="woAbsentPanel" style="display:none;background:var(--card);border:1px solid rgba(107,114,128,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;color:#9ca3af;">📵 Week Off & Absent — Did Not Come on WO Day</div>
+    <button onclick="document.getElementById('woAbsentPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 10px;">Code</th>
+        <th style="text-align:left;padding:6px 10px;">Name</th>
+        <th style="text-align:left;padding:6px 10px;">Department</th>
+        <th style="text-align:left;padding:6px 10px;">Category</th>
+        <th style="text-align:center;padding:6px 10px;">In</th>
+        <th style="text-align:center;padding:6px 10px;">Out</th>
+        <th style="text-align:center;padding:6px 10px;">OT Hrs</th>
+        <th style="text-align:left;padding:6px 10px;">Shift</th>
+      </tr></thead>
+      <tbody>
+      {% for e in wo_absent_list %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;font-size:11px;color:#0096dc;font-weight:600;">{{ e.emp_code }}</td>
+        <td style="padding:6px 10px;font-weight:600;">{{ e.emp_name }}</td>
+        <td style="padding:6px 10px;color:var(--muted);font-size:11px;">{{ e.department or '—' }}</td>
+        <td style="padding:6px 10px;"><span class="badge badge-{{ e.category.lower() }}">{{ e.category }}</span></td>
+        <td style="padding:6px 10px;text-align:center;color:var(--green);">{{ e.in_time or '—' }}</td>
+        <td style="padding:6px 10px;text-align:center;color:#0096dc;">{{ e.out_time or '—' }}</td>
+        <td style="padding:6px 10px;text-align:center;color:#f59e0b;font-weight:600;">{{ "%.1f"|format(e.ot_minutes/60) if e.ot_minutes else '—' }}</td>
+        <td style="padding:6px 10px;font-size:11px;">{{ e.shift_name }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No WOP employees today</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── DRILLDOWN PANEL ── -->
+<div id="drillPanel" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div id="drillTitle" style="font-weight:700;font-size:15px;color:var(--text);"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      
+      <button onclick="document.getElementById('drillPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+    </div>
+  </div>
+  <div id="drillBody"></div>
+</div>
+
+<!-- ── WOP TODAY PANEL ── -->
+<div id="wopPanel" style="display:none;background:var(--card);border:1px solid rgba(217,119,6,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;color:#f59e0b;">📅 WOP Today — Week Off But Present</div>
+    <button onclick="document.getElementById('wopPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:6px 10px;">Code</th>
+      <th style="text-align:left;padding:6px 10px;">Name</th>
+      <th style="text-align:left;padding:6px 10px;">Department</th>
+      <th style="text-align:left;padding:6px 10px;">Category</th>
+      <th style="text-align:center;padding:6px 10px;">In Time</th>
+      <th style="text-align:center;padding:6px 10px;">Out Time</th>
+    </tr></thead>
+    <tbody>
+    {% for e in wop_today_list %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;color:#0096dc;font-weight:600;font-size:11px;">{{ e.emp_code }}</td>
+      <td style="padding:6px 10px;font-weight:600;">{{ e.emp_name }}</td>
+      <td style="padding:6px 10px;color:var(--muted);font-size:11px;">{{ e.department or "—" }}</td>
+      <td style="padding:6px 10px;"><span class="badge badge-{{ e.category.lower() }}">{{ e.category }}</span></td>
+      <td style="padding:6px 10px;text-align:center;color:#10b981;font-weight:600;">{{ e.in_time or "—" }}</td>
+      <td style="padding:6px 10px;text-align:center;color:#0096dc;font-weight:600;">{{ e.out_time or "—" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);">No WOP today</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── LEAVE TODAY PANEL ── -->
+<div id="leavePanel" style="display:none;background:var(--card);border:1px solid rgba(8,145,178,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;color:#06b6d4;">🏖️ On Leave Today — Approved Leave</div>
+    <button onclick="document.getElementById('leavePanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:6px 10px;">Code</th>
+      <th style="text-align:left;padding:6px 10px;">Name</th>
+      <th style="text-align:left;padding:6px 10px;">Department</th>
+      <th style="text-align:left;padding:6px 10px;">Category</th>
+      <th style="text-align:left;padding:6px 10px;">Leave Type</th>
+      <th style="text-align:center;padding:6px 10px;">From</th>
+      <th style="text-align:center;padding:6px 10px;">To</th>
+    </tr></thead>
+    <tbody>
+    {% for e in leave_today_list %}
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 10px;color:#0096dc;font-weight:600;font-size:11px;">{{ e.emp_code }}</td>
+      <td style="padding:6px 10px;font-weight:600;">{{ e.emp_name }}</td>
+      <td style="padding:6px 10px;color:var(--muted);font-size:11px;">{{ e.department or "—" }}</td>
+      <td style="padding:6px 10px;"><span class="badge badge-{{ e.category.lower() }}">{{ e.category }}</span></td>
+      <td style="padding:6px 10px;color:#06b6d4;font-weight:600;">{{ e.leave_type }}</td>
+      <td style="padding:6px 10px;text-align:center;font-size:11px;">{{ e.from_date }}</td>
+      <td style="padding:6px 10px;text-align:center;font-size:11px;">{{ e.to_date }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);">No approved leaves for today</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── YET TO ARRIVE PANEL ── -->
+<div id="ytaPanel" style="display:none;background:var(--card);border:1px solid rgba(124,58,237,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div style="font-weight:700;font-size:15px;color:#a855f7;">&#9203; Yet to Arrive &#8212; Shift Assigned, Not Punched Yet</div>
+    <button onclick="document.getElementById('ytaPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">&#10005;</button>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 10px;">Code</th>
+        <th style="text-align:left;padding:6px 10px;">Name</th>
+        <th style="text-align:left;padding:6px 10px;">Department</th>
+        <th style="text-align:left;padding:6px 10px;">Category</th>
+        <th style="text-align:left;padding:6px 10px;">Shift</th>
+        <th style="text-align:center;padding:6px 10px;">Shift Start</th>
+      </tr></thead>
+      <tbody>
+      {% for e in yet_to_arrive_list %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;font-size:11px;color:#0096dc;font-weight:600;">{{ e.emp_code }}</td>
+        <td style="padding:6px 10px;font-weight:600;">{{ e.emp_name }}</td>
+        <td style="padding:6px 10px;color:var(--muted);font-size:11px;">{{ e.department or '&#8212;' }}</td>
+        <td style="padding:6px 10px;"><span class="badge badge-{{ e.category.lower() }}">{{ e.category }}</span></td>
+        <td style="padding:6px 10px;font-size:11px;">{{ e.shift_name }}</td>
+        <td style="padding:6px 10px;text-align:center;font-weight:600;color:#7c3aed;">{{ e.shift_start }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);">All assigned employees have arrived or no shifts started yet</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- MANPOWER: Required vs Actual                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+{% if manpower %}
+<div class="table-card" style="padding:14px;margin-top:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="font-weight:800;font-size:13px;">👥 Manpower — Required vs Actual</div>
+    
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:6px 10px;">Department</th>
+        <th style="padding:6px;text-align:center;color:#f59e0b;">Required</th>
+        <th style="padding:6px;text-align:center;color:#7c3aed;">Actual</th>
+        <th style="padding:6px;text-align:center;">GAP</th>
+        <th style="padding:6px;text-align:center;">Status</th>
+      </tr></thead>
+      <tbody>
+      {% for mp in manpower %}
+      {% set act = dept_active|selectattr("department","equalto",mp.department)|list %}
+      {% set act_assoc = act[0].assoc_count if act else 0 %}
+      {% set req_assoc = mp.std_nonstaff or 0 %}
+      {% set gap_assoc = act_assoc - req_assoc %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:6px 10px;font-weight:600;">{{ mp.department }}</td>
+        <td style="padding:6px;text-align:center;">{{ req_assoc }}</td>
+        <td style="padding:6px;text-align:center;font-weight:700;color:{% if act_assoc >= req_assoc %}#10b981{% else %}#ef4444{% endif %};">{{ act_assoc }}</td>
+        <td style="padding:6px;text-align:center;font-weight:700;color:{% if gap_assoc >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+          {% if gap_assoc > 0 %}+{{ gap_assoc }}{% elif gap_assoc == 0 %}0{% else %}{{ gap_assoc }}{% endif %}
+        </td>
+        <td style="padding:6px;text-align:center;">
+          {% if act_assoc >= req_assoc %}<span style="color:#10b981;font-size:11px;">✅ OK</span>
+          {% else %}<span style="color:#ef4444;font-size:11px;">⚠️ Short</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- CHART 1: Present & Absent Trend (Share Market Style)     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="table-card" style="padding:16px;margin-top:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+    <div>
+      <div style="font-weight:800;font-size:14px;">📊 Attendance Trend</div>
+      <div style="font-size:11px;color:var(--muted);">Up to yesterday · Real-time</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <!-- Period buttons -->
+      <div style="display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;">
+        <button onclick="setAttPeriod('1d')" id="att_p_1d" class="period-btn" style="font-size:11px;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">1D</button>
+        <button onclick="setAttPeriod('7d')" id="att_p_7d" class="period-btn" style="font-size:11px;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:var(--primary);color:#fff;">7D</button>
+        <button onclick="setAttPeriod('30d')" id="att_p_30d" class="period-btn" style="font-size:11px;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">1M</button>
+        <button onclick="setAttPeriod('monthly')" id="att_p_monthly" class="period-btn" style="font-size:11px;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);">MTD</button>
+      </div>
+      <select id="att_dept" class="form-select" style="font-size:11px;width:130px;" onchange="loadAttTrend()"><option value="">All Depts</option></select>
+      <select id="att_cat"  class="form-select" style="font-size:11px;width:110px;" onchange="loadAttTrend()">
+        <option value="">All</option><option value="Staff">Staff</option><option value="Associate">Associate</option>
+      </select>
+      <select id="att_gender" class="form-select" style="font-size:11px;width:100px;" onchange="loadAttTrend()">
+        <option value="">All Gender</option><option value="Male">Male</option><option value="Female">Female</option>
+      </select>
+    </div>
+  </div>
+  <!-- Chart Legend -->
+  <div style="display:flex;gap:16px;margin-bottom:8px;font-size:11px;">
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#10b981;display:inline-block;border-radius:2px;"></span>Present</span>
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:12px;height:3px;background:#ef4444;display:inline-block;border-radius:2px;"></span>Absent</span>
+    <span id="att_summary" style="color:var(--muted);margin-left:auto;"></span>
+  </div>
+  <div style="position:relative;">
+    <canvas id="attTrendChart" height="70"></canvas>
+    <div id="att_loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none;">Loading...</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- Department OT Analytics                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div style="margin-top:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+    <div style="font-weight:800;font-size:14px;">⏱️ Dept OT Analytics (Associate)</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <select id="ot_m" class="form-select" style="width:110px;font-size:11px;" onchange="loadOTAlerts()">
+        {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==current_month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
+      </select>
+      <select id="ot_y" class="form-select" style="width:85px;font-size:11px;" onchange="loadOTAlerts()">
+        {% for y in range(2024,2028) %}<option {% if y==current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <a href="/masters/dept-ot-limits" class="btn btn-ghost btn-sm" style="font-size:11px;">⚙️ Set Limits</a>
+    </div>
+  </div>
+  <div id="otAlertGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+    <div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;">Loading...</div>
+  </div>
+</div>
+
+<!-- Dept Employees Modal -->
+<div class="modal-overlay" id="deptEmpModal">
+  <div class="modal" style="width:600px;max-height:82vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <span class="modal-title" id="deptEmpTitle">👥 Department Employees</span>
+      <button class="modal-close" onclick="closeModal('deptEmpModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;overflow-y:auto;flex:1;">
+      <div id="deptEmpBody" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════
+// DRILLDOWN for KPI cards (Dept-wise detail)
+// ══════════════════════════════════════════════════════════
+const _dept_active  = {{ dept_active|tojson }};
+const _dept_present = {{ dept_present|tojson }};
+const _dept_ot      = {{ dept_ot|tojson }};
+
+function toggleWOPPanel(){
+  const p=document.getElementById("wopPanel");
+  const dp=document.getElementById("drillPanel");
+  const yp=document.getElementById("ytaPanel");
+  if(dp)dp.style.display="none"; if(yp)yp.style.display="none";
+  p.style.display=p.style.display==="none"?"":"none";
+}
+function toggleYetToArrive(){
+  const p=document.getElementById("ytaPanel");
+  ["drillPanel","wopPanel","leavePanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  p.style.display=p.style.display==="none"?"":"none";
+}
+function toggleWOAbsent(){
+  const p=document.getElementById("woAbsentPanel");
+  ["drillPanel","ytaPanel","wopPanel","leavePanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  p.style.display=p.style.display==="none"?"":"none";
+}
+function toggleWOP(){
+  const p=document.getElementById("wopPanel");
+  ["drillPanel","ytaPanel","leavePanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  p.style.display=p.style.display==="none"?"":"none";
+}
+function toggleLeave(){
+  const p=document.getElementById("leavePanel");
+  ["drillPanel","ytaPanel","wopPanel"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display="none";});
+  p.style.display=p.style.display==="none"?"":"none";
+}
+function showDrilldown(box){
+  const panel = document.getElementById('drillPanel');
+  const body  = document.getElementById('drillBody');
+  const titles = {
+    active: '👥 Active Employees — Department Wise',
+    present:'✅ Present Today — Department Wise',
+    absent: '❌ Absent Today — Department Wise',
+    ot:     '⏱️ OT Hours This Month — Department Wise'
+  };
+  const titleEl = document.querySelector('#drillPanel .table-title');
+  if(titleEl) titleEl.textContent = titles[box]||box;
+
+  // dept_present has: department, staff_p, assoc_p (from SQL query)
+  // dept_active has:  department, staff_count, assoc_count
+  // dept_ot has:      department, staff_ot, assoc_ot
+
+  if(box==='active'){
+    const rows = _dept_active.map(d=>{
+      const total = (d.staff_count||0)+(d.assoc_count||0);
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#0096dc;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="active" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
+        '<td style="padding:7px;text-align:center;color:#0096dc;font-weight:700;">'+(d.staff_count||0)+'</td>' +
+        '<td style="padding:7px;text-align:center;color:#10b981;font-weight:700;">'+(d.assoc_count||0)+'</td>' +
+        '<td style="padding:7px;text-align:center;font-weight:800;">'+total+'</td>' +
+        '</tr>';
+    }).join('');
+    body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:2px solid var(--border);">' +
+      '<th style="text-align:left;padding:7px 12px;">Department</th>' +
+      '<th style="padding:7px;text-align:center;">Staff</th>' +
+      '<th style="padding:7px;text-align:center;">Associate</th>' +
+      '<th style="padding:7px;text-align:center;">Total</th>' +
+      '</tr></thead><tbody>'+rows+'</tbody></table>';
+
+  } else if(box==='present'){
+    const rows = _dept_present.map(d=>{
+      const total = (d.staff_p||0)+(d.assoc_p||0);
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#10b981;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="present" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
+        '<td style="padding:7px;text-align:center;color:#0096dc;">'+(d.staff_p||0)+'</td>' +
+        '<td style="padding:7px;text-align:center;color:#10b981;">'+(d.assoc_p||0)+'</td>' +
+        '<td style="padding:7px;text-align:center;font-weight:800;">'+total+'</td>' +
+        '</tr>';
+    }).join('');
+    body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:2px solid var(--border);">' +
+      '<th style="text-align:left;padding:7px 12px;">Department</th>' +
+      '<th style="padding:7px;text-align:center;">Staff Present</th>' +
+      '<th style="padding:7px;text-align:center;">Associate Present</th>' +
+      '<th style="padding:7px;text-align:center;">Total Present</th>' +
+      '</tr></thead><tbody>'+rows+'</tbody></table>';
+
+  } else if(box==='absent'){
+    // Fetch from server — correct count (WO + yet-to-arrive excluded)
+    body.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);">Loading...</div>';
+    fetch('/dashboard/dept-detail?box=absent').then(r=>r.json()).then(data=>{
+      const rows=(data.data||[]).map(d=>{
+        const aRow=_dept_active.find(a=>a.department===d.dept)||{};
+        const ac=(aRow.staff_count||0)+(aRow.assoc_count||0);
+        const pRow=_dept_present.find(p=>p.department===d.dept)||{};
+        const tp=(pRow.staff_p||0)+(pRow.assoc_p||0);
+        const absent=(d.staff||0)+(d.nonstaff||0);
+        return '<tr style="border-bottom:1px solid var(--border);">' +
+          '<td style="padding:7px 12px;font-weight:600;"><span style="color:#ef4444;cursor:pointer;" data-dept="'+(d.dept||'')+'" data-box="absent" onclick="handleDeptClick(this)">'+(d.dept||'—')+'</span></td>' +
+          '<td style="padding:7px;text-align:center;color:#ef4444;font-weight:700;">'+absent+'</td>' +
+          '<td style="padding:7px;text-align:center;color:#10b981;">'+tp+'</td>' +
+          '<td style="padding:7px;text-align:center;">'+ac+'</td>' +
+          '</tr>';
+      }).join('');
+      body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+        '<thead><tr style="border-bottom:2px solid var(--border);">' +
+        '<th style="text-align:left;padding:7px 12px;">Department</th>' +
+        '<th style="padding:7px;text-align:center;color:#ef4444;">Absent</th>' +
+        '<th style="padding:7px;text-align:center;color:#10b981;">Present</th>' +
+        '<th style="padding:7px;text-align:center;">Active Total</th>' +
+        '</tr></thead><tbody>'+rows+'</tbody></table>';
+      panel.style.display='block';
+      panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }).catch(()=>{body.innerHTML='<div style="padding:20px;color:#ef4444;">Error loading</div>';});
+    return;
+
+} else if(box==='ot'){
+    const rows = _dept_ot.map(d=>{
+      const totalOTMin = (d.staff_ot||0)+(d.assoc_ot||0);
+      return '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#f59e0b;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="ot" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
+        '<td style="padding:7px;text-align:center;color:#0096dc;">'+(d.staff_ot ? (d.staff_ot/60).toFixed(1)+' hrs' : '—')+'</td>' +
+        '<td style="padding:7px;text-align:center;color:#f59e0b;font-weight:700;">'+(d.assoc_ot ? (d.assoc_ot/60).toFixed(1)+' hrs' : '—')+'</td>' +
+        '<td style="padding:7px;text-align:center;font-weight:800;">'+(totalOTMin/60).toFixed(1)+' hrs</td>' +
+        '</tr>';
+    }).join('');
+    body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:2px solid var(--border);">' +
+      '<th style="text-align:left;padding:7px 12px;">Department</th>' +
+      '<th style="padding:7px;text-align:center;">Staff OT</th>' +
+      '<th style="padding:7px;text-align:center;">Associate OT</th>' +
+      '<th style="padding:7px;text-align:center;">Total OT</th>' +
+      '</tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+
+  panel.style.display = 'block';
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ══════════════════════════════════════════════════════════
+// ATTENDANCE TREND CHART — Share market style
+// ══════════════════════════════════════════════════════════
+let _attChart = null;
+let _attPeriod = '7d';
+
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: true,
+  interaction: { mode:'index', intersect:false },
+  plugins: {
+    legend: { display:false },
+    tooltip: {
+      backgroundColor:'rgba(15,23,42,.95)',
+      titleColor:'#e2e8f0', bodyColor:'#94a3b8',
+      borderColor:'rgba(255,255,255,.1)', borderWidth:1,
+      padding:10, cornerRadius:8
+    }
+  },
+  scales: {
+    x: {
+      ticks:{ color:'#64748b', font:{size:9}, maxTicksLimit:14, maxRotation:0 },
+      grid:{ color:'rgba(255,255,255,.03)', drawBorder:false }
+    },
+    y: {
+      ticks:{ color:'#64748b', font:{size:10}, stepSize:1 },
+      grid:{ color:'rgba(255,255,255,.05)', drawBorder:false },
+      beginAtZero:true
+    }
+  }
+};
+
+function setAttPeriod(p){
+  _attPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(b=>{
+    b.style.background='transparent'; b.style.color='var(--muted)';
+  });
+  const btn=document.getElementById('att_p_'+p);
+  if(btn){ btn.style.background='var(--primary)'; btn.style.color='#fff'; }
+  loadAttTrend();
+}
+
+async function loadAttTrend(){
+  const dept    = document.getElementById('att_dept')?.value||'';
+  const cat     = document.getElementById('att_cat')?.value||'';
+  const gender  = document.getElementById('att_gender')?.value||'';
+  document.getElementById('att_loading').style.display='block';
+  try{
+    const url=`/api/attendance-trend?period=${_attPeriod}&dept=${encodeURIComponent(dept)}&cat=${encodeURIComponent(cat)}&gender=${encodeURIComponent(gender)}`;
+    const r=await fetch(url).then(r=>r.json());
+    document.getElementById('att_loading').style.display='none';
+    if(!r.success) return;
+
+    // Populate dept dropdown once
+    const dsel=document.getElementById('att_dept');
+    if(dsel && dsel.options.length<=1 && r.departments?.length){
+      r.departments.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.text=d; dsel.appendChild(o); });
+      if(dept) dsel.value=dept;
+    }
+
+    // Summary
+    const totalAbs=r.absent.reduce((a,b)=>a+b,0);
+    const totalPres=r.present.reduce((a,b)=>a+b,0);
+    const sumEl=document.getElementById('att_summary');
+    if(sumEl) sumEl.textContent=`${r.from_date} → ${r.to_date} | Absences: ${totalAbs} | Presents: ${totalPres}`;
+
+    const ctx=document.getElementById('attTrendChart')?.getContext('2d');
+    if(!ctx) return;
+    if(_attChart){ _attChart.destroy(); _attChart=null; }
+
+    _attChart = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels: r.labels,
+        datasets:[
+          {
+            label:'Present',
+            data: r.present,
+            borderColor:'#10b981',
+            backgroundColor: (ctx)=>{
+              const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);
+              g.addColorStop(0,'rgba(16,185,129,.25)'); g.addColorStop(1,'rgba(16,185,129,.01)');
+              return g;
+            },
+            tension:0.4, fill:true,
+            pointRadius: r.labels.length>60?0:3,
+            pointHoverRadius:5,
+            pointBackgroundColor:'#10b981',
+            borderWidth:2
+          },
+          {
+            label:'Absent',
+            data: r.absent,
+            borderColor:'#ef4444',
+            backgroundColor:(ctx)=>{
+              const g=ctx.chart.ctx.createLinearGradient(0,0,0,ctx.chart.height);
+              g.addColorStop(0,'rgba(239,68,68,.2)'); g.addColorStop(1,'rgba(239,68,68,.01)');
+              return g;
+            },
+            tension:0.4, fill:true,
+            pointRadius: r.labels.length>60?0:3,
+            pointHoverRadius:5,
+            pointBackgroundColor:'#ef4444',
+            borderWidth:2
+          }
+        ]
+      },
+      options:{...CHART_DEFAULTS,
+        plugins:{...CHART_DEFAULTS.plugins,
+          tooltip:{...CHART_DEFAULTS.plugins.tooltip,
+            callbacks:{
+              title:items=>items[0].label,
+              label:item=>`${item.dataset.label}: ${item.raw}`
+            }
+          }
+        }
+      }
+    });
+  } catch(e){ document.getElementById('att_loading').style.display='none'; console.error(e); }
+}
+
+// OT Alerts
+async function loadOTAlerts(){
+  const m=document.getElementById("ot_m")?.value||new Date().getMonth()+1;
+  const y=document.getElementById("ot_y")?.value||new Date().getFullYear();
+  try{
+    const r=await fetch(`/api/dashboard-ot-alert?month=${m}&year=${y}`).then(r=>r.json());
+    if(!r.success) return;
+    const grid=document.getElementById("otAlertGrid");
+    if(!r.data?.length){
+      grid.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);grid-column:1/-1;">No OT data</div>'; return;
+    }
+    grid.innerHTML=r.data.map(d=>`
+      <div style="background:var(--card);border-radius:10px;padding:12px;border:1px solid ${d.alert?'rgba(239,68,68,.3)':'var(--border)'};">
+        <div style="font-weight:700;font-size:12px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${d.department}">${d.department}</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
+          <span>Actual: <strong style="color:${d.usage_pct>=100?'#ef4444':d.alert?'#f59e0b':'#10b981'};">${d.actual_hrs}h</strong></span>
+          <span>Limit: ${d.limit_hrs}h</span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;margin-bottom:4px;">
+          <div style="height:100%;width:${Math.min(d.usage_pct,100)}%;background:${d.usage_pct>=100?'#ef4444':d.alert?'#f59e0b':'#10b981'};border-radius:4px;transition:width .5s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;">
+          <span style="color:${d.alert?'#ef4444':'var(--muted)'};">${d.status}</span>
+          <span style="color:var(--muted);">${d.emp_count} emps · ${d.usage_pct}%</span>
+        </div>
+      </div>`).join('');
+  } catch(e){ console.error(e); }
+}
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{ loadAttTrend(); loadOTAlerts(); }, 300);
+});
+
+function handleDeptClick(el) {
+  const dept = el.getAttribute('data-dept');
+  const box  = el.getAttribute('data-box');
+  const tr   = el.closest('tr');
+  const tbody= tr.parentNode;
+  const existingRow = tbody.querySelector('tr.emp-expand[data-dept="'+dept+'"][data-box="'+box+'"]');
+
+  // Toggle: if already open, close it
+  if(existingRow){
+    existingRow.remove();
+    el.style.fontWeight = '600';
+    return;
+  }
+  // Close any other open expand rows in same table
+  tbody.querySelectorAll('tr.emp-expand').forEach(r => r.remove());
+  tbody.querySelectorAll('span[data-box]').forEach(s => s.style.fontWeight='600');
+
+  // Create expand row
+  const expandTr = document.createElement('tr');
+  expandTr.className = 'emp-expand';
+  expandTr.setAttribute('data-dept', dept);
+  expandTr.setAttribute('data-box', box);
+  expandTr.style.cssText = 'background:rgba(0,0,0,.15);';
+
+  const colspan = tr.cells.length;
+  const td = document.createElement('td');
+  td.setAttribute('colspan', colspan);
+  td.style.cssText = 'padding:0;';
+  td.innerHTML = '<div style="padding:10px 14px;"><span style="color:var(--muted);font-size:12px;">⏳ Loading...</span></div>';
+  expandTr.appendChild(td);
+  tr.insertAdjacentElement('afterend', expandTr);
+  el.style.fontWeight = '800';
+
+  // Fetch employees
+  fetch('/dashboard/dept-emps?dept=' + encodeURIComponent(dept) + '&box=' + box)
+    .then(r => r.json())
+    .then(j => {
+      if(!j.success){ td.innerHTML='<div style="padding:10px;color:#ef4444;">Error loading</div>'; return; }
+      const emps = j.employees;
+      if(!emps.length){ td.innerHTML='<div style="padding:10px 14px;color:var(--muted);font-size:12px;">No employees found</div>'; return; }
+
+      let html = '<div style="padding:8px 14px;">';
+      if(box==='present'){
+        html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+        html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Cat</td><td style="padding:3px;text-align:center;color:#10b981;">In</td><td style="padding:3px;text-align:center;">Out</td></tr>';
+        emps.forEach(e => {
+          html += '<tr style="border-top:1px solid rgba(255,255,255,.05);">' +
+            '<td style="padding:3px 8px;color:#0096dc;font-weight:700;">'+e.emp_code+'</td>' +
+            '<td style="padding:3px;font-weight:600;">'+e.emp_name+'</td>' +
+            '<td style="padding:3px;color:var(--muted);">'+(e.designation||'—')+'</td>' +
+            '<td style="padding:3px;text-align:center;"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(0,150,220,.15);color:#0096dc;">'+e.category+'</span></td>' +
+            '<td style="padding:3px;text-align:center;color:#10b981;font-weight:700;">'+(e.in_time||'—')+'</td>' +
+            '<td style="padding:3px;text-align:center;color:var(--muted);">'+(e.out_time||'—')+'</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      } else if(box==='ot'){
+        html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+        html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Cat</td><td style="padding:3px;text-align:right;color:#f59e0b;">OT hrs</td></tr>';
+        emps.forEach(e => {
+          html += '<tr style="border-top:1px solid rgba(255,255,255,.05);">' +
+            '<td style="padding:3px 8px;color:#0096dc;font-weight:700;">'+e.emp_code+'</td>' +
+            '<td style="padding:3px;font-weight:600;">'+e.emp_name+'</td>' +
+            '<td style="padding:3px;color:var(--muted);">'+(e.designation||'—')+'</td>' +
+            '<td style="padding:3px;text-align:center;"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,.15);color:#f59e0b;">'+e.category+'</span></td>' +
+            '<td style="padding:3px;text-align:right;color:#f59e0b;font-weight:700;">'+(e.total_ot?(e.total_ot/60).toFixed(1):'—')+'</td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      } else {
+        // active or absent — show phone below name for absent
+        html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+        html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Category</td></tr>';
+        emps.forEach(e => {
+          const ph = (box==='absent' && e.phone && e.phone.trim()) ? e.phone.trim() : '';
+          const phoneHtml = ph ? '<div><a href="tel:'+ph+'" style="color:#10b981;font-size:10px;font-weight:600;text-decoration:none;" onclick="event.stopPropagation()">📞 '+ph+'</a></div>' : '';
+          html += '<tr style="border-top:1px solid rgba(255,255,255,.05);">' +
+            '<td style="padding:3px 8px;color:#0096dc;font-weight:700;">'+e.emp_code+'</td>' +
+            '<td style="padding:3px;"><div style="font-weight:600;">'+e.emp_name+'</div>'+phoneHtml+'</td>' +
+            '<td style="padding:3px;color:var(--muted);">'+(e.designation||'—')+'</td>' +
+            '<td style="padding:3px;text-align:center;"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(0,150,220,.15);color:#0096dc;">'+e.category+'</span></td>' +
+            '</tr>';
+        });
+        html += '</table>';
+      }
+      html += '</div>';
+      td.innerHTML = html;
+    })
+    .catch(() => { td.innerHTML='<div style="padding:10px;color:#ef4444;">Failed to load</div>'; });
+}
+
+async function showDeptEmps(dept, box) {
+  const deptName = dept;
+  const bx = box || 'active';
+  const r = await fetch('/dashboard/dept-emps?dept=' + encodeURIComponent(dept) + '&box=' + bx);
+  const j = await r.json();
+  if(!j.success) return;
+  const labels = {active:'Active Employees',present:'Present Today',absent:'Absent Today',ot:'OT This Month'};
+  let hdr, rows;
+  if(bx === 'present'){
+    hdr = '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:7px 10px;">Code</th><th style="text-align:left;padding:7px;">Name</th><th style="padding:7px;">Designation</th><th style="padding:7px;text-align:center;">Category</th><th style="padding:7px;text-align:center;color:#10b981;">In</th><th style="padding:7px;text-align:center;">Out</th></tr>';
+    rows = j.employees.map(e => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td><td style="padding:6px;font-weight:600;">'+e.emp_name+'</td><td style="padding:6px;font-size:11px;color:var(--muted);">'+(e.designation||'—')+'</td><td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,.15);color:#10b981;">'+(e.category||'—')+'</span></td><td style="padding:6px;text-align:center;color:#10b981;font-weight:700;">'+(e.in_time||'—')+'</td><td style="padding:6px;text-align:center;color:var(--muted);">'+(e.out_time||'—')+'</td></tr>').join('');
+  } else if(bx === 'ot'){
+    hdr = '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:7px 10px;">Code</th><th style="text-align:left;padding:7px;">Name</th><th style="padding:7px;">Designation</th><th style="padding:7px;text-align:center;">Category</th><th style="padding:7px;text-align:right;color:#f59e0b;">OT (hrs)</th></tr>';
+    rows = j.employees.map(e => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td><td style="padding:6px;font-weight:600;">'+e.emp_name+'</td><td style="padding:6px;font-size:11px;color:var(--muted);">'+(e.designation||'—')+'</td><td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;">'+(e.category||'—')+'</span></td><td style="padding:6px;text-align:right;font-weight:700;color:#f59e0b;">'+(e.total_ot?(e.total_ot/60).toFixed(1)+' hrs':'—')+'</td></tr>').join('');
+  } else {
+    // Absent / Active — Phone as separate column between Designation and Category
+    hdr = '<tr style="border-bottom:2px solid var(--border);">'
+      + '<th style="text-align:left;padding:7px 10px;">Code</th>'
+      + '<th style="text-align:left;padding:7px;">Name</th>'
+      + '<th style="padding:7px;">Designation</th>'
+      + '<th style="padding:7px;text-align:center;">Category</th>'
+      + '</tr>';
+    rows = j.employees.map(e => {
+      const ph = (e.phone && e.phone.trim()) ? e.phone.trim() : '';
+      const phoneHtml = ph
+        ? '<div style="margin-top:2px;"><a href="tel:'+ph+'" style="color:#10b981;font-weight:600;font-size:11px;text-decoration:none;" onclick="event.stopPropagation()">📞 '+ph+'</a></div>'
+        : '';
+      return '<tr style="border-bottom:1px solid var(--border);">'
+        + '<td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td>'
+        + '<td style="padding:6px;"><div style="font-weight:600;font-size:13px;">'+e.emp_name+'</div>'+phoneHtml+'</td>'
+        + '<td style="padding:6px;font-size:11px;color:var(--muted);text-align:center;">'+(e.designation||'—')+'</td>'
+        + '<td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(0,150,220,.15);color:#0096dc;">'+(e.category||'—')+'</span></td>'
+        + '</tr>';
+    }).join('');
+  }
+  document.getElementById('deptEmpTitle').textContent = '👥 '+deptName+' — '+(labels[bx]||'Employees')+' ('+j.employees.length+')';
+  const emptyMsg = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">No employees found</td></tr>';
+  document.getElementById('deptEmpBody').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+    '<thead>'+hdr+'</thead>' +
+    '<tbody>'+(rows||emptyMsg)+'</tbody>' +
+    '</table>';
+  openModal('deptEmpModal');
+}
+
+// ── Auto-refresh KPI every 60 seconds ──────────────────────
+async function refreshDashboardKPIs(){
+  try {
+    const r = await fetch('/dashboard/kpi-refresh');
+    const j = await r.json();
+    if(!j.success) return;
+    // Update KPI numbers in DOM
+    const ids = ['kpi_total','kpi_present','kpi_absent','kpi_ot'];
+    const vals = [j.total, j.present, j.absent, j.ot];
+    ids.forEach((id,i) => {
+      const el = document.getElementById(id);
+      if(el && vals[i] !== undefined) el.textContent = vals[i];
+    });
+  } catch(e){}
+}
+setInterval(refreshDashboardKPIs, 60000); // every 60 seconds
+</script>
+{% endblock %}

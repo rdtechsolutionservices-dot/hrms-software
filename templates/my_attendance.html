@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}My Attendance{% endblock %}
+{% block page_title %}📅 My Attendance{% endblock %}
+{% block content %}
+
+{% if emp %}
+<div class="mini-card" style="margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="emp-av" style="width:50px;height:50px;border-radius:12px;font-size:16px;background:linear-gradient(135deg,#10b981,#0052cc)">{{ emp.emp_name[:2].upper() }}</div>
+    <div>
+      <div style="font-weight:800;font-size:17px">{{ emp.emp_name }}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:2px">{{ emp.emp_code }} · {{ emp.department or '' }} · {{ emp.designation or '' }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Month Selector -->
+<div class="toolbar" style="margin-bottom:14px;">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <select class="form-select" id="sel_month" style="width:140px;" onchange="filterMonth()">
+      {% for mn in months %}
+      <option value="{{ loop.index }}" {% if loop.index == month %}selected{% endif %}>{{ mn }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-select" id="sel_year" style="width:90px;" onchange="filterMonth()">
+      {% for y in range(year-2, year+1) %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="font-weight:700;font-size:13px;color:var(--muted);">{{ month_name }} {{ year }}</div>
+</div>
+
+<!-- Summary Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;">
+  <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#10b981;">{{ summary.present }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Present</div>
+  </div>
+  <div style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#f43f5e;">{{ summary.absent }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Absent</div>
+  </div>
+  <div style="background:rgba(0,150,220,.1);border:1px solid rgba(0,150,220,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#0096dc;">{{ summary.leave }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Leave</div>
+  </div>
+  <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#f59e0b;">{{ summary.half_day }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Half Day</div>
+  </div>
+  <div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#8b5cf6;">{{ summary.holiday }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Holiday</div>
+  </div>
+  <div style="background:rgba(0,82,204,.1);border:1px solid rgba(0,82,204,.3);border-radius:12px;padding:14px;text-align:center;">
+    <div style="font-size:28px;font-weight:800;color:#0052cc;">{{ '%.1f'|format(summary.total_hours) }}</div>
+    <div style="font-size:11px;font-weight:700;margin-top:2px;">Total Hrs</div>
+  </div>
+</div>
+
+<!-- Attendance Table -->
+<div class="table-card" style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Date</th>
+      <th style="padding:8px;">Day</th>
+      <th style="padding:8px;">In Time</th>
+      <th style="padding:8px;">Out Time</th>
+      <th style="padding:8px;">Hours</th>
+      <th style="padding:8px;">Status</th>
+      <th style="padding:8px;">Late</th>
+    </tr></thead>
+    <tbody>
+      {% for row in attendance_rows %}
+      <tr style="border-bottom:1px solid var(--border);{% if row.is_holiday %}background:rgba(139,92,246,.05);{% elif row.status=='Absent' %}background:rgba(244,63,94,.04);{% endif %}">
+        <td style="padding:7px 12px;font-weight:600;">{{ row.date }}</td>
+        <td style="padding:7px;text-align:center;color:var(--muted);font-size:11px;">{{ row.day_name }}</td>
+        <td style="padding:7px;text-align:center;font-family:monospace;">{{ row.in_time or '—' }}</td>
+        <td style="padding:7px;text-align:center;font-family:monospace;">{{ row.out_time or '—' }}</td>
+        <td style="padding:7px;text-align:center;font-weight:700;">
+          {% if row.working_hours %}{{ '%.1f'|format(row.working_hours) }}h{% else %}—{% endif %}
+        </td>
+        <td style="padding:7px;text-align:center;">
+          {% if row.is_holiday %}
+            <span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🎉 Holiday</span>
+          {% elif row.status == 'Present' %}
+            {% if row.is_half_day %}
+              {% if row.is_halfday_from_late %}
+                <span style="background:rgba(239,68,68,.15);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">◑ Half Day</span>
+              {% else %}
+                <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">◑ Half Day</span>
+              {% endif %}
+            {% else %}
+              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Present</span>
+            {% endif %}
+          {% elif row.status == 'Leave' %}
+            <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🌴 Leave</span>
+          {% elif row.status == 'Absent' %}
+            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Absent</span>
+          {% elif row.status == 'Weekly Off' %}
+            <span style="background:rgba(100,116,139,.15);color:#64748b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🔵 Week Off</span>
+          {% else %}
+            <span style="color:var(--muted);font-size:11px;">{{ row.status or '—' }}</span>
+          {% endif %}
+        </td>
+        <td style="padding:7px;text-align:center;">
+          {% if row.is_halfday_from_late %}
+            <span style="color:#ef4444;font-size:10px;font-weight:700;" title="IN after 12:30 PM — Half Day marked">🕐 Late IN</span>
+          {% elif row.late_minutes and row.late_minutes > 0 %}
+            {% if row.late_is_deducted %}
+              <span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Salary deduction">{{ row.late_minutes }}m ⚠️</span>
+            {% else %}
+              <span style="background:rgba(245,158,11,.12);color:#f59e0b;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Free (no deduction)">{{ row.late_minutes }}m</span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not attendance_rows %}
+      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No attendance data for this month</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function filterMonth(){
+  const m = document.getElementById("sel_month").value;
+  const y = document.getElementById("sel_year").value;
+  window.location = "/my-attendance?month="+m+"&year="+y;
+}
+const enumerate = (arr) => arr.map((v,i) => [i,v]);
+</script>
+{% endblock %}

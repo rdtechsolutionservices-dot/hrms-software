@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}Weekly Off Management{% endblock %}
+{% block page_title %}📆 Weekly Off Management{% endblock %}
+{% block content %}
+
+<div style="background:rgba(0,82,204,.08);border:1px solid rgba(0,82,204,.2);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:13px;line-height:1.6;">
+  <strong style="color:#0096dc;">💡 How it works:</strong>
+  Every employee's default Weekly Off is <strong>Sunday</strong> until assigned here.
+  Assign a new Weekly Off to an employee with a From–To date range — only dates <strong>from the From Date onward</strong> change to the new day;
+  <strong>past dates keep the previous Weekly Off</strong>. If the range's To Date expires and no new assignment is made, the employee automatically
+  reverts to <strong>Sunday</strong>.
+</div>
+
+<div class="table-card" style="margin-bottom:18px;">
+  <div class="table-header">
+    <span class="table-title">Employees — Current Weekly Off (Today: {{ today }})</span>
+    <div style="display:flex;gap:8px;">
+      {% if can_bulk_upload %}
+      <a class="btn btn-ghost btn-sm" href="/weekly-off/download-template">📥 Download Template</a>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('bulkUploadModal')">📤 Bulk Upload</button>
+      {% endif %}
+      <button class="btn btn-primary btn-sm" onclick="openModal('assignWoModal')">➕ Assign Weekly Off</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
+    <input type="text" class="form-control" id="f_search" placeholder="🔍 Search by Employee Code or Name" style="flex:2;min-width:200px;" oninput="applyFilters()">
+    <select class="form-control" id="f_department" style="flex:1;min-width:150px;" onchange="applyFilters()">
+      <option value="">All Departments</option>
+      {% for dpt in departments %}
+      <option value="{{ dpt }}">{{ dpt }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-control" id="f_category" style="flex:1;min-width:150px;" onchange="applyFilters()">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}">{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-control" id="f_weekly_off_day" style="flex:1;min-width:150px;" onchange="applyFilters()">
+      <option value="">All Weekly Off Days</option>
+      <option value="Sunday">Sunday</option>
+      <option value="Monday">Monday</option>
+      <option value="Tuesday">Tuesday</option>
+      <option value="Wednesday">Wednesday</option>
+      <option value="Thursday">Thursday</option>
+      <option value="Friday">Friday</option>
+      <option value="Saturday">Saturday</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✖ Clear Filters</button>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table class="data-table" id="empTable">
+      <thead><tr><th>Emp Code</th><th>Name</th><th>Department</th><th>Category</th><th>Weekly Off (Today)</th><th></th></tr></thead>
+      <tbody>
+        {% for e in employees %}
+        <tr data-code="{{ e.emp_code|lower }}" data-name="{{ e.emp_name|lower }}" data-dept="{{ e.department or '' }}" data-cat="{{ e.category or '' }}" data-wo="{{ e.weekly_off }}">
+          <td>{{ e.emp_code }}</td>
+          <td>{{ e.emp_name }}</td>
+          <td>{{ e.department or '—' }}</td>
+          <td>{{ e.category or '—' }}</td>
+          <td><span style="background:{% if e.weekly_off=='Sunday' %}rgba(100,116,139,.15){% else %}rgba(0,150,220,.15){% endif %};color:{% if e.weekly_off=='Sunday' %}var(--muted){% else %}#0096dc{% endif %};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">{{ e.weekly_off }}</span></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="quickAssign('{{ e.emp_code }}','{{ e.emp_name | replace("'", "\\'") }}')">📆 Assign</button></td>
+        </tr>
+        {% endfor %}
+        {% if not employees %}
+        <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No active employees found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    <div id="empNoResults" style="display:none;text-align:center;color:var(--muted);padding:24px;">No employees match the selected filters.</div>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">Weekly Off Assignments — Active &amp; Upcoming shown first</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="data-table">
+      <thead><tr><th>Emp Code</th><th>Name</th><th>Weekly Off Day</th><th>From Date</th><th>To Date</th><th>Status</th><th>Assigned By</th><th></th></tr></thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td>{{ a.emp_code }}</td>
+          <td>{{ a.emp_name }}</td>
+          <td><strong>{{ a.weekly_off_day }}</strong></td>
+          <td>{{ a.from_date }}</td>
+          <td>{{ a.to_date or 'Ongoing' }}</td>
+          <td>
+            {% if a.status == 'active' %}
+            <span style="background:rgba(16,185,129,.15);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🟢 Active</span>
+            {% elif a.status == 'upcoming' %}
+            <span style="background:rgba(245,158,11,.15);color:var(--yellow);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🕒 Upcoming</span>
+            {% else %}
+            <span style="background:rgba(100,116,139,.15);color:var(--muted);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">⚪ Expired</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted);font-size:12px;">{{ a.created_by or '—' }}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-ghost btn-sm" title="Recalculate attendance based on this Weekly Off" onclick="recalcWo('{{ a.emp_code }}','{{ a.from_date }}',this)">🔄 Recalculate</button>
+            <button class="btn btn-danger btn-sm" onclick="delAssignment({{ a.id }})">🗑️</button>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not assignments %}
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">No dated Weekly Off assignments yet. All employees are on the default Sunday.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal-overlay" id="assignWoModal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header"><span class="modal-title">📆 Assign Weekly Off</span><button class="modal-close" onclick="closeModal('assignWoModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Employee *</label>
+        <select class="form-control" id="wo_emp_code">
+          <option value="">-- Select Employee --</option>
+          {% for e in employees %}
+          <option value="{{ e.emp_code }}">{{ e.emp_code }} — {{ e.emp_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Weekly Off Day *</label>
+        <select class="form-control" id="wo_day">
+          <option value="Sunday">Sunday</option>
+          <option value="Monday">Monday</option>
+          <option value="Tuesday">Tuesday</option>
+          <option value="Wednesday">Wednesday</option>
+          <option value="Thursday">Thursday</option>
+          <option value="Friday">Friday</option>
+          <option value="Saturday">Saturday</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">From Date *</label>
+          <input type="date" class="form-control" id="wo_from">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">To Date (optional)</label>
+          <input type="date" class="form-control" id="wo_to">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);">Leave To Date blank to keep this assignment ongoing until a new one is made. If you set a To Date, the employee automatically reverts to Sunday after that date.</div>
+      <div id="woResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assignWoModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWoAssign()">💾 Assign</button>
+    </div>
+  </div>
+</div>
+
+{% if can_bulk_upload %}
+<!-- Bulk Upload Modal -->
+<div class="modal-overlay" id="bulkUploadModal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header"><span class="modal-title">📤 Bulk Upload Weekly Off</span><button class="modal-close" onclick="closeModal('bulkUploadModal')">✕</button></div>
+    <div class="modal-body">
+      <div style="background:rgba(0,82,204,.08);border:1px solid rgba(0,82,204,.2);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;">
+        Download the template first, fill in <strong>Employee Code, Day, From Date, To Date</strong> (To Date optional) and upload it back here.
+        <a href="/weekly-off/download-template" style="color:#0096dc;font-weight:600;">📥 Download Template</a>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Excel File *</label>
+        <input type="file" class="form-control" id="bulk_wo_file" accept=".xlsx,.xls">
+      </div>
+      <div id="bulkWoResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('bulkUploadModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="uploadBulkWo()">📤 Upload</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function applyFilters(){
+  const search = document.getElementById('f_search').value.trim().toLowerCase();
+  const dept = document.getElementById('f_department').value;
+  const cat = document.getElementById('f_category').value;
+  const wo = document.getElementById('f_weekly_off_day').value;
+  const rows = document.querySelectorAll('#empTable tbody tr[data-code]');
+  let visible = 0;
+  rows.forEach(row=>{
+    const matchesSearch = !search || row.dataset.code.includes(search) || row.dataset.name.includes(search);
+    const matchesDept = !dept || row.dataset.dept === dept;
+    const matchesCat = !cat || row.dataset.cat === cat;
+    const matchesWo = !wo || row.dataset.wo === wo;
+    const show = matchesSearch && matchesDept && matchesCat && matchesWo;
+    row.style.display = show ? '' : 'none';
+    if(show) visible++;
+  });
+  document.getElementById('empNoResults').style.display = visible === 0 ? '' : 'none';
+}
+
+function clearFilters(){
+  document.getElementById('f_search').value = '';
+  document.getElementById('f_department').value = '';
+  document.getElementById('f_category').value = '';
+  document.getElementById('f_weekly_off_day').value = '';
+  applyFilters();
+}
+
+function quickAssign(empCode, empName){
+  document.getElementById('wo_emp_code').value = empCode;
+  openModal('assignWoModal');
+}
+
+async function saveWoAssign(){
+  const emp_code = document.getElementById('wo_emp_code').value;
+  const weekly_off_day = document.getElementById('wo_day').value;
+  const from_date = document.getElementById('wo_from').value;
+  const to_date = document.getElementById('wo_to').value;
+  if(!emp_code || !from_date){
+    showToast('Employee and From Date are required','error'); return;
+  }
+  const r = await api('/weekly-off/assign','POST',{emp_code, weekly_off_day, from_date, to_date});
+  if(r.success){
+    // Immediately recalculate this employee's attendance so it reflects the new Weekly Off
+    const rc = await api('/weekly-off/recalculate','POST',{emp_code, from_date});
+    showToast('Weekly Off assigned and attendance recalculated' + (rc && rc.success ? ` (${rc.fixed || 0} record(s) updated)` : ''));
+    closeModal('assignWoModal');
+    setTimeout(()=>location.reload(), 800);
+  } else {
+    showToast(r.error || 'Failed to assign','error');
+  }
+}
+
+async function delAssignment(id){
+  if(!confirm('Delete this Weekly Off assignment?')) return;
+  const r = await api(`/weekly-off/delete/${id}`,'POST',{});
+  if(r.success){
+    showToast('Assignment removed');
+    setTimeout(()=>location.reload(), 500);
+  } else {
+    showToast(r.error || 'Failed to delete','error');
+  }
+}
+
+async function recalcWo(empCode, fromDate, btn){
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Recalculating...'; }
+  const r = await api('/weekly-off/recalculate','POST',{emp_code: empCode, from_date: fromDate});
+  if(btn){ btn.disabled = false; btn.textContent = '🔄 Recalculate'; }
+  if(r.success){
+    showToast(r.message || 'Attendance recalculated');
+  } else {
+    showToast(r.error || 'Recalculate failed','error');
+  }
+}
+
+async function uploadBulkWo(){
+  const fileInput = document.getElementById('bulk_wo_file');
+  if(!fileInput.files.length){
+    showToast('Please select a file to upload','error'); return;
+  }
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  try{
+    const resp = await fetch('/weekly-off/bulk-upload', {method:'POST', body: fd});
+    const r = await resp.json();
+    if(r.success){
+      showToast(r.message || 'Bulk upload completed');
+      closeModal('bulkUploadModal');
+      setTimeout(()=>location.reload(), 900);
+    } else {
+      showToast(r.error || 'Bulk upload failed','error');
+    }
+  } catch(e){
+    showToast('Bulk upload failed','error');
+  }
+}
+</script>
+
+{% endblock %}

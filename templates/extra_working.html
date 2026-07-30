@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Extra Working{% endblock %}
+{% block page_title %}Extra Working{% endblock %}
+{% block content %}
+
+<!-- Filter Bar -->
+<form method="get" id="ewFilterForm" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+  <select name="month" class="form-control" style="width:130px;" onchange="this.form.submit()">
+    {% for i in range(1,13) %}
+    <option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ months[i-1] }}</option>
+    {% endfor %}
+  </select>
+  <select name="year" class="form-control" style="width:100px;" onchange="this.form.submit()">
+    {% for y in range(year-2, year+2) %}
+    <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <select name="dept" class="form-control" style="width:170px;" onchange="this.form.submit()">
+    <option value="">All Departments</option>
+    {% for d in departments %}
+    <option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>
+    {% endfor %}
+  </select>
+  <select name="scheme" class="form-control" style="width:170px;" onchange="this.form.submit()">
+    <option value="">All Schemes</option>
+    {% for s in schemes %}
+    <option value="{{ s.id }}" {% if (s.id|string)==f_scheme %}selected{% endif %}>{{ s.scheme_name }}</option>
+    {% endfor %}
+  </select>
+  <input class="form-control" type="text" name="search" placeholder="🔍 Search emp code / name..." value="{{ f_search }}" style="width:220px;">
+  <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
+
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="exportExtraWorking()">📤 Export</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="ewSaveBtn" onclick="saveExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>💾 Save</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="ewSyncBtn" onclick="syncExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>🔄 Sync</button>
+    <button type="button" class="btn btn-sm" id="ewLockBtn"
+      style="background:{% if lock.is_locked %}rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3){% else %}rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3){% endif %};"
+      onclick="toggleExtraWorkingLock()">{% if lock.is_locked %}🔒 Locked — Unlock{% else %}🔓 Lock Month{% endif %}</button>
+  </div>
+</form>
+
+{% if lock.is_locked %}
+<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:10px;padding:8px 14px;font-size:12px;margin-bottom:14px;">
+  🔒 {{ months[month-1] }} {{ year }} is locked by {{ lock.locked_by }} on {{ lock.locked_on }}. Values below are frozen and won't change even if attendance is edited. Total is included in Payroll Insights.
+</div>
+{% endif %}
+
+<div style="color:var(--muted);font-size:13px;margin-bottom:14px;">
+  Extra Working Hours = shift working hours se zyada actual worked hours (Shift Master + Attendance IN/OUT se auto-calculate hoti hain, koi approval condition nahi). Amount = Extra Working Hrs × Per-Hr Rate (Settings me set formula ke according).
+  <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="openModal('ewSettingsModal')">⚙️ Settings</button>
+</div>
+
+<!-- KPI Cards -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px;">
+  <div style="background:linear-gradient(135deg,#0096dc,#0072b8);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.85;">Employees</div>
+    <div style="font-size:26px;font-weight:800;">{{ emp_count }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.85;">Total Extra Hours</div>
+    <div style="font-size:26px;font-weight:800;">{{ total_hours }} hrs</div>
+  </div>
+  <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.85;">Total Extra Amount</div>
+    <div style="font-size:26px;font-weight:800;">₹{{ '%.0f'|format(total_amount) }}</div>
+  </div>
+  <div style="background:linear-gradient(135deg,{% if lock.is_locked %}#ef4444,#dc2626{% else %}#10b981,#059669{% endif %});border-radius:12px;padding:16px;color:#fff;">
+    <div style="font-size:11px;opacity:.85;">Status</div>
+    <div style="font-size:20px;font-weight:800;">{% if lock.is_locked %}🔒 Locked{% else %}🔓 Open{% endif %}</div>
+  </div>
+</div>
+
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:13px;">
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+    <input type="checkbox" id="ewSelectAll" onchange="toggleSelectAllRows(this)"> Select All
+  </label>
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+    <input type="checkbox" id="ewHideZero" onchange="filterZeroRows()"> Hide Zero Hours
+  </label>
+  <span id="ewSelectedCount" style="color:var(--muted);">0 selected</span>
+</div>
+
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:center;padding:10px;width:34px;"></th>
+      <th style="text-align:left;padding:10px 12px;">Emp Code</th>
+      <th style="text-align:left;padding:10px;">Name</th>
+      <th style="text-align:left;padding:10px;">Department</th>
+      <th style="text-align:center;padding:10px;">Extra Hrs</th>
+      <th style="text-align:center;padding:10px;">Per Hr Rate</th>
+      <th style="text-align:right;padding:10px 12px;">Extra Amount</th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr class="ew-row" data-hours="{{ r.extra_hours }}" style="border-bottom:1px solid var(--border);">
+        <td style="text-align:center;padding:10px;"><input type="checkbox" class="ew-row-check"></td>
+        <td style="padding:10px 12px;font-weight:700;">{{ r.emp_code }}</td>
+        <td style="padding:10px;">{{ r.emp_name }}</td>
+        <td style="padding:10px;color:var(--muted);">{{ r.department or '—' }}</td>
+        <td style="text-align:center;padding:10px;">
+          {% if lock.is_locked %}
+          <span style="font-weight:800;">{{ r.extra_hours }}</span>
+          {% else %}
+          <a href="javascript:void(0)" onclick="showExtraDetail('{{ r.emp_code }}')" style="color:#0096dc;font-weight:800;text-decoration:underline;cursor:pointer;">{{ r.extra_hours }}</a>
+          {% endif %}
+        </td>
+        <td style="text-align:center;padding:10px;">₹{{ '%.2f'|format(r.per_hr_rate) }}</td>
+        <td style="text-align:right;padding:10px 12px;font-weight:800;">₹{{ '%.2f'|format(r.extra_amount) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">Is filter ke sath koi extra working hours nahi mile.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if rows %}
+    <tfoot>
+      <tr style="border-top:2px solid var(--border);font-weight:800;">
+        <td colspan="6" style="text-align:right;padding:10px 12px;">Total</td>
+        <td style="text-align:right;padding:10px 12px;">₹{{ '%.2f'|format(total_amount) }}</td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+
+<!-- Employee Attendance Detail Popup -->
+<div class="modal-overlay" id="ewDetailModal">
+  <div class="modal" style="width:640px;max-width:92vw;max-height:85vh;overflow:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="ewDetailTitle">Attendance Detail</span>
+      <button class="modal-close" onclick="closeModal('ewDetailModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="ewDetailSummary" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:6px;">Date</th>
+          <th style="text-align:center;padding:6px;">In</th>
+          <th style="text-align:center;padding:6px;">Out</th>
+          <th style="text-align:center;padding:6px;">Worked Hrs</th>
+          <th style="text-align:center;padding:6px;">Extra Hrs</th>
+          <th style="text-align:center;padding:6px;">Status</th>
+        </tr></thead>
+        <tbody id="ewDetailBody">
+          <tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ewDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="ewSettingsModal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ Extra Working — Settings</span>
+      <button class="modal-close" onclick="closeModal('ewSettingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label">Salary Basis (Per Hr Rate calculation ke liye)</label>
+        <select class="form-control" id="ew_salary_basis">
+          <option value="gross" {% if settings.salary_basis=='gross' %}selected{% endif %}>Gross (Basic + HRA + Special Allowance)</option>
+          <option value="basic" {% if settings.salary_basis=='basic' %}selected{% endif %}>Basic Only</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label">Days Divisor</label>
+        <input class="form-control" type="number" step="1" id="ew_days_divisor" value="{{ settings.days_divisor }}">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Multiplier</label>
+        <input class="form-control" type="number" step="0.1" id="ew_multiplier" value="{{ settings.multiplier }}">
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:12px;">
+        Formula: Per Hr Rate = (Salary ÷ Days Divisor ÷ Employee Shift Hours) × Multiplier
+      </div>
+      <div id="ewSettingsResult" style="margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ewSettingsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExtraWorkingSettings()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const EW_MONTH  = {{ month }};
+const EW_YEAR   = {{ year }};
+const EW_DEPT   = {{ f_dept|tojson }};
+const EW_SCHEME = {{ f_scheme|tojson }};
+const EW_SEARCH = {{ f_search|tojson }};
+const EW_LOCKED = {{ 'true' if lock.is_locked else 'false' }};
+
+function toggleSelectAllRows(cb){
+  document.querySelectorAll('.ew-row-check').forEach(c => { if(c.closest('tr').style.display !== 'none') c.checked = cb.checked; });
+  updateSelectedCount();
+}
+document.addEventListener('change', e => { if(e.target.classList.contains('ew-row-check')) updateSelectedCount(); });
+function updateSelectedCount(){
+  const n = document.querySelectorAll('.ew-row-check:checked').length;
+  document.getElementById('ewSelectedCount').textContent = `${n} selected`;
+}
+function filterZeroRows(){
+  const hide = document.getElementById('ewHideZero').checked;
+  document.querySelectorAll('.ew-row').forEach(row => {
+    const hrs = parseFloat(row.dataset.hours || '0');
+    row.style.display = (hide && hrs <= 0) ? 'none' : '';
+  });
+}
+
+function showExtraDetail(empCode){
+  if (EW_LOCKED) return;
+  document.getElementById('ewDetailTitle').textContent = 'Loading...';
+  document.getElementById('ewDetailSummary').textContent = '';
+  document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>';
+  openModal('ewDetailModal');
+
+  fetch(`/extra-working/employee-detail/${empCode}/${EW_MONTH}/${EW_YEAR}`)
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success){
+        document.getElementById('ewDetailBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:16px;color:#ef4444;">${d.error || 'Error loading data'}</td></tr>`;
+        return;
+      }
+      document.getElementById('ewDetailTitle').textContent = `${d.emp_name} (${d.emp_code})`;
+      document.getElementById('ewDetailSummary').innerHTML =
+        `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; Per Hr Rate: <b>₹${d.per_hr_rate.toFixed(2)}</b> &nbsp;|&nbsp; Total Extra: <b>${d.total_extra_hours} hrs</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
+
+      if (!d.days.length){
+        document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';
+        return;
+      }
+      document.getElementById('ewDetailBody').innerHTML = d.days.map(row => `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px;">${row.date}</td>
+          <td style="text-align:center;padding:6px;">${row.in_time}</td>
+          <td style="text-align:center;padding:6px;">${row.out_time}</td>
+          <td style="text-align:center;padding:6px;">${row.working_hours}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.extra_hours > 0 ? '800' : '400'};color:${row.extra_hours > 0 ? '#10b981' : 'inherit'};">${row.extra_hours}</td>
+          <td style="text-align:center;padding:6px;">${row.status}</td>
+        </tr>`).join('');
+    })
+    .catch(() => {
+      document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:#ef4444;">Error loading data</td></tr>';
+    });
+}
+
+function exportExtraWorking(){
+  const q = new URLSearchParams({dept:EW_DEPT||'', scheme:EW_SCHEME||'', search:EW_SEARCH||''});
+  window.open(`/extra-working/export/${EW_MONTH}/${EW_YEAR}?${q.toString()}`, '_blank');
+}
+
+function syncExtraWorking(){
+  const btn = document.getElementById('ewSyncBtn');
+  btn.disabled = true; btn.textContent = '🔄 Syncing...';
+  fetch('/extra-working/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR})})
+    .then(r => r.json())
+    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = '🔄 Sync'; location.reload(); })
+    .catch(() => { btn.disabled = false; btn.textContent = '🔄 Sync'; alert('Sync failed'); });
+}
+
+function saveExtraWorking(){
+  const btn = document.getElementById('ewSaveBtn');
+  btn.disabled = true; btn.textContent = '💾 Saving...';
+  fetch('/extra-working/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR})})
+    .then(r => r.json())
+    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = '💾 Save'; })
+    .catch(() => { btn.disabled = false; btn.textContent = '💾 Save'; alert('Save failed'); });
+}
+
+function toggleExtraWorkingLock(){
+  const action = EW_LOCKED ? 'unlock' : 'lock';
+  const msg = EW_LOCKED
+    ? `${EW_MONTH}/${EW_YEAR} ko unlock karna hai? Data phir se live recalculate hoga.`
+    : `${EW_MONTH}/${EW_YEAR} ko lock karna hai? Is month ka data freeze ho jayega aur Payroll Insights me total add hoga.`;
+  if (!confirm(msg)) return;
+  const btn = document.getElementById('ewLockBtn');
+  btn.disabled = true;
+  fetch('/extra-working/lock', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR, action:action})})
+    .then(r => r.json())
+    .then(d => { alert(d.message || d.error); location.reload(); })
+    .catch(() => { btn.disabled = false; alert('Action failed'); });
+}
+
+function saveExtraWorkingSettings(){
+  const payload = {
+    salary_basis: document.getElementById('ew_salary_basis').value,
+    days_divisor: parseFloat(document.getElementById('ew_days_divisor').value || 26),
+    multiplier:   parseFloat(document.getElementById('ew_multiplier').value || 1.0)
+  };
+  document.getElementById('ewSettingsResult').innerHTML = '<span style="color:var(--muted);">Saving...</span>';
+  fetch('/extra-working/settings/save', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success){
+      document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#10b981;">✅ Saved</span>';
+      setTimeout(() => location.reload(), 500);
+    } else {
+      document.getElementById('ewSettingsResult').innerHTML = `<span style="color:#ef4444;">❌ ${d.error || 'Error saving settings'}</span>`;
+    }
+  })
+  .catch(() => {
+    document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#ef4444;">❌ Error saving settings</span>';
+  });
+}
+</script>
+
+{% endblock %}

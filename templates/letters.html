@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+{% block title %}Letters{% endblock %}
+{% block page_title %}📄 Letter Generator{% endblock %}
+{% block content %}
+{% if can_admin %}
+<!-- Header/Footer/Signature Settings -->
+<div class="table-card" style="padding:14px;margin-bottom:14px;">
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">🖼️ Letter Header, Footer & Signatures</div>
+
+  <!-- Header + Footer Upload Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div>
+      <label class="form-label">Header Image (Company letterhead top)</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'header')" style="display:none;">
+        </label>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('header')">🗑️ Remove</button>
+        <span id="hdr_status" style="font-size:11px;color:var(--muted);">Not set</span>
+      </div>
+      <div id="hdr_preview" style="margin-top:6px;"></div>
+    </div>
+    <div>
+      <label class="form-label">Footer Image (Company letterhead bottom)</label>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'footer')" style="display:none;">
+        </label>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('footer')">🗑️ Remove</button>
+        <span id="ftr_status" style="font-size:11px;color:var(--muted);">Not set</span>
+      </div>
+      <div id="ftr_preview" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Seal -->
+  <div style="border-top:1px solid var(--border);padding-top:14px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">
+      <div>
+        <label class="form-label">🔏 Company Seal / Stamp</label>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Insert the "Company Seal" field in a letter template wherever you want it to appear.</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'seal')" style="display:none;">
+          </label>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('seal')">🗑️ Remove</button>
+          <span id="seal_status" style="font-size:11px;color:var(--muted);">Not set</span>
+        </div>
+        <div id="seal_preview"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Named Signatures (used by Custom Letter Templates) -->
+<div class="table-card" id="sig-manager" style="padding:14px;margin-bottom:14px;">
+  <div style="font-weight:700;font-size:13px;margin-bottom:6px;">🖊️ Named Signatures (for Custom Letter Templates)</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
+    Add one entry per signatory (e.g. "Director", "HR Department"). When you build a letter template, tick which of these
+    should appear on that letter — the name you give here is exactly what prints under the signature.
+  </div>
+  <div id="sigList" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;"></div>
+  <div style="border-top:1px solid var(--border);padding-top:12px;">
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px;">
+      <div>
+        <label class="form-label">Name (e.g. Director)</label>
+        <input class="form-control" id="new_sig_name" style="width:200px;" placeholder="e.g. HR Department">
+      </div>
+      <div>
+        <label class="form-label">Signature Image</label>
+        <input type="file" accept="image/*" id="new_sig_file" class="form-control" style="width:220px;">
+      </div>
+      <button class="btn btn-ghost btn-sm" style="border-color:#10b981;color:#10b981;" onclick="toggleSigCanvas()">✍️ Draw Instead</button>
+      <button class="btn btn-success btn-sm" onclick="addSignature()">+ Add Signature</button>
+    </div>
+    <div id="sig_canvas_wrap" style="display:none;background:#fff;border:2px solid #10b981;border-radius:8px;max-width:600px;">
+      <canvas id="sigCanvas" width="580" height="160" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
+      <div style="display:flex;gap:6px;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+        <button onclick="clearSigCanvas()" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">🗑 Clear</button>
+        <input type="color" id="sigColor" value="#000000" style="width:28px;height:24px;border:none;cursor:pointer;padding:0;" title="Pen color">
+        <input type="range" id="sigWidth" min="1" max="5" value="2" style="width:60px;" title="Pen width">
+        <span style="font-size:10px;color:#888;margin-left:auto;align-self:center;">Draw, then click "+ Add Signature" above to save it.</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Letter Generator — dynamic templates -->
+<div class="table-card" style="padding:16px;margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-weight:700;font-size:15px;">🧩 Letter Templates</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Every template you build shows up here, ready to fill in and submit for approval.</div>
+    </div>
+    {% if can_admin %}<a href="/letters/templates" class="btn btn-success" style="white-space:nowrap;">+ Add Templates</a>{% endif %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px;">
+  {% for t in templates %}
+  <div style="background:var(--card);border:1px solid rgba(0,150,220,.25);border-radius:16px;padding:22px;">
+    <div style="font-size:28px;margin-bottom:10px;">🧩</div>
+    <div style="font-family:Syne,sans-serif;font-weight:800;font-size:16px;color:#0096dc;margin-bottom:4px;">{{ t.template_name }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">{{ t.letter_title or 'No title set' }}</div>
+    <a href="/letters/templates/generate/{{ t.id }}" class="btn btn-success" style="width:100%;text-align:center;display:block;">📄 Generate</a>
+  </div>
+  {% endfor %}
+  {% if not templates %}
+  <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);background:var(--card);border:1px dashed var(--border);border-radius:16px;">
+    No letter templates yet. Click <b>+ Add Templates</b> above to build your first one.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Pending for Approval -->
+<div class="table-card" style="margin-bottom:16px;">
+  <div class="table-header">
+    <span class="table-title">⏳ Pending for Approval</span>
+    <span style="font-size:12px;color:var(--muted);">{{ pending_docs|length }} pending</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Template</th>
+        <th>Employee</th>
+        <th>Submitted By</th>
+        <th>Submitted On</th>
+        <th>View / Edit</th>
+        {% if can_approve %}<th>Action</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody id="pendingTbody">
+      {% for d in pending_docs %}
+      <tr id="pend_row_{{ d.id }}">
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td style="font-weight:700;">{{ d.template_name }}</td>
+        <td style="font-size:12px;">{{ d.emp_name or '—' }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ d.generated_by }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ d.generated_on }}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            <a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">👁️ View</a>
+            <a href="/letters/documents/edit/{{ d.id }}" class="btn btn-ghost btn-sm" style="font-size:11px;">✏️ Edit</a>
+          </div>
+        </td>
+        {% if can_approve %}
+        <td>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-success btn-sm" style="font-size:11px;" onclick="approveDoc({{ d.id }})">✅ Approve</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#ef4444;border-color:#ef4444;" onclick="rejectDoc({{ d.id }})">✖ Reject</button>
+          </div>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not pending_docs %}
+  <div style="text-align:center;padding:30px;color:var(--muted);">No letters pending approval.</div>
+  {% endif %}
+  {% if not can_approve %}
+  <div style="padding:10px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);">
+    You don't have Letter Approval permission — an approver needs to sign these off before they get a document number and can be printed.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Recently Approved -->
+<div class="table-card" style="margin-bottom:16px;">
+  <div class="table-header">
+    <span class="table-title">✅ Recently Approved</span>
+    <span style="font-size:12px;color:var(--muted);">{{ approved_docs|length }} shown</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Doc Code</th>
+        <th>Template</th>
+        <th>Employee</th>
+        <th>Approved By</th>
+        <th>Approved On</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in approved_docs %}
+      <tr>
+        <td style="color:var(--muted);font-size:11px;">{{ loop.index }}</td>
+        <td style="font-weight:700;color:#0096dc;">{{ d.doc_code }}</td>
+        <td style="font-size:12px;">{{ d.template_name }}</td>
+        <td style="font-size:12px;">{{ d.emp_name or '—' }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ d.approved_by }}</td>
+        <td style="font-size:12px;color:var(--muted);">{{ d.approved_on }}</td>
+        <td><a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">🖨️ View / Print</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not approved_docs %}
+  <div style="text-align:center;padding:30px;color:var(--muted);">No approved letters yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// ── Searchable employee dropdowns (inline search) ──────────────
+function filterSel(selId, q){
+  q = q.toLowerCase();
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  Array.from(sel.options).forEach(opt=>{
+    if(!opt.value){ opt.style.display=""; return; }
+    const lbl = (opt.dataset.lbl || opt.text).toLowerCase();
+    opt.style.display = lbl.includes(q) ? "" : "none";
+  });
+}
+// On select change — show selected employee name below dropdown
+[].forEach(id=>{
+  document.addEventListener("DOMContentLoaded",()=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    sel.addEventListener("change",function(){
+      const div = document.getElementById(id+"_sel");
+      if(div) div.textContent = this.value ? "Selected: "+this.options[this.selectedIndex]?.text : "";
+    });
+  });
+});
+// ── Upload letter images ──────────────────────────────────────
+async function uploadLetterImg(input, type){
+  const f=input.files[0]; if(!f) return;
+  const fd=new FormData(); fd.append("file",f); fd.append("type",type);
+  showToast("Uploading...");
+  const r=await fetch("/letters/settings",{method:"POST",body:fd}).then(r=>r.json());
+  if(r.success){ showToast(type+" uploaded!","success"); checkLetterSettings(); }
+  else showToast("Upload failed","error");
+}
+
+async function removeLetterImg(type){
+  if(!confirm("Remove this image?")) return;
+  const r=await fetch("/letters/settings/remove",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type})}).then(r=>r.json());
+  if(r.success){
+    showToast("Removed","success");
+    // Clear preview and reset status immediately
+    const previewMap={
+      header:"hdr_preview", footer:"ftr_preview", seal:"seal_preview",
+      signature:"sign_preview", director_sign:"dir_sign_preview", hr_sign:"hr_sign_preview"
+    };
+    const statusMap={
+      header:"hdr_status", footer:"ftr_status", seal:"seal_status",
+      signature:"sign_status", director_sign:"dir_sign_status", hr_sign:"hr_sign_status"
+    };
+    const pEl=document.getElementById(previewMap[type]);
+    const sEl=document.getElementById(statusMap[type]);
+    if(pEl) pEl.innerHTML="";
+    if(sEl){ sEl.textContent="No image uploaded"; sEl.style.color="var(--muted)"; }
+    checkLetterSettings();
+  }
+  else showToast("Remove failed","error");
+}
+
+async function checkLetterSettings(){
+  try{
+    const r=await fetch("/letters/settings").then(r=>r.json());
+    const s=r.settings||{};
+    const setItem=(statusId,previewId,filename,imgUrl,maxH)=>{
+      const el=document.getElementById(statusId);
+      if(el){el.textContent="✅ "+filename;el.style.color="var(--green)";}
+      const pe=document.getElementById(previewId);
+      if(pe) pe.innerHTML=`<img src="${imgUrl}?t=${Date.now()}" style="max-height:${maxH}px;border:1px solid var(--border);border-radius:4px;">`;
+    };
+    const clearItem=(sId,pId,msg="No image uploaded")=>{
+      const el=document.getElementById(sId); if(el){el.textContent=msg;el.style.color="var(--muted)";}
+      const pe=document.getElementById(pId); if(pe) pe.innerHTML="";
+    };
+    if(s.header_filename) setItem("hdr_status","hdr_preview",s.header_filename,"/letters/header-image",60);
+    else clearItem("hdr_status","hdr_preview");
+    if(s.footer_filename) setItem("ftr_status","ftr_preview",s.footer_filename,"/letters/footer-image",60);
+    else clearItem("ftr_status","ftr_preview");
+    if(s.seal_filename)   setItem("seal_status","seal_preview",s.seal_filename,"/letters/seal-image",80);
+    else clearItem("seal_status","seal_preview");
+  }catch(e){}
+}
+document.addEventListener("DOMContentLoaded", checkLetterSettings);
+
+// ── Named Signatures manager ────────────────────────────────────
+async function loadSignatures(){
+  const r = await fetch("/letters/signatures/list").then(r=>r.json());
+  const wrap = document.getElementById("sigList");
+  if(!wrap) return;
+  const sigs = (r && r.signatures) || [];
+  if(!sigs.length){
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--muted);">No signatures added yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = sigs.map(s => `
+    <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;min-width:130px;">
+      ${s.img_b64 ? `<img src="${s.img_b64}" style="max-height:44px;max-width:120px;display:block;margin:0 auto 6px;">` : `<div style="height:44px;"></div>`}
+      <div style="font-size:12px;font-weight:700;">${s.sig_name}</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;border-color:#ef4444;margin-top:6px;" onclick="deleteSignature(${s.id})">🗑️ Remove</button>
+    </div>
+  `).join("");
+}
+
+async function addSignature(){
+  const name = document.getElementById("new_sig_name").value.trim();
+  if(!name){ showToast("Enter a name for this signature","error"); return; }
+
+  const fileInput = document.getElementById("new_sig_file");
+  const file = fileInput.files[0];
+  const canvasWrap = document.getElementById("sig_canvas_wrap");
+  const drawing = canvasWrap && canvasWrap.style.display !== "none";
+
+  if(drawing){
+    const blob = await croppedSigBlob();
+    if(!blob){ showToast("Draw a signature first, or switch to Upload","error"); return; }
+    await submitSignature(name, blob, "digital_signature.png");
+  } else if(file){
+    await submitSignature(name, file, file.name);
+  } else {
+    showToast("Please choose a signature image or use Draw Instead","error");
+  }
+}
+
+async function submitSignature(name, fileOrBlob, filename){
+  const fd = new FormData();
+  fd.append("sig_name", name);
+  fd.append("file", fileOrBlob, filename);
+  showToast("Adding signature...");
+  const r = await fetch("/letters/signatures/add", {method:"POST", body:fd}).then(r=>r.json());
+  if(r.success){
+    showToast("Signature added!","success");
+    document.getElementById("new_sig_name").value = "";
+    document.getElementById("new_sig_file").value = "";
+    clearSigCanvas();
+    document.getElementById("sig_canvas_wrap").style.display = "none";
+    loadSignatures();
+  } else showToast(r.error || "Failed to add signature","error");
+}
+
+async function deleteSignature(id){
+  if(!confirm("Remove this signature? Templates using it will simply skip it.")) return;
+  const r = await fetch(`/letters/signatures/delete/${id}`, {method:"POST"}).then(r=>r.json());
+  if(r.success){ showToast("Signature removed","success"); loadSignatures(); }
+  else showToast(r.error || "Remove failed","error");
+}
+document.addEventListener("DOMContentLoaded", loadSignatures);
+
+// ── Draw-a-signature canvas (alternative to uploading a file) ──
+let _sigCanvasReady = false;
+function toggleSigCanvas(){
+  const el = document.getElementById("sig_canvas_wrap");
+  if(!el) return;
+  const showing = el.style.display !== "none";
+  el.style.display = showing ? "none" : "";
+  if(!showing) initSigCanvas();
+}
+
+function initSigCanvas(){
+  const canvas = document.getElementById("sigCanvas");
+  if(!canvas || _sigCanvasReady) return;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  let drawing=false, lx=0, ly=0;
+  const getPos = e=>{
+    const rect=canvas.getBoundingClientRect();
+    const scX=canvas.width/rect.width, scY=canvas.height/rect.height;
+    if(e.touches){ return {x:(e.touches[0].clientX-rect.left)*scX, y:(e.touches[0].clientY-rect.top)*scY}; }
+    return {x:(e.clientX-rect.left)*scX, y:(e.clientY-rect.top)*scY};
+  };
+  const start = e=>{
+    e.preventDefault(); drawing=true;
+    const p=getPos(e); lx=p.x; ly=p.y;
+    ctx.beginPath(); ctx.arc(lx,ly,0.5,0,Math.PI*2);
+    ctx.fillStyle=document.getElementById("sigColor")?.value||"#000"; ctx.fill();
+  };
+  const move = e=>{
+    if(!drawing) return; e.preventDefault();
+    const p=getPos(e);
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle=document.getElementById("sigColor")?.value||"#000";
+    ctx.lineWidth=parseInt(document.getElementById("sigWidth")?.value||"2");
+    ctx.lineCap="round"; ctx.lineJoin="round"; ctx.stroke();
+    lx=p.x; ly=p.y;
+  };
+  const stop = ()=>{ drawing=false; };
+  canvas.addEventListener("mousedown",start); canvas.addEventListener("mousemove",move);
+  canvas.addEventListener("mouseup",stop); canvas.addEventListener("mouseleave",stop);
+  canvas.addEventListener("touchstart",start,{passive:false}); canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",stop);
+  _sigCanvasReady = true;
+}
+
+function clearSigCanvas(){
+  const canvas = document.getElementById("sigCanvas"); if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function croppedSigBlob(){
+  return new Promise(resolve=>{
+    const canvas = document.getElementById("sigCanvas");
+    if(!canvas){ resolve(null); return; }
+    const ctx = canvas.getContext("2d");
+    const w=canvas.width, h=canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const data = imgData.data;
+    let minX=w,maxX=0,minY=h,maxY=0;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const idx=(y*w+x)*4;
+        if(data[idx]<240||data[idx+1]<240||data[idx+2]<240){
+          if(x<minX)minX=x; if(x>maxX)maxX=x;
+          if(y<minY)minY=y; if(y>maxY)maxY=y;
+        }
+      }
+    }
+    if(minX>maxX||minY>maxY){ resolve(null); return; } // nothing drawn
+    const pad=12;
+    minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+    maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+    const cw=maxX-minX, ch=maxY-minY;
+    const out=document.createElement("canvas");
+    out.width=Math.max(300,cw); out.height=Math.max(80,ch);
+    const octx=out.getContext("2d");
+    octx.fillStyle="#fff"; octx.fillRect(0,0,out.width,out.height);
+    const ox=Math.floor((out.width-cw)/2), oy=Math.floor((out.height-ch)/2);
+    octx.putImageData(ctx.getImageData(minX,minY,cw,ch),ox,oy);
+    out.toBlob(blob=>resolve(blob), "image/png");
+  });
+}
+
+
+// ── Approval workflow ───────────────────────────────────────────
+async function approveDoc(id){
+  if(!confirm("Approve this letter? It will be assigned a document number and become printable.")) return;
+  const r = await fetch(`/letters/documents/approve/${id}`, {method:"POST"}).then(r=>r.json());
+  if(r.success){ showToast("Approved — Doc No. "+r.doc_code,"success"); setTimeout(()=>location.reload(), 600); }
+  else showToast(r.error || "Approve failed","error");
+}
+
+async function rejectDoc(id){
+  const reason = prompt("Reason for rejection (optional):") || "";
+  const r = await fetch(`/letters/documents/reject/${id}`, {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({reason})
+  }).then(r=>r.json());
+  if(r.success){ showToast("Letter rejected","success"); setTimeout(()=>location.reload(), 600); }
+  else showToast(r.error || "Reject failed","error");
+}
+</script>
+{% endblock %}

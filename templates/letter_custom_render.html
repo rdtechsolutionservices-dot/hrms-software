@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ doc.template_name }}{% if emp_name %} — {{ emp_name }}{% endif %}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
+
+  {% set PAGE_DIMS = {'A4':(210,297), 'A5':(148,210), 'A3':(297,420), 'LEGAL':(215.9,355.6)} %}
+  {% set _pg = (page_size or 'A4')|upper %}
+  {% if _pg not in PAGE_DIMS %}{% set _pg = 'A4' %}{% endif %}
+  {% set _dims = PAGE_DIMS[_pg] %}
+  {% set _pw = _dims[0] %}
+  {% set _ph = _dims[1] %}
+  {% set _pgcss = 'legal' if _pg == 'LEGAL' else _pg %}
+  {% set _head_gap = ((margin_top - header_margin) if (margin_top - header_margin) > 0 else 0) %}
+  {% set _foot_gap = ((margin_bottom - footer_margin) if (margin_bottom - footer_margin) > 0 else 0) %}
+  {# Approximate header/footer graphic heights so short letters still stretch to fill the page,
+     pushing the footer down to the true bottom edge instead of leaving a blank gap beneath it. #}
+  {% set _approx_head_h = (30 if has_header else 22) + _head_gap %}
+  {% set _approx_foot_h = (18 if has_footer else 12) + _foot_gap %}
+  {% set _content_min_h = _ph - header_margin - footer_margin - _approx_head_h - _approx_foot_h %}
+  {% if _content_min_h < 40 %}{% set _content_min_h = 40 %}{% endif %}
+
+  /* True page size + margins for print — the browser repeats <thead>/<tfoot> content at the
+     top/bottom of EVERY printed page automatically. Header sits at header_margin from the top
+     edge, footer at footer_margin from the bottom edge; body text keeps its own margin_top /
+     margin_bottom via the gap padding below — exactly like Word's separate header/footer distance. */
+  @page { size: {{ _pgcss }}; margin: {{ header_margin }}mm {{ margin_right }}mm {{ footer_margin }}mm {{ margin_left }}mm; }
+
+  @media print {
+    body{background:white;}
+    .no-print{display:none!important;}
+    .screen-frame{box-shadow:none!important;margin:0!important;width:auto!important;min-height:0!important;padding:0!important;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
+  }
+
+  /* On-screen preview only — mimics the selected page size with the same margins used for print */
+  .screen-frame { width:{{ _pw }}mm; min-height:{{ _ph }}mm; margin:20px auto; background:white; box-shadow:0 4px 30px rgba(0,0,0,.15); border-radius:4px; padding:{{ header_margin }}mm {{ margin_right }}mm {{ footer_margin }}mm {{ margin_left }}mm; }
+
+  table.letter-table { width:100%; border-collapse:collapse; }
+  thead.letter-head, tfoot.letter-foot { display: table-header-group; }
+  tfoot.letter-foot { display: table-footer-group; }
+
+  .letter-header-img,.letter-footer-img { width:100%; display:block; }
+  .letter-top-band { background:linear-gradient(135deg,#003399 0%,#0052cc 60%,#0077e6 100%); padding:16px 24px 12px; position:relative; overflow:hidden; }
+  .letter-top-band::after { content:''; position:absolute; bottom:0; left:0; right:0; height:4px; background:linear-gradient(90deg,#ffd700,#ffb300,#ffd700); }
+  .company-name{font-size:19px;font-weight:700;color:#fff;letter-spacing:1px;text-transform:uppercase;}
+  .company-sub{font-size:10px;color:rgba(255,255,255,.75);margin-top:2px;letter-spacing:.5px;}
+  .company-addr{font-size:9.5px;color:rgba(255,255,255,.65);margin-top:5px;line-height:1.5;}
+  .ref-row{margin-top:8px;}
+  .ref-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:3px 12px;font-size:10px;color:rgba(255,255,255,.9);letter-spacing:.5px;}
+  .head-pad{padding-bottom:{{ _head_gap }}mm;}
+  .foot-pad{padding-top:{{ _foot_gap }}mm;}
+
+  .letter-title{font-size:16px;font-weight:700;color:#111;text-align:center;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px;}
+  .letter-content{font-size:14px;line-height:1.85;color:#222;}
+  .letter-content p{margin-bottom:13px;text-align:justify;}
+  .letter-content h3{font-size:14px;font-weight:700;color:#111;margin:16px 0 9px;}
+  .letter-content ul, .letter-content ol{margin:0 0 14px 22px;}
+  .letter-content li{margin-bottom:5px;}
+  .sig-section{margin-top:28px;display:flex;justify-content:space-around;align-items:flex-end;gap:20px;flex-wrap:wrap;}
+  .sig-block{text-align:center;}
+  .sig-line{width:150px;border-top:1.5px solid #333;margin:0 auto 4px;}
+  .sig-name{font-size:12px;font-weight:700;color:#111;}
+  .sig-company{font-size:10px;color:#777;}
+
+  .letter-footer-band{display:flex;justify-content:space-between;align-items:center;}
+  .footer-text{font-size:9.5px;color:#888;}
+  .footer-conf{font-size:9px;font-weight:700;color:#c00;letter-spacing:1px;text-transform:uppercase;}
+  .format-no{font-size:9px;color:#666;text-align:left;}
+</style>
+</head>
+<body>
+<div class="no-print" style="background:#1a1a2e;padding:10px 24px;display:flex;gap:12px;align-items:center;">
+  {% if can_print %}
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#0052cc;color:white;" onclick="window.print()">🖨️ Print Letter</button>
+  {% else %}
+  <button disabled title="Printing and PDF export are available only after approval" style="padding:7px 18px;border-radius:8px;border:none;cursor:not-allowed;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);">🖨️ Print Letter</button>
+  {% endif %}
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:rgba(255,255,255,.1);color:white;" onclick="window.close()">✕ Close</button>
+  <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">{{ doc.template_name }}{% if emp_name %} — {{ emp_name }}{% endif %} · {{ _pg }}</span>
+  {% if is_preview %}
+  <span style="margin-left:auto;background:rgba(0,150,220,.2);color:#4db8ff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">👁️ Live Preview — not submitted yet</span>
+  {% elif not can_print %}
+  <span style="margin-left:auto;background:rgba(245,158,11,.2);color:#fbbf24;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">⏳ {{ doc_status or 'Pending' }} — printing &amp; PDF export unlock after approval</span>
+  {% endif %}
+</div>
+
+<div class="screen-frame">
+<table class="letter-table">
+  <thead class="letter-head"><tr><td>
+    <div class="head-pad">
+      {% if has_header %}<img class="letter-header-img" src="{{ header_b64 or '/letters/header-image' }}" alt="">
+      <div style="padding:6px 0 0;font-size:11px;color:#555;">
+        <span>Ref No: {{ letter_code }}</span>
+      </div>
+      {% else %}
+      <div class="letter-top-band">
+        <div class="company-name">{{ company }}</div>
+        <div class="company-sub">AN ISO CERTIFIED PACKAGING MANUFACTURER</div>
+        <div class="company-addr">Industrial Area, RD HRMS Nagar &nbsp;|&nbsp; HR Department &nbsp;|&nbsp; hr@rdhrms.com</div>
+        <div class="ref-row">
+          <span class="ref-badge">Ref No: {{ letter_code }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </td></tr></thead>
+
+  <tfoot class="letter-foot"><tr><td>
+    <div class="foot-pad">
+      {% if has_footer %}<img class="letter-footer-img" src="{{ footer_b64 or '/letters/footer-image' }}" alt="">
+      {% else %}
+      <div class="letter-footer-band">
+        <span class="footer-text">This is a computer-generated document — {{ company }}.</span>
+        <span class="footer-conf">Confidential</span>
+      </div>
+      {% endif %}
+      {% if format_no %}<div class="format-no">{{ format_no }}</div>{% endif %}
+    </div>
+  </td></tr></tfoot>
+
+  <tbody><tr><td style="height:{{ _content_min_h }}mm;">
+    {% if doc.letter_title %}<div class="letter-title">{{ doc.letter_title }}</div>{% endif %}
+
+    <div class="letter-content">{{ merged_body | safe }}</div>
+
+    {% if signatures %}
+    <div class="sig-section">
+      {% for sig in signatures %}
+      <div class="sig-block">
+        {% if sig.img_b64 %}<img src="{{ sig.img_b64 }}" alt="{{ sig.sig_name }}" style="max-height:50px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;">
+        {% else %}<div class="sig-line"></div>{% endif %}
+        <div class="sig-name">{{ sig.sig_name }}</div>
+        <div class="sig-company">{{ company }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </td></tr></tbody>
+</table>
+</div>
+</body>
+</html>
