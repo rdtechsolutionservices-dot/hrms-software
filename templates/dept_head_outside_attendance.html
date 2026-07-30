@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Outside Attendance Requests{% endblock %}
+{% block page_title %}📍 Outside Attendance — Approval{% endblock %}
+{% block content %}
+
+{% if my_depts %}
+<div class="mini-card" style="margin-bottom:14px;font-size:12px;">
+  <span style="color:var(--muted);">Your Departments: </span>
+  {% for d in my_depts %}
+  <span style="background:rgba(0,82,204,.15);color:#0096dc;padding:2px 10px;border-radius:20px;font-weight:700;margin-right:4px;">{{ d }}</span>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-danger">⚠️ No departments assigned to you as Department Head. Contact Admin.</div>
+{% endif %}
+
+<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+  Employees have requested to mark IN/OUT from outside the office. Approving a request marks it directly in their attendance and it is then counted in payroll and Extra Working.
+</div>
+
+<!-- Tabs -->
+<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
+  <a href="?tab=pending" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
+    {% if tab=='pending' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
+    ⏳ Pending ({{ pending|length }})
+  </a>
+  <a href="?tab=history" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
+    {% if tab=='history' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
+    📋 History
+  </a>
+</div>
+
+{% if tab == 'pending' %}
+  {% if pending %}
+    {% for r in pending %}
+    <div style="background:var(--card);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;margin-bottom:10px;" id="req_{{ r.id }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:800;font-size:14px;">{{ r.emp_name }}
+            <span style="color:var(--muted);font-weight:400;font-size:11px;">({{ r.emp_code }} · {{ r.department }} · {{ r.designation or '' }})</span>
+          </div>
+          <div style="font-size:12px;margin-top:5px;">
+            {% if r.request_type == 'IN' %}🟢{% else %}🔴{% endif %} <strong>{{ r.request_type }}</strong> at <strong>{{ r.request_time }}</strong>
+            &nbsp;·&nbsp; {{ r.request_date }}
+          </div>
+          {% if r.reason %}<div style="font-size:11px;color:var(--muted);margin-top:4px;">📝 {{ r.reason }}</div>{% endif %}
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Requested: {{ r.created_on[:16] if r.created_on else '—' }}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
+            onclick="oaAction({{ r.id }},'approve')">✅ Approve</button>
+          <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
+            onclick="oaAction({{ r.id }},'reject')">❌ Reject</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;padding:50px;color:var(--muted);">
+      <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+      <div style="font-weight:700;">No pending outside attendance requests</div>
+      <div style="font-size:12px;margin-top:4px;">All caught up!</div>
+    </div>
+  {% endif %}
+{% else %}
+  {% if history %}
+  <div class="table-card">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="border-bottom:2px solid var(--border);">
+        <th style="text-align:left;padding:8px 12px;">Employee</th>
+        <th style="text-align:left;padding:8px;">Department</th>
+        <th style="text-align:center;padding:8px;">Type</th>
+        <th style="text-align:center;padding:8px;">Date</th>
+        <th style="text-align:center;padding:8px;">Time</th>
+        <th style="text-align:center;padding:8px;">Status</th>
+        <th style="text-align:left;padding:8px 12px;">Reviewed By</th>
+      </tr></thead>
+      <tbody>
+        {% for r in history %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:8px 12px;">{{ r.emp_name }} <span style="color:var(--muted);">({{ r.emp_code }})</span></td>
+          <td style="padding:8px;">{{ r.department }}</td>
+          <td style="text-align:center;padding:8px;">{{ r.request_type }}</td>
+          <td style="text-align:center;padding:8px;">{{ r.request_date }}</td>
+          <td style="text-align:center;padding:8px;">{{ r.request_time }}</td>
+          <td style="text-align:center;padding:8px;">
+            {% if r.status == 'Approved' %}<span style="color:#10b981;">✅ Approved</span>{% else %}<span style="color:#ef4444;">❌ Rejected</span>{% endif %}
+          </td>
+          <td style="padding:8px 12px;">{{ r.reviewed_by }} <span style="color:var(--muted);">({{ r.reviewed_on }})</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:50px;color:var(--muted);">No history yet.</div>
+  {% endif %}
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function oaAction(id, action){
+  const label = action === 'approve' ? 'approve' : 'reject';
+  let remarks = '';
+  if (action === 'reject'){
+    remarks = prompt('Reason for rejection (optional):') || '';
+  }
+  if (!confirm(`Are you sure you want to ${label} this request?`)) return;
+  fetch(`/dept-head/attendance-requests/action/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action: action, remarks: remarks})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success){
+      const el = document.getElementById(`req_${id}`);
+      if (el) el.remove();
+    } else {
+      alert(d.error || 'Action failed');
+    }
+  })
+  .catch(() => alert('Action failed'));
+}
+</script>
+{% endblock %}

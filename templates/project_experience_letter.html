@@ -189,7 +189,7 @@
 
   <!-- Header -->
   <div class="letter-header">
-    <div class="company-name">RD HRMS & Payroll Solution</div>
+    <div class="company-name">{{ company_name }}</div>
     <div class="company-sub">AN ISO CERTIFIED PACKAGING MANUFACTURER</div>
     <div class="company-address">
       Industrial Area, RD HRMS Nagar &nbsp;|&nbsp; CIN: U25200XX2000PLC000000<br>
@@ -239,7 +239,7 @@
     <!-- Opening Para -->
     <p class="para para-intro">
       This is to certify that <strong>{{ emp.emp_name }}</strong> (Employee Code: <strong>{{ emp.emp_code }}</strong>)
-      has been employed with <strong>RD HRMS & Payroll Solution</strong> as
+      has been employed with <strong>{{ company_name }}</strong> as
       <strong>{{ role_held or emp.designation or 'an employee' }}</strong> in the
       <strong>{{ emp.department or 'Production' }}</strong> department since
       <strong>{{ emp.date_of_joining or 'the date of joining' }}</strong>.
@@ -270,7 +270,7 @@
     <!-- Closing Para -->
     <p class="para">
       Throughout the tenure, <strong>{{ emp.emp_name.split()[0] }}</strong> has consistently
-      met performance expectations and upheld the values of RD HRMS & Payroll Solution
+      met performance expectations and upheld the values of {{ company_name }}
       We acknowledge the significant contributions made to the department and the company.
     </p>
     <p class="para">
@@ -287,15 +287,15 @@
         {% else %}<div class="sig-line"></div>{% endif %}
         <div class="sig-name">HR Manager</div>
         <div class="sig-role">Human Resources Department</div>
-        <div class="sig-company">RD HRMS & Payroll Solution</div>
+        <div class="sig-company">{{ company_name }}</div>
       </div>
-      <div class="company-stamp">RD HRMS<br>PAYROLL<br>SOLUTION<br>OFFICIAL</div>
+      <div class="company-stamp">{{ company_name.split(" ")[0]|upper }}<br>OFFICIAL</div>
       <div class="sig-block">
         {% if has_director_sign %}<img src="{{ director_b64 or '/letters/director-sign-image' }}" alt="Director Signature" style="max-height:50px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto;">
         {% else %}<div class="sig-line"></div>{% endif %}
         <div class="sig-name">Director / Authorized Signatory</div>
         <div class="sig-role">Management</div>
-        <div class="sig-company">RD HRMS & Payroll Solution</div>
+        <div class="sig-company">{{ company_name }}</div>
       </div>
     </div>
 

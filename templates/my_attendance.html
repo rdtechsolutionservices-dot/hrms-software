@@ -15,6 +15,60 @@
 </div>
 {% endif %}
 
+{% if can_self_punch %}
+<div class="table-card" style="padding:18px;margin-bottom:18px;background:linear-gradient(135deg,rgba(0,150,220,.08),rgba(124,58,237,.06));border:1px solid rgba(0,150,220,.25);">
+  <div style="font-weight:800;font-size:14px;color:#0096dc;">📍 Outside Attendance — Today</div>
+  <div style="font-size:11px;color:var(--muted);margin-top:3px;margin-bottom:12px;">
+    Working from outside the office and need to mark IN/OUT? Send a request — it will count as attendance only after your Department Head approves it.
+  </div>
+
+  <div class="form-group" style="margin-bottom:12px;">
+    <label class="form-label" style="font-size:11px;">Reason <span style="color:#ef4444;">*</span></label>
+    <textarea id="oaReason" class="form-control" rows="2" maxlength="300"
+      placeholder="Why are you marking attendance from outside the office? (e.g. client visit, field work)"
+      style="resize:vertical;"></textarea>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button type="button" class="btn btn-sm" id="oaInBtn" onclick="submitOutsidePunch('IN')"
+      style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
+      {% if today_status.in_time or today_status.in_pending %}disabled{% endif %}>
+      {% if today_status.in_pending %}⏳ IN Pending{% elif today_status.in_time %}✅ IN: {{ today_status.in_time }}{% else %}🟢 Request IN{% endif %}
+    </button>
+    <button type="button" class="btn btn-sm" id="oaOutBtn" onclick="submitOutsidePunch('OUT')"
+      style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
+      {% if not today_status.in_time or today_status.out_time or today_status.out_pending %}disabled{% endif %}>
+      {% if today_status.out_pending %}⏳ OUT Pending{% elif today_status.out_time %}✅ OUT: {{ today_status.out_time }}{% else %}🔴 Request OUT{% endif %}
+    </button>
+  </div>
+  <div id="oaResult" style="margin-top:10px;font-size:12px;"></div>
+
+
+  {% if recent_requests %}
+  <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Recent Requests</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      {% for r in recent_requests %}
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;flex-wrap:wrap;">
+        <span style="font-weight:700;">{{ r.request_type }}</span>
+        <span style="color:var(--muted);">{{ r.request_date }} {{ r.request_time }}</span>
+        {% if r.status == 'Pending' %}
+        <span style="color:#f59e0b;font-weight:700;">⏳ Pending</span>
+        {% elif r.status == 'Approved' %}
+        <span style="color:#10b981;font-weight:700;">✅ Approved</span>
+        <span style="color:var(--muted);font-size:11px;">by {{ r.reviewed_by }}</span>
+        {% else %}
+        <span style="color:#ef4444;font-weight:700;">❌ Rejected</span>
+        <span style="color:var(--muted);font-size:11px;">by {{ r.reviewed_by }}{% if r.review_remarks %} — {{ r.review_remarks }}{% endif %}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 <!-- Month Selector -->
 <div class="toolbar" style="margin-bottom:14px;">
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -134,5 +188,42 @@ function filterMonth(){
   window.location = "/my-attendance?month="+m+"&year="+y;
 }
 const enumerate = (arr) => arr.map((v,i) => [i,v]);
+
+function submitOutsidePunch(type){
+  const resultEl = document.getElementById("oaResult");
+  const inBtn = document.getElementById("oaInBtn");
+  const outBtn = document.getElementById("oaOutBtn");
+  const reasonEl = document.getElementById("oaReason");
+  const reason = reasonEl.value.trim();
+
+  if (!reason){
+    resultEl.innerHTML = '<span style="color:#ef4444;">❌ Please enter a reason before sending the request.</span>';
+    reasonEl.focus();
+    return;
+  }
+
+  resultEl.innerHTML = '<span style="color:var(--muted);">Sending request…</span>';
+  inBtn.disabled = true; outBtn.disabled = true;
+
+  fetch("/my-attendance/punch", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({type: type, reason: reason})
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success){
+      resultEl.innerHTML = `<span style="color:#10b981;">✅ ${d.message}</span>`;
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${d.error}</span>`;
+      inBtn.disabled = false; outBtn.disabled = false;
+    }
+  })
+  .catch(() => {
+    resultEl.innerHTML = '<span style="color:#ef4444;">❌ Request failed. Try again.</span>';
+    inBtn.disabled = false; outBtn.disabled = false;
+  });
+}
 </script>
 {% endblock %}

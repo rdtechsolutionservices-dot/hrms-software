@@ -47,7 +47,7 @@
 {% endif %}
 
 <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">
-  Extra Working Hours = shift working hours se zyada actual worked hours (Shift Master + Attendance IN/OUT se auto-calculate hoti hain, koi approval condition nahi). Amount = Extra Working Hrs × Per-Hr Rate (Settings me set formula ke according).
+  Extra Working Hours = actual worked hours beyond the shift's working hours (auto-calculated from Shift Master + Attendance IN/OUT — no approval condition applies). Amount = Extra Working Hrs × Per-Hr Rate (using the formula set in Settings).
   <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="openModal('ewSettingsModal')">⚙️ Settings</button>
 </div>
 
@@ -110,7 +110,7 @@
         <td style="text-align:right;padding:10px 12px;font-weight:800;">₹{{ '%.2f'|format(r.extra_amount) }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">Is filter ke sath koi extra working hours nahi mile.</td></tr>
+      <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No extra working hours found for this filter.</td></tr>
       {% endfor %}
     </tbody>
     {% if rows %}
@@ -162,7 +162,7 @@
     </div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:12px;">
-        <label class="form-label">Salary Basis (Per Hr Rate calculation ke liye)</label>
+        <label class="form-label">Salary Basis (used for Per Hr Rate calculation)</label>
         <select class="form-control" id="ew_salary_basis">
           <option value="gross" {% if settings.salary_basis=='gross' %}selected{% endif %}>Gross (Basic + HRA + Special Allowance)</option>
           <option value="basic" {% if settings.salary_basis=='basic' %}selected{% endif %}>Basic Only</option>
@@ -276,8 +276,8 @@ function saveExtraWorking(){
 function toggleExtraWorkingLock(){
   const action = EW_LOCKED ? 'unlock' : 'lock';
   const msg = EW_LOCKED
-    ? `${EW_MONTH}/${EW_YEAR} ko unlock karna hai? Data phir se live recalculate hoga.`
-    : `${EW_MONTH}/${EW_YEAR} ko lock karna hai? Is month ka data freeze ho jayega aur Payroll Insights me total add hoga.`;
+    ? `Unlock ${EW_MONTH}/${EW_YEAR}? Data will be recalculated live again.`
+    : `Lock ${EW_MONTH}/${EW_YEAR}? This month's data will be frozen and the total will be added to Payroll Insights.`;
   if (!confirm(msg)) return;
   const btn = document.getElementById('ewLockBtn');
   btn.disabled = true;

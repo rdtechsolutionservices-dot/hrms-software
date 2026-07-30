@@ -41,6 +41,31 @@ a{text-decoration:none;color:inherit;}
 .tbadge-green{background:rgba(16,185,129,.15);color:var(--green);}
 .tbadge-yellow{background:rgba(245,158,11,.15);color:var(--yellow);}
 .content{flex:1;overflow-y:auto;padding:20px 24px;}
+
+.hamburger-btn{display:none;background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;}
+.sidebar-backdrop.show{display:block;}
+
+@media (max-width: 860px){
+  .sidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:0 0 40px rgba(0,0,0,.6);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .hamburger-btn{display:block;}
+  .topbar{padding:10px 14px;}
+  .page-title{font-size:15px;}
+  .content{padding:12px;}
+  .tbadge{font-size:10px;padding:3px 8px;}
+  #todayDate{display:none;}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px!important;}
+  .stat-card{padding:12px!important;}
+  .modal{width:94vw!important;max-width:94vw!important;}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;}
+  .toolbar{flex-wrap:wrap;}
+  input,select,.form-control,.form-select{font-size:16px!important;}
+}
+@media (max-width: 480px){
+  .stats-grid{grid-template-columns:1fr!important;}
+}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
@@ -164,7 +189,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
         onerror="this.style.display='none';document.getElementById('sidebarLogoBox').innerHTML='<span>VPL</span>'">
     </div>
     <div class="logo-text">
-      <div class="ln">RD HRMS & Payroll Solution</div>
+      <div class="ln">{{ company_name }}</div>
       <div class="ls">PayRoll System</div>
     </div>
   </div>
@@ -273,6 +298,9 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     {% if 'dept_head_approve' in perms %}
     <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni">✅</span> Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
     {% endif %}
+    {% if role == 'admin' or 'outside_att_approve' in perms or 'dept_head_approve' in perms %}
+    <a href="/dept-head/attendance-requests" class="nav-item {% if '/attendance-requests' in request.path %}active{% endif %}"><span class="ni">📍</span> Outside Attendance Requests{% if outside_att_pending_count and outside_att_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ outside_att_pending_count }}</span>{% endif %}</a>
+    {% endif %}
     {% if 'users' in perms %}
     <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni">🏢</span> Department Heads</a>
     {% endif %}
@@ -287,9 +315,13 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     </div>
   </div>
 </aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
 <div class="main">
   <div class="topbar">
-    <div class="page-title">{% block page_title %}{% endblock %}</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="page-title">{% block page_title %}{% endblock %}</div>
+    </div>
     <div class="topbar-right">
       <span id="todayDate" class="tbadge tbadge-blue">📅 Loading...</span>
       <span class="tbadge tbadge-green">🟢 LAN Active</span>
@@ -307,6 +339,19 @@ function showToast(msg,type="success"){const t=document.getElementById("toast");
 async function api(url,method="GET",body=null){const opts={method,headers:{"Content-Type":"application/json"}};if(body)opts.body=JSON.stringify(body);const r=await fetch(url,opts);return r.json();}
 function openModal(id){document.getElementById(id).classList.add("show");}
 function closeModal(id){document.getElementById(id).classList.remove("show");}
+
+function toggleSidebar(){
+  document.querySelector(".sidebar").classList.toggle("open");
+  document.getElementById("sidebarBackdrop").classList.toggle("show");
+}
+function closeSidebar(){
+  document.querySelector(".sidebar").classList.remove("open");
+  document.getElementById("sidebarBackdrop").classList.remove("show");
+}
+// Auto-close the mobile drawer when a nav link is tapped
+document.querySelectorAll(".nav-item").forEach(el => {
+  el.addEventListener("click", () => { if (window.innerWidth <= 860) closeSidebar(); });
+});
 document.addEventListener("click",e=>{if(e.target.classList.contains("modal-overlay"))e.target.classList.remove("show");});
 </script>
 {% block scripts %}{% endblock %}

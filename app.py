@@ -67,11 +67,20 @@ def otfmt_filter(minutes):
     return f"{m//60:02d}:{m%60:02d}"
 
 @app.context_processor
+def inject_company_name():
+    """Makes {{ company_name }} available in every template — driven by Branding Settings."""
+    try:
+        return {"company_name": get_company_name()}
+    except Exception:
+        return {"company_name": DEFAULT_COMPANY_NAME}
+
+@app.context_processor
 def inject_pending_counts():
     """Inject pending leave counts for nav badges — dept head + director level"""
     dept_head_pending_count = 0
     leave_mgmt_pending_count = 0
     pending_assoc_ot_count = 0
+    outside_att_pending_count = 0
     try:
         if session.get("user"):
             conn = sqlite3.connect(DB)
@@ -115,16 +124,49 @@ def inject_pending_counts():
                 except Exception:
                     pending_assoc_ot_count = 0
 
+            # Outside Attendance requests pending (dept head scoped)
+            if role == "admin" or "outside_att_approve" in perms or "dept_head_approve" in perms:
+                try:
+                    u2 = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+                    if role == "admin":
+                        outside_att_pending_count = conn.execute(
+                            "SELECT COUNT(*) FROM outside_attendance_requests WHERE status='Pending'"
+                        ).fetchone()[0]
+                    elif u2:
+                        my_depts2 = [r["department"] for r in conn.execute(
+                            "SELECT department FROM dept_head_assignments WHERE user_id=?", (u2["id"],)).fetchall()]
+                        if my_depts2:
+                            ph2 = ",".join("?"*len(my_depts2))
+                            outside_att_pending_count = conn.execute(f"""
+                                SELECT COUNT(*) FROM outside_attendance_requests
+                                WHERE status='Pending' AND department IN ({ph2})""", my_depts2).fetchone()[0]
+                except Exception:
+                    outside_att_pending_count = 0
+
             conn.close()
     except Exception:
         pass
     return dict(dept_head_pending_count=dept_head_pending_count,
                 leave_mgmt_pending_count=leave_mgmt_pending_count,
-                pending_assoc_ot_count=pending_assoc_ot_count)
+                pending_assoc_ot_count=pending_assoc_ot_count,
+                outside_att_pending_count=outside_att_pending_count)
 
 DB = "vpl_payroll.db"
 
-COMPANY = "RD HRMS & Payroll Solution"
+DEFAULT_COMPANY_NAME = "RD HRMS & Payroll Solution"
+
+def get_company_name():
+    """Company/software name — configurable from Branding Settings, used everywhere
+    (login page, dashboard, reports, letters, payslips, emails)."""
+    try:
+        conn = get_db()
+        row = conn.execute("SELECT company_name FROM company_settings WHERE id=1").fetchone()
+        conn.close()
+        if row and row["company_name"]:
+            return row["company_name"]
+    except Exception:
+        pass
+    return DEFAULT_COMPANY_NAME
 MONTHS  = ["January","February","March","April","May","June",
            "July","August","September","October","November","December"]
 
@@ -185,6 +227,20 @@ def init_db():
         otp_code TEXT NOT NULL,
         expires_at TEXT NOT NULL,
         attempts INTEGER DEFAULT 0,
+        created_on TEXT)""")
+
+    c.execute("""CREATE TABLE IF NOT EXISTS outside_attendance_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emp_code TEXT NOT NULL,
+        department TEXT,
+        request_type TEXT NOT NULL,
+        request_time TEXT NOT NULL,
+        request_date TEXT NOT NULL,
+        reason TEXT,
+        latitude REAL, longitude REAL, accuracy_m REAL,
+        status TEXT DEFAULT 'Pending',
+        reviewed_by TEXT, reviewed_on TEXT, review_remarks TEXT,
+        ip_address TEXT,
         created_on TEXT)""")
     try: c.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT ''")
     except: pass
@@ -3147,6 +3203,8 @@ PERMISSION_TREE = [
     ("my_leaves",           "Leave — My Leaves (Self)",         None,  1),
     ("my_attendance",       "My Attendance (Self)",             None,  1),
     ("dept_head_approve",   "Leave — Dept Head Approval",       None,  1),
+    ("my_attendance_punch", "My Attendance — Self Punch Request", None, 1),
+    ("outside_att_approve", "Outside Attendance — Dept Head Approval", None, 1),
     # Reports
     ("reports_att",         "Reports — Attendance Reports",     None,  1),
     ("reports_salary",      "Reports — Salary Reports",         None,  1),
@@ -3315,6 +3373,8 @@ def amgr(f):
             ("/reports",                ["reports_att", "reports_salary", "reports_payroll"]),
             # Leave — specific first
             ("/dept-head/manage",       ["dept_head_approve", "users"]),
+            ("/dept-head/attendance-requests", ["outside_att_approve", "dept_head_approve"]),
+            ("/my-attendance/punch",    ["my_attendance_punch", "my_attendance"]),
             ("/dept-head/",             ["dept_head_approve"]),
             ("/leaves/manage",          ["leave_approve"]),
             ("/leaves/approved",        ["leave_approve", "leave_balance"]),
@@ -3892,7 +3952,7 @@ def _render_login(error=""):
     conn_b.close()
     brand = dict(brand) if brand else {}
     return render_template("login.html", error=error,
-        company_name=brand.get("company_name") or "RD HRMS & Payroll Solution",
+        company_name=brand.get("company_name") or f"{get_company_name()}",
         login_bg_type=brand.get("login_bg_type") or "",
         login_headline=brand.get("login_headline") or "Welcome back — sign in to continue",
         login_subtext=brand.get("login_subtext") or "")
@@ -3921,7 +3981,7 @@ def login():
                 conn_o.execute("INSERT INTO login_otp (user_id, otp_code, expires_at, attempts, created_on) VALUES (?,?,?,0,?)",
                     (user["id"], otp_code, expires_at, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 conn_o.commit(); conn_o.close()
-                subject = "Your Login OTP — RD HRMS & Payroll Solution"
+                subject = f"Your Login OTP — {get_company_name()}"
                 body = make_email_header() + f"""
                     <div style="padding:28px;font-family:Arial,sans-serif;">
                         <p style="font-size:14px;color:#334155;">Hi {user['name'] or user['username']},</p>
@@ -4000,7 +4060,7 @@ def login_resend_otp():
     conn.execute("INSERT INTO login_otp (user_id, otp_code, expires_at, attempts, created_on) VALUES (?,?,?,0,?)",
         (uid, otp_code, expires_at, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
-    subject = "Your Login OTP — RD HRMS & Payroll Solution"
+    subject = f"Your Login OTP — {get_company_name()}"
     body = make_email_header() + f"""
         <div style="padding:28px;font-family:Arial,sans-serif;">
             <p style="font-size:14px;color:#334155;">Hi {user['name'] or user['username']},</p>
@@ -7211,7 +7271,7 @@ def extra_working_export(m, y):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Extra Working"
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — Extra Working Report | {MONTHS[m-1]} {y}" + (" (Locked)" if lock["is_locked"] else "")
+    ws["A1"] = f"{get_company_name().upper()} — Extra Working Report | {MONTHS[m-1]} {y}" + (" (Locked)" if lock["is_locked"] else "")
     ws.merge_cells("A1:F1")
     ws["A1"].font = Font(bold=True, size=13)
 
@@ -7536,7 +7596,7 @@ def ot_export(m, y):
     ws.title = f"OT Report {MONTHS[m-1]} {y}"
 
     ws.merge_cells("A1:I1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — OT Report | {MONTHS[m-1]} {y}"
+    ws["A1"] = f"{get_company_name().upper()} — OT Report | {MONTHS[m-1]} {y}"
     ws["A1"].font = Font(bold=True, size=12, color="FFFFFF")
     ws["A1"].fill = PatternFill("solid", fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -8226,7 +8286,7 @@ def leave_associate_export(m, y):
     ws.title = f"OT Paymt {MONTHS[m-1]} {y}"
 
     ws.merge_cells("A1:S1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — OT Payment Report | {MONTHS[m-1]} {y}"
+    ws["A1"] = f"{get_company_name().upper()} — OT Payment Report | {MONTHS[m-1]} {y}"
     ws["A1"].font = Font(bold=True, size=11, color="FFFFFF")
     ws["A1"].fill = PatternFill("solid", fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -8928,7 +8988,7 @@ def payroll_report_pf(m,y):
     hdr_font = Font(bold=True, color="FFFFFF", size=10)
 
     ws.merge_cells("A1:M1")
-    ws["A1"] = COMPANY
+    ws["A1"] = get_company_name()
     ws["A1"].font = Font(bold=True, size=14)
     ws.merge_cells("A2:M2")
     ws["A2"] = f"PF SHEET FOR THE MONTH-{MONTHS[m-1].upper()} {y}"
@@ -9020,7 +9080,7 @@ def payroll_report_esic(m,y):
     section_fill = PatternFill("solid", fgColor="1E3A5F")
 
     ws.merge_cells("A1:I1")
-    ws["A1"] = COMPANY
+    ws["A1"] = get_company_name()
     ws["A1"].font = Font(bold=True, size=14)
     ws.merge_cells("A2:I2")
     ws["A2"] = f"ESIC SHEET FOR THE MONTH-{MONTHS[m-1].upper()} {y}"
@@ -9877,7 +9937,7 @@ def export_ctc():
 
     num_cols = 21
     ws.merge_cells(f"A1:{get_column_letter(num_cols)}1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — CTC Report ({mode_label}) | {MONTHS[m-1]} {y}"
+    ws["A1"] = f"{get_company_name().upper()} — CTC Report ({mode_label}) | {MONTHS[m-1]} {y}"
     ws["A1"].font = Font(bold=True, size=12, color="FFFFFF", name="Calibri")
     ws["A1"].fill = hdr_fill
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -10338,7 +10398,7 @@ def absent_report_export():
     wb=openpyxl.Workbook(); ws=wb.active
     ws.title=f"Absent Report"
     ws.merge_cells("A1:E1")
-    ws["A1"]=f"RD HRMS & PAYROLL SOLUTION — Absent Report | {from_date} to {to_date}"
+    ws["A1"]=f"{get_company_name().upper()} — Absent Report | {from_date} to {to_date}"
     ws["A1"].font=Font(bold=True,size=11,color="FFFFFF")
     ws["A1"].fill=PatternFill("solid",fgColor="0052CC")
     ws["A1"].alignment=Alignment(horizontal="center")
@@ -10592,6 +10652,13 @@ def admin_settings():
     conn = get_db()
     if request.method == "POST":
         flash_msg = ""
+        new_company_name = request.form.get("company_name","").strip()
+        if new_company_name:
+            conn.execute("UPDATE company_settings SET company_name=?, updated_on=datetime('now') WHERE id=1",
+                (new_company_name,))
+            conn.commit()
+            flash_msg = "Company name updated!"
+
         f = request.files.get("logo")
         if f and f.filename:
             data = f.read()
@@ -10845,7 +10912,7 @@ def make_wb(title,headers,rows,widths,month_name,year,hcol="0052CC"):
     thin=Border(**{s:Side(style="thin",color="D0DCF0") for s in ["left","right","top","bottom"]})
     cl=openpyxl.utils.get_column_letter
     ws.merge_cells(f"A1:{cl(len(headers))}1")
-    ws["A1"]=f"{COMPANY} — {title}: {month_name} {year}"
+    ws["A1"]=f"{get_company_name()} — {title}: {month_name} {year}"
     ws["A1"].font=Font(bold=True,size=13,color="FFFFFF")
     ws["A1"].fill=PatternFill("solid",fgColor=hcol)
     ws["A1"].alignment=Alignment(horizontal="center"); ws.row_dimensions[1].height=26
@@ -11133,7 +11200,7 @@ def exp_yearly(y):
 
     hdrs = ["Month", "Present", "Absent", "WOP", "HP (Holiday Present)", "Leave", "Half Day"]
     ws.merge_cells(f"A1:{cl(len(hdrs))}1")
-    ws["A1"] = f"{COMPANY} — Full Year Attendance Summary {y}"
+    ws["A1"] = f"{get_company_name()} — Full Year Attendance Summary {y}"
     ws["A1"].font      = Font(bold=True, size=14, color="FFFFFF")
     ws["A1"].fill      = PatternFill("solid", fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -12364,7 +12431,7 @@ def export_leave_balance():
     thin = Border(*[Side(style="thin")]*4)
     # Title
     ws.merge_cells("A1:L1")
-    t = ws["A1"]; t.value = f"RD HRMS & Payroll Solution — Leave Balance Report {year}"
+    t = ws["A1"]; t.value = f"{get_company_name()} — Leave Balance Report {year}"
     t.font = Font(bold=True, size=13, color="003580"); t.alignment = Alignment(horizontal="center")
     ws.row_dimensions[1].height = 20
     # Headers
@@ -12662,7 +12729,7 @@ def verify_document(doc_code):
         return jsonify({"verified":True,"doc_code":doc_code,
             "doc_type":doc["doc_type"],"emp_name":doc["emp_name"],
             "emp_code":doc["emp_code"],"generated_on":doc["generated_on"],
-            "message":"✅ This is a genuine document issued by RD HRMS & PAYROLL SOLUTION"})
+            "message":f"✅ This is a genuine document issued by {get_company_name().upper()}"})
     return jsonify({"verified":False,"doc_code":doc_code,
         "message":"❌ Document not found in records. May be forged."})
 
@@ -12684,7 +12751,7 @@ def document_log_export():
     wb = openpyxl.Workbook(); ws = wb.active
     ws.title = "Document Log"
     ws.merge_cells("A1:G1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — Document Log"
+    ws["A1"] = f"{get_company_name().upper()} — Document Log"
     ws["A1"].font=Font(bold=True,size=11,color="FFFFFF")
     ws["A1"].fill=PatternFill("solid",fgColor="0052CC")
     ws["A1"].alignment=Alignment(horizontal="center")
@@ -12761,16 +12828,16 @@ def send_birthday_wishes():
     
     if wish_type == "birthday":
         subject = f"🎂 Happy Birthday {name}!"
-        msg_text = f"🎂 *Happy Birthday {name}!* 🎉\n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— RD HRMS & Payroll Solution Family"
+        msg_text = f"🎂 *Happy Birthday {name}!* 🎉\n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— {get_company_name()} Family"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
             <div style="font-size:48px;">🎂</div>
             <h2 style="color:#0052cc;">Happy Birthday, {name}!</h2>
             <p>Wishing you a wonderful birthday filled with joy and happiness!</p>
-            <p style="color:#64748b;font-size:12px;">— RD HRMS & Payroll Solution Family</p>
+            <p style="color:#64748b;font-size:12px;">— {get_company_name()} Family</p>
         </div>{make_email_footer()}"""
     else:
         subject = f"🎊 Happy Work Anniversary {name}!"
-        msg_text = f"🎊 *Happy Work Anniversary {name}!* 🌟\n\nThank you for your valuable contributions!\n\n— RD HRMS & Payroll Solution"
+        msg_text = f"🎊 *Happy Work Anniversary {name}!* 🌟\n\nThank you for your valuable contributions!\n\n— {get_company_name()}"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
             <div style="font-size:48px;">🎊</div>
             <h2 style="color:#0052cc;">Happy Work Anniversary, {name}!</h2>
@@ -13445,7 +13512,7 @@ def build_letter_merge_values(conn, form):
             "monthly_ctc": f"{monthly_ctc:,.0f}",
         })
     values["today"] = format_ordinal_date(date.today())
-    values["company"] = COMPANY
+    values["company"] = get_company_name()
 
     # Letter Date — chosen at generate time; falls back to today if not supplied
     letter_date_raw = (form.get("letter_date") or "").strip()
@@ -13536,7 +13603,7 @@ def letter_template_preview(tmpl_id):
 
     return render_template("letter_custom_render.html",
         doc=dict(tmpl), merged_body=merged_body, letter_code="(Assigned after approval)",
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         emp_name=values.get("emp_name",""), signatures=signatures,
         has_header=_ls["has_header"] and bool(tmpl["show_header"]),
         has_footer=_ls["has_footer"] and bool(tmpl["show_footer"]),
@@ -13663,7 +13730,7 @@ def letter_document_view(doc_id):
     return render_template("letter_custom_render.html",
         doc=dict(doc), merged_body=doc["merged_body"],
         letter_code=doc["doc_code"] if is_approved else "(Assigned after approval)",
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         emp_name=doc["emp_name"] or "", signatures=signatures,
         has_header=_ls["has_header"] and bool(doc["show_header"]),
         has_footer=_ls["has_footer"] and bool(doc["show_footer"]),
@@ -13698,7 +13765,7 @@ def offer_letter(emp_code):
     hr_b64       = _ls["hr_b64"]
     conn.commit(); conn.close()
     custom_lines = request.args.get("custom_lines", "").strip()
-    return render_template("offer_letter.html", emp=dict(emp), company=COMPANY,
+    return render_template("offer_letter.html", emp=dict(emp), company=get_company_name(),
         today=date.today().strftime("%d %B %Y"), custom_lines=custom_lines,
         letter_code=letter_code,
         has_header=has_header, has_footer=has_footer, has_seal=has_seal, has_signature=has_signature,
@@ -13790,7 +13857,7 @@ def resignation_letter_print(emp_code):
     resignation_date = request.args.get("resignation_date", date.today().strftime("%Y-%m-%d"))
     last_working_day = request.args.get("last_working_day", "")
     return render_template("resignation_letter.html", emp=dict(emp),
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         letter_code=letter_code, custom_lines=custom_lines,
         resignation_date=resignation_date, last_working_day=last_working_day,
         has_header=has_header, has_footer=has_footer,
@@ -13839,7 +13906,7 @@ def export_dept_history():
     # Title row
     ws.merge_cells("A1:H1")
     t = ws["A1"]
-    t.value = "RD HRMS & Payroll Solution — Employee Department Change History Report"
+    t.value = f"{get_company_name()} — Employee Department Change History Report"
     t.font = Font(bold=True, size=13, color="003580")
     t.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 22
@@ -13937,7 +14004,7 @@ def exp_employees():
     hdrs   = base_hdrs   + [cf["field_label"] for cf in custom_fields_export]
     widths = base_widths + [16]*len(custom_fields_export)
     ws.merge_cells(f"A1:{openpyxl.utils.get_column_letter(len(hdrs))}1")
-    ws["A1"] = f"RD HRMS & Payroll Solution — Employee List ({label})"
+    ws["A1"] = f"{get_company_name()} — Employee List ({label})"
     ws["A1"].font = Font(bold=True,size=13,color="FFFFFF",name="Arial")
     ws["A1"].fill = PatternFill("solid",fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -14125,16 +14192,16 @@ def send_email(to_email, subject, html_body, email_type="general"):
         return False, err
 
 def make_email_header():
-    return """
+    return f"""
     <div style="background:linear-gradient(135deg,#0052cc,#0096dc);padding:24px;text-align:center;border-radius:12px 12px 0 0;">
-        <div style="font-size:22px;font-weight:800;color:white;font-family:Arial,sans-serif;">RD HRMS & Payroll Solution</div>
+        <div style="font-size:22px;font-weight:800;color:white;font-family:Arial,sans-serif;">{get_company_name()}</div>
         <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:4px;">An End-to-end Packaging Solution</div>
     </div>"""
 
 def make_email_footer():
-    return """
+    return f"""
     <div style="background:#f0f4f8;padding:16px;text-align:center;border-radius:0 0 12px 12px;font-size:11px;color:#64748b;font-family:Arial,sans-serif;">
-        This is an automated email from RD HRMS & Payroll Solution PayRoll System.<br>
+        This is an automated email from {get_company_name()} PayRoll System.<br>
         Please do not reply to this email.
     </div>"""
 
@@ -14213,7 +14280,7 @@ def save_whatsapp_settings():
 def test_whatsapp():
     d = request.json
     phone = d.get("phone","")
-    ok, msg = send_whatsapp(phone, "🎉 Test message from RD HRMS & Payroll Solution PayRoll System!")
+    ok, msg = send_whatsapp(phone, f"🎉 Test message from {get_company_name()} PayRoll System!")
     return jsonify({"success":ok,"message":msg})
 
 @app.route("/email-settings/test", methods=["POST"])
@@ -14221,12 +14288,12 @@ def test_whatsapp():
 def test_email():
     d = request.json
     to = d.get("to", get_email_settings().get("email",""))
-    ok, msg = send_email(to, "Test Email — RD HRMS & Payroll Solution",
+    ok, msg = send_email(to, f"Test Email — {get_company_name()}",
         f"""{make_email_header()}
         <div style="padding:24px;font-family:Arial,sans-serif;background:white;">
             <h3 style="color:#0052cc;">✅ Email Configuration Successful!</h3>
             <p>Your email settings are working correctly.</p>
-            <p style="color:#64748b;font-size:12px;">Sent from RD HRMS & Payroll Solution PayRoll System</p>
+            <p style="color:#64748b;font-size:12px;">Sent from {get_company_name()} PayRoll System</p>
         </div>{make_email_footer()}""", "test")
     return jsonify({"success":ok, "message":msg})
 
@@ -14296,7 +14363,7 @@ def wa_send_payslip():
             f"",
             f"✅ *Net Pay : ₹{r['net_salary']:,.0f}*",
             f"━━━━━━━━━━━━━━━━━━━━━━",
-            f"RD HRMS & Payroll Solution",
+            f"{get_company_name()}",
         ]
         msg = "\n".join(lines)
 
@@ -14475,7 +14542,7 @@ def send_payslip_email():
             </table>
             <p style="font-size:12px;color:#64748b;">Days Present: {r["present_days"]} / {r["working_days"]} | Bank: {r["bank_account"] or "N/A"} ({r["bank_name"] or ""})</p>
         </div>{make_email_footer()}"""
-        ok,_ = send_email(r["email"], f"Salary Slip — {mn} {year} | RD HRMS & Payroll Solution", html, "payslip")
+        ok,_ = send_email(r["email"], f"Salary Slip — {mn} {year} | {get_company_name()}", html, "payslip")
         if ok: sent+=1
         else: failed+=1
     return jsonify({"success":True,"sent":sent,"failed":failed,"no_email":no_email})
@@ -14497,7 +14564,7 @@ def send_birthday_wishes_bulk():
             <div style="font-size:48px;">🎂</div>
             <h2 style="color:#0052cc;">Happy Birthday, {e["emp_name"]}!</h2>
             <p>Wishing you a wonderful birthday filled with joy!</p>
-            <p style="color:#64748b;font-size:12px;">— RD HRMS & Payroll Solution Family</p>
+            <p style="color:#64748b;font-size:12px;">— {get_company_name()} Family</p>
         </div>{make_email_footer()}"""
         ok,_ = send_email(e["email"], f"Happy Birthday {e['emp_name']}! 🎂", html, "birthday")
         if ok: sent+=1
@@ -14528,7 +14595,7 @@ def send_anniversary():
                 <p style="font-size:32px;font-weight:800;color:#10b981;margin:0;">{years} Year{"s" if years>1 else ""}</p>
                 <p style="color:#64748b;margin:4px 0;">of Valuable Service</p>
             </div>
-            <p style="font-size:14px;color:#1a202c;">Thank you for your dedication and hard work. Your contribution to RD HRMS & Payroll Solution is truly valued!</p>
+            <p style="font-size:14px;color:#1a202c;">Thank you for your dedication and hard work. Your contribution to {get_company_name()} is truly valued!</p>
             <p style="font-size:13px;color:#64748b;">Here's to many more years of success together!</p>
         </div>{make_email_footer()}"""
         ok,_ = send_email(e["email"], f"Happy Work Anniversary {e['emp_name']}! 🎊 {years} Year(s)", html, "anniversary")
@@ -14601,9 +14668,9 @@ def send_monthly_summary():
                 </tr>
             </tfoot>
         </table>
-        <p style="font-size:11px;color:#94a3b8;">Generated by RD HRMS & Payroll Solution PayRoll System on {datetime.now().strftime("%d %B %Y %I:%M %p")}</p>
+        <p style="font-size:11px;color:#94a3b8;">Generated by {get_company_name()} PayRoll System on {datetime.now().strftime("%d %B %Y %I:%M %p")}</p>
     </div>{make_email_footer()}"""
-    ok, msg = send_email(to_email, f"Salary Summary — {mn} {year} | RD HRMS & Payroll Solution", html, "summary")
+    ok, msg = send_email(to_email, f"Salary Summary — {mn} {year} | {get_company_name()}", html, "summary")
     return jsonify({"success":ok,"message":msg})
 
 @app.route("/email/notify-leave", methods=["POST"])
@@ -14633,7 +14700,7 @@ def notify_leave_email():
         </div>
         {"<p style='color:#64748b;'>Your leave request has been approved. Enjoy your time off!</p>" if action=="approved" else f"<p style='color:#64748b;'>Reason: {leave.get('rejection_reason','N/A')}</p>"}
     </div>{make_email_footer()}"""
-    ok, msg = send_email(emp["email"], f"Leave {action.capitalize()} — {leave['leave_type']} | RD HRMS & Payroll Solution", html, "leave")
+    ok, msg = send_email(emp["email"], f"Leave {action.capitalize()} — {leave['leave_type']} | {get_company_name()}", html, "leave")
     return jsonify({"success":ok,"message":msg})
 
 
@@ -15156,7 +15223,7 @@ def warning_letter(emp_code):
     action        = request.args.get("action", "")
     custom_lines  = request.args.get("custom_lines", "")
     return render_template("warning_letter.html", emp=dict(emp),
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         letter_code=letter_code, incident_date=incident_date,
         incident=incident, action=action, custom_lines=custom_lines,
         has_header=has_header, has_footer=has_footer,
@@ -15240,7 +15307,7 @@ def experience_letter(emp_code):
     conn.commit(); conn.close()
     custom_lines = request.args.get("custom_lines", "").strip()
     return render_template("experience_letter.html", emp=dict(emp),
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         months=MONTHS, letter_code=letter_code, custom_lines=custom_lines,
         has_header=has_header, has_footer=has_footer, has_seal=has_seal, has_signature=has_signature,
         sign_b64=sign_b64, seal_b64=seal_b64, header_b64=header_b64, footer_b64=footer_b64,
@@ -15270,7 +15337,7 @@ def relieving_letter(emp_code):
     conn.commit(); conn.close()
     custom_lines = request.args.get("custom_lines", "").strip()
     return render_template("relieving_letter.html", emp=dict(emp),
-        company=COMPANY, today=date.today().strftime("%d %B %Y"),
+        company=get_company_name(), today=date.today().strftime("%d %B %Y"),
         months=MONTHS, letter_code=letter_code, custom_lines=custom_lines,
         has_header=has_header, has_footer=has_footer, has_seal=has_seal, has_signature=has_signature,
         sign_b64=sign_b64, seal_b64=seal_b64, header_b64=header_b64, footer_b64=footer_b64,
@@ -15368,7 +15435,7 @@ def export_deductions():
         hdr_font = Font(bold=True, color="FFFFFF", size=10)
         thin = Border(*[Side(style="thin") for _ in range(4)])
         ws.merge_cells("A1:L1")
-        t = ws["A1"]; t.value = f"RD HRMS & Payroll Solution — Deductions Report"
+        t = ws["A1"]; t.value = f"{get_company_name()} — Deductions Report"
         t.font = Font(bold=True, size=13, color="4C1D95"); t.alignment = Alignment(horizontal="center")
         ws.append([])
         hdrs = ["Emp Code","Name","Department","Category","Deduction Type",
@@ -16186,7 +16253,7 @@ def export_salary_revision():
         hdr_font = Font(bold=True, color="FFFFFF", size=10)
         thin = Border(*[Side(style="thin") for _ in range(4)])
         ws.merge_cells("A1:J1")
-        t = ws["A1"]; t.value = "RD HRMS & Payroll Solution — Salary Revision History"
+        t = ws["A1"]; t.value = f"{get_company_name()} — Salary Revision History"
         t.font = Font(bold=True, size=13, color="003580")
         t.alignment = Alignment(horizontal="center")
         ws.row_dimensions[1].height = 20
@@ -16351,7 +16418,7 @@ def increment_letter(emp_code):
     custom_lines = request.args.get("custom_lines", "").strip()
     return render_template("increment_letter.html",emp=dict(emp),
         increment=dict(last_inc) if last_inc else None,
-        company=COMPANY,today=date.today().strftime("%d %B %Y"),months=MONTHS,
+        company=get_company_name(),today=date.today().strftime("%d %B %Y"),months=MONTHS,
         letter_code=letter_code, custom_lines=custom_lines,
         has_header=has_header, has_footer=has_footer, has_seal=has_seal, has_signature=has_signature,
         sign_b64=sign_b64, seal_b64=seal_b64, header_b64=header_b64, footer_b64=footer_b64,
@@ -16836,7 +16903,7 @@ def exp_att_detail_all(m, y):
         last_ltr = get_column_letter(total_col)
         ws.merge_cells(f"A{cur_row}:{last_ltr}{cur_row}")
         c1 = ws[f"A{cur_row}"]
-        c1.value     = f"RD HRMS & PAYROLL SOLUTION — Attendance Register {MONTHS[m-1]} {y}"
+        c1.value     = f"{get_company_name().upper()} — Attendance Register {MONTHS[m-1]} {y}"
         c1.font      = Font(bold=True, size=11, color="FFFFFF")
         c1.fill      = F_TITLE
         c1.alignment = Alignment(horizontal="center", vertical="center")
@@ -17027,7 +17094,7 @@ def exp_att_employee(emp_code, m, y):
 
     # Header
     ws.merge_cells("A1:L1")
-    ws["A1"] = "RD HRMS & PAYROLL SOLUTION"
+    ws["A1"] = f"{get_company_name().upper()}"
     ws["A1"].font = Font(bold=True, size=14, color="FFFFFF")
     ws["A1"].fill = PatternFill("solid", fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -17816,7 +17883,7 @@ def att_report_advanced():
     period = f"{from_date} to {to_date}" if from_date else (MONTHS[month-1] if month else str(year))
     emp_label = emps[0]["emp_name"] if emp_code and emps else "All Employees"
     ws.merge_cells("A1:N1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — Attendance {report_type.title()} | {period} | {emp_label}"
+    ws["A1"] = f"{get_company_name().upper()} — Attendance {report_type.title()} | {period} | {emp_label}"
     ws["A1"].font = Font(bold=True,size=12,color="FFFFFF")
     ws["A1"].fill = PatternFill("solid",fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center",vertical="center")
@@ -18069,7 +18136,7 @@ def att_register_report():
         # === HEADER ===
         total_cols = days_in_month + 2
         ws.merge_cells(f"A1:{get_column_letter(total_cols)}1")
-        mk_cell(ws,1,1, f"RD HRMS & PAYROLL SOLUTION — Attendance Register {MONTHS[m-1]} {y}",
+        mk_cell(ws,1,1, f"{get_company_name().upper()} — Attendance Register {MONTHS[m-1]} {y}",
                 bold=True, size=12, color="FFFFFF", bg=COLORS["header_dark"],
                 border=bdr_t)
         ws.row_dimensions[1].height = 24
@@ -18193,7 +18260,7 @@ def att_register_report():
 
         # Header
         ws.merge_cells("A1:G1")
-        mk_cell(ws,1,1, f"RD HRMS & PAYROLL SOLUTION — In/Out Report {MONTHS[m-1]} {y}",
+        mk_cell(ws,1,1, f"{get_company_name().upper()} — In/Out Report {MONTHS[m-1]} {y}",
                 bold=True, size=12, color="FFFFFF", bg=COLORS["header_dark"])
         ws.row_dimensions[1].height = 24
 
@@ -19191,7 +19258,7 @@ def shift_roster_export_report():
 
     # Title
     ws.merge_cells("A1:I1")
-    ws["A1"] = f"RD HRMS & PAYROLL SOLUTION — Shift Roster Report | {from_date} to {to_date}"
+    ws["A1"] = f"{get_company_name().upper()} — Shift Roster Report | {from_date} to {to_date}"
     ws["A1"].font = Font(bold=True, size=11, color="FFFFFF")
     ws["A1"].fill = PatternFill("solid", fgColor="0052CC")
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -19732,7 +19799,8 @@ def my_attendance():
     emp_code = session.get("emp_id", "")
     if not emp_code:
         return render_template("my_attendance.html", emp=None, attendance_rows=[],
-            summary={}, month=date.today().month, year=date.today().year,
+            summary={"present":0,"absent":0,"leave":0,"half_day":0,"holiday":0,"total_hours":0.0},
+            month=date.today().month, year=date.today().year,
             months=MONTHS, month_name=MONTHS[date.today().month-1],
             error="No employee linked to your account. Contact HR.")
     month = int(request.args.get("month", date.today().month))
@@ -19888,10 +19956,198 @@ def my_attendance():
             "is_halfday_from_late": _is_halfday_from_late,
         })
 
+    # Today's punch status — for the self-service Punch In/Out widget
+    today_str = date.today().strftime("%Y-%m-%d")
+    conn_t = get_db()
+    today_row = conn_t.execute("SELECT in_time, out_time FROM attendance WHERE emp_code=? AND att_date=?",
+        (emp_code, today_str)).fetchone()
+    pending_reqs = conn_t.execute("""SELECT request_type, status FROM outside_attendance_requests
+        WHERE emp_code=? AND request_date=? AND status='Pending'""", (emp_code, today_str)).fetchall()
+    recent_requests = conn_t.execute("""SELECT request_type, request_time, request_date, status,
+        reviewed_by, reviewed_on, review_remarks, created_on
+        FROM outside_attendance_requests WHERE emp_code=?
+        ORDER BY created_on DESC LIMIT 10""", (emp_code,)).fetchall()
+    conn_t.close()
+    today_status = {
+        "in_time": today_row["in_time"] if today_row else "",
+        "out_time": today_row["out_time"] if today_row else "",
+        "in_pending": any(r["request_type"]=="IN" for r in pending_reqs),
+        "out_pending": any(r["request_type"]=="OUT" for r in pending_reqs),
+    }
+    can_self_punch = session.get("role")=="admin" or "my_attendance_punch" in (session.get("permissions") or [])
+
     return render_template("my_attendance.html",
         emp=emp, attendance_rows=attendance_rows, summary=summary,
         month=month, year=year, months=MONTHS,
-        month_name=MONTHS[month-1])
+        month_name=MONTHS[month-1], today_status=today_status, can_self_punch=can_self_punch,
+        recent_requests=[dict(r) for r in recent_requests])
+
+
+# ─────────────────────────────────────────────────────
+#  OUTSIDE ATTENDANCE — Employee self-punch (IN/OUT + location)
+#  goes to Dept Head for approval before it counts as real attendance
+# ─────────────────────────────────────────────────────
+
+@app.route("/my-attendance/punch", methods=["POST"])
+@lreq
+def my_attendance_punch():
+    if session.get("role") != "admin" and "my_attendance_punch" not in (session.get("permissions") or []):
+        return jsonify({"success": False, "error": "You don't have permission to use Outside Attendance."})
+    emp_code = session.get("emp_id", "")
+    if not emp_code:
+        return jsonify({"success": False, "error": "No employee linked to your account. Contact HR."})
+
+    d = request.json or {}
+    punch_type = d.get("type")
+    reason = (d.get("reason") or "").strip()
+    if punch_type not in ("IN", "OUT"):
+        return jsonify({"success": False, "error": "Invalid punch type."})
+    if not reason:
+        return jsonify({"success": False, "error": "Please provide a reason for marking attendance from outside the office."})
+
+    today_str = date.today().strftime("%Y-%m-%d")
+    now_time  = datetime.now().strftime("%H:%M")
+    conn = get_db()
+    try:
+        emp = conn.execute("SELECT department FROM employees WHERE emp_code=?", (emp_code,)).fetchone()
+        dept = emp["department"] if emp else ""
+
+        existing = conn.execute("SELECT in_time, out_time FROM attendance WHERE emp_code=? AND att_date=?",
+            (emp_code, today_str)).fetchone()
+        cur_in  = existing["in_time"]  if existing else ""
+        cur_out = existing["out_time"] if existing else ""
+
+        pending = conn.execute("""SELECT id FROM outside_attendance_requests
+            WHERE emp_code=? AND request_date=? AND request_type=? AND status='Pending'""",
+            (emp_code, today_str, punch_type)).fetchone()
+        if pending:
+            return jsonify({"success": False, "error": f"You already have a pending {punch_type} request awaiting approval."})
+
+        if punch_type == "IN" and cur_in:
+            return jsonify({"success": False, "error": f"IN is already marked for today at {cur_in}."})
+        if punch_type == "OUT":
+            if not cur_in:
+                return jsonify({"success": False, "error": "You must have an IN time recorded before requesting OUT."})
+            if cur_out:
+                return jsonify({"success": False, "error": f"OUT is already marked for today at {cur_out}."})
+
+        conn.execute("""INSERT INTO outside_attendance_requests
+            (emp_code, department, request_type, request_time, request_date, reason,
+             status, ip_address, created_on)
+            VALUES (?,?,?,?,?,?,'Pending',?,?)""",
+            (emp_code, dept, punch_type, now_time, today_str, reason,
+             request.remote_addr, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        conn.commit()
+        return jsonify({"success": True,
+            "message": f"{punch_type} request sent to your Department Head for approval."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+@app.route("/dept-head/attendance-requests")
+@amgr
+def dept_head_outside_attendance():
+    conn = get_db()
+    user_row = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+    uid = user_row["id"] if user_row else None
+    is_admin = session.get("role") == "admin"
+    if is_admin:
+        my_depts = [r["department"] for r in conn.execute(
+            "SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department!=''").fetchall()]
+    elif uid:
+        my_depts = [r["department"] for r in conn.execute(
+            "SELECT department FROM dept_head_assignments WHERE user_id=?", (uid,)).fetchall()]
+    else:
+        my_depts = []
+
+    tab = request.args.get("tab", "pending")
+    pending, history = [], []
+    if my_depts:
+        placeholders = ",".join(["?"]*len(my_depts))
+        pending = conn.execute(f"""
+            SELECT r.*, e.emp_name, e.department, e.designation
+            FROM outside_attendance_requests r JOIN employees e ON r.emp_code=e.emp_code
+            WHERE r.status='Pending' AND e.department IN ({placeholders})
+            ORDER BY r.created_on DESC""", my_depts).fetchall()
+        history = conn.execute(f"""
+            SELECT r.*, e.emp_name, e.department, e.designation
+            FROM outside_attendance_requests r JOIN employees e ON r.emp_code=e.emp_code
+            WHERE r.status IN ('Approved','Rejected') AND e.department IN ({placeholders})
+            ORDER BY r.reviewed_on DESC LIMIT 200""", my_depts).fetchall()
+    conn.close()
+    return render_template("dept_head_outside_attendance.html",
+        pending=[dict(r) for r in pending], history=[dict(r) for r in history],
+        my_depts=my_depts, tab=tab)
+
+@app.route("/dept-head/attendance-requests/action/<int:req_id>", methods=["POST"])
+@amgr
+def dept_head_outside_attendance_action(req_id):
+    d = request.json or {}
+    action  = d.get("action")   # 'approve' or 'reject'
+    remarks = (d.get("remarks") or "").strip()
+    if action not in ("approve", "reject"):
+        return jsonify({"success": False, "error": "Invalid action"})
+
+    conn = get_db()
+    try:
+        req = conn.execute("""SELECT r.*, e.department, e.category FROM outside_attendance_requests r
+            JOIN employees e ON r.emp_code=e.emp_code WHERE r.id=?""", (req_id,)).fetchone()
+        if not req:
+            return jsonify({"success": False, "error": "Request not found"})
+        if req["status"] != "Pending":
+            return jsonify({"success": False, "error": f"This request was already {req['status'].lower()}."})
+
+        user_row = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+        if session.get("role") != "admin":
+            if not user_row:
+                return jsonify({"success": False, "error": "User not found"})
+            heads_dept = conn.execute("SELECT id FROM dept_head_assignments WHERE user_id=? AND department=?",
+                (user_row["id"], req["department"])).fetchone()
+            if not heads_dept:
+                return jsonify({"success": False, "error": "You are not the department head for this employee's department"})
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        reviewer = session.get("name") or session.get("user") or "Dept Head"
+
+        if action == "reject":
+            conn.execute("""UPDATE outside_attendance_requests SET
+                status='Rejected', reviewed_by=?, reviewed_on=?, review_remarks=? WHERE id=?""",
+                (reviewer, now_str, remarks, req_id))
+            conn.commit()
+            return jsonify({"success": True, "message": "Request rejected."})
+
+        # Approve — merge into real attendance, which then feeds payroll & Extra Working
+        emp_code = req["emp_code"]
+        att_date = req["request_date"]
+        existing = conn.execute("SELECT in_time, out_time FROM attendance WHERE emp_code=? AND att_date=?",
+            (emp_code, att_date)).fetchone()
+        cur_in  = existing["in_time"]  if existing else ""
+        cur_out = existing["out_time"] if existing else ""
+        if req["request_type"] == "IN":
+            new_in, new_out = req["request_time"], cur_out
+        else:
+            new_in, new_out = cur_in, req["request_time"]
+
+        from datetime import date as _wpd2
+        try:
+            _d_obj = _wpd2.fromisoformat(att_date)
+            _is_wo = (_d_obj.weekday() == get_emp_weekly_off_num(emp_code, conn, on_date=_d_obj))
+        except:
+            _is_wo = False
+        _punch_status = "WOP" if _is_wo else "Present"
+        save_att_row(conn, emp_code, att_date, new_in, new_out,
+            req["category"], status=_punch_status, status_override="WOP" if _is_wo else None)
+
+        conn.execute("""UPDATE outside_attendance_requests SET
+            status='Approved', reviewed_by=?, reviewed_on=?, review_remarks=? WHERE id=?""",
+            (reviewer, now_str, remarks, req_id))
+        conn.commit()
+        return jsonify({"success": True, "message": f"Approved — {req['request_type']} marked at {req['request_time']} for {att_date}."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
 
 
 # ─────────────────────────────────────────────────────
@@ -20837,12 +21093,42 @@ if __name__ == "__main__":
     # Auto Leave Earn feature REMOVED — leave is now credited only via the
     # "Earn Leave" popup (Leave Balance page) or "Manual Earn Credit" (Leave Master).
     # Background auto-credit thread intentionally NOT started.
+
+    # ── HTTPS listener (port 5443) ─────────────────────────────
+    # Mobile browsers block the Geolocation permission prompt entirely on
+    # plain http:// (needed for Outside Attendance's location capture).
+    # This runs a SEPARATE HTTPS server with an auto-generated self-signed
+    # certificate, alongside — not replacing — the existing HTTP server on
+    # port 5000, so ZK biometric machine / ADMS push (port 89→5000) keeps
+    # working exactly as before with zero changes.
+    _https_started = False
+    try:
+        import OpenSSL  # noqa: F401  (pyopenssl — required for ssl_context="adhoc")
+        def _run_https():
+            try:
+                app.run(host="0.0.0.0", port=5443, ssl_context="adhoc",
+                        debug=False, use_reloader=False)
+            except Exception as _e:
+                print(f"  ⚠️  HTTPS server (port 5443) could not start: {_e}")
+        threading.Thread(target=_run_https, daemon=True).start()
+        _https_started = True
+    except ImportError:
+        pass
+
     print("\n" + "="*55)
-    print("  RD HRMS & PAYROLL SOLUTION — PAYROLL SYSTEM")
+    print(f"  {get_company_name().upper()} — PAYROLL SYSTEM")
     print("="*55)
     print("  Browser : http://localhost:5000")
     print("  LAN     : http://192.168.0.39:5000")
     print("  ADMS    : http://192.168.0.3:5000  (Port 89 → 5000)")
+    if _https_started:
+        print("  Mobile (location features) : https://192.168.0.39:5443")
+        print("     ⚠️  First visit: browser will warn 'Not Secure' (self-signed")
+        print("        certificate) — tap Advanced → Proceed. This is expected")
+        print("        and safe on your own local network.")
+    else:
+        print("  ⚠️  HTTPS server not started — install pyopenssl for mobile")
+        print("     location features to work: pip install pyopenssl")
     print("  Login   : admin / Admin@123")
     print("="*55 + "\n")
     app.run(host="0.0.0.0", port=5000, debug=False)

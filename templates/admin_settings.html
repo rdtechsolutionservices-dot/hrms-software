@@ -9,6 +9,19 @@
 </div>
 {% endif %}
 
+<!-- Software / Company Name -->
+<div class="table-card" style="padding:20px;margin-bottom:16px;">
+  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🏷️ Software / Company Name</div>
+  <form method="POST">
+    <div class="form-group">
+      <label class="form-label">Display Name</label>
+      <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or 'RD HRMS & Payroll Solution' }}" placeholder="e.g. RD HRMS & Payroll Solution" maxlength="80" required>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">This name appears on the Login page, sidebar, reports, payslips, letters, and emails throughout the system.</div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">💾 Save Name</button>
+  </form>
+</div>
+
 <!-- Company Logo -->
 <div class="table-card" style="padding:20px;margin-bottom:16px;">
   <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🖼️ Company Logo</div>
