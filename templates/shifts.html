@@ -13,20 +13,27 @@
         <button class="btn btn-primary btn-sm" onclick="openModal('addShiftModal')">➕ Add Shift</button>
       </div>
       <table>
-        <thead><tr><th>Shift Name</th><th>Code</th><th>Category</th><th>Start</th><th>End</th><th>Hours</th><th>Night</th><th>Action</th></tr></thead>
+        <thead><tr><th>Shift Name</th><th>Code</th><th>Category</th><th>Start</th><th>End</th><th>Hours</th><th>Extra Work</th><th>Night</th><th>Action</th></tr></thead>
         <tbody>
           {% for s in shifts %}
           <tr>
-            <td style="font-weight:700">{{ s.shift_name }}</td>
+            <td style="font-weight:700"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:{{ s.shift_color or '#0096dc' }};margin-right:6px;"></span>{{ s.shift_name }}</td>
             <td><span class="badge" style="background:rgba(0,82,204,.15);color:#0096dc;font-size:10px;">{{ s.shift_code }}</span></td>
             <td><span class="badge badge-{{ s.category.lower() }}" style="font-size:10px;">{{ s.category[:4] }}</span></td>
             <td style="font-weight:600;color:var(--green)">{{ s.start_time }}</td>
             <td style="font-weight:600;color:var(--accent2)">{{ s.end_time }}</td>
             <td style="text-align:center">{{ "%.1f"|format(s.working_hours) }}h</td>
+            <td style="text-align:center">
+              {% if s.extra_work_paid is none or s.extra_work_paid %}
+              <span class="badge" style="background:rgba(16,185,129,.15);color:#10b981;font-size:10px;">💰 Paid</span>
+              {% else %}
+              <span class="badge" style="background:rgba(148,163,184,.15);color:#94a3b8;font-size:10px;">Unpaid</span>
+              {% endif %}
+            </td>
             <td style="text-align:center">{% if s.is_night_shift %}🌙{% else %}—{% endif %}</td>
             <td>
               <div style="display:flex;gap:4px;">
-                <button class="btn btn-ghost btn-sm" onclick="editShift({{ s.id }},'{{ s.shift_name }}','{{ s.shift_code }}','{{ s.category }}','{{ s.start_time }}','{{ s.end_time }}',{{ s.grace_minutes }},'{{ s.allowed_in_start or '' }}','{{ s.allowed_in_end or '' }}',{{ s.is_next_day or 0 }},{{ s.punch_begin_before or 60 }},{{ s.half_day_minutes or 240 }},'{{ s.ot_formula or 'total_minus_shift' }}',{{ s.neglect_last_in or 0 }},{{ s.half_day_min_minutes or 180 }},{{ s.full_day_min_minutes or 390 }},{{ s.min_present_minutes or 0 }},'{{ s.half_day_late_cutoff or '' }}',{{ 1 if s.count_late_marks is none else s.count_late_marks }})">✏️</button>
+                <button class="btn btn-ghost btn-sm" onclick="editShift({{ s.id }},'{{ s.shift_name }}','{{ s.shift_code }}','{{ s.category }}','{{ s.start_time }}','{{ s.end_time }}',{{ s.grace_minutes }},'{{ s.allowed_in_start or '' }}','{{ s.allowed_in_end or '' }}',{{ s.is_next_day or 0 }},{{ s.punch_begin_before or 60 }},{{ s.half_day_minutes or 240 }},'{{ s.ot_formula or 'total_minus_shift' }}',{{ s.neglect_last_in or 0 }},{{ s.half_day_min_minutes or 180 }},{{ s.full_day_min_minutes or 390 }},{{ s.min_present_minutes or 0 }},'{{ s.half_day_late_cutoff or '' }}',{{ 1 if s.count_late_marks is none else s.count_late_marks }},{{ 1 if s.extra_work_paid is none else s.extra_work_paid }},'{{ s.shift_color or '#0096dc' }}')">✏️</button>
                 <button class="btn btn-danger btn-sm" onclick="delShift({{ s.id }},'{{ s.shift_name }}')">🗑️</button>
               </div>
             </td>
@@ -185,12 +192,24 @@
           <input class="form-control" type="time" id="s_ai_end">
         </div>
         <div class="form-group">
-          <label class="form-label">OT Formula</label>
+          <label class="form-label" style="font-weight:700;color:#10b981;">💰 Extra Work Paid</label>
+          <select class="form-select" id="s_extra_work_paid" onchange="toggleOtFormulaVisibility()">
+            <option value="1">Yes — extra hours are paid (flows into Extra Working module)</option>
+            <option value="0">No — extra hours are not paid for this shift</option>
+          </select>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">This alone decides OT eligibility for this shift — Category is for grouping only.</div>
+        </div>
+        <div class="form-group" id="s_ot_formula_group">
+          <label class="form-label">OT Calculation Method</label>
           <select class="form-select" id="s_ot_formula">
             <option value="total_minus_shift">Total Worked − Shift Duration</option>
             <option value="out_minus_shift_end">OUT Time − Shift End Time</option>
-            <option value="not_applicable">OT Not Applicable</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shift Color</label>
+          <input class="form-control" type="color" id="s_shift_color" value="#0096dc" style="height:38px;padding:4px;">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Used to visually distinguish this shift in rosters and reports.</div>
         </div>
         <div class="form-group">
           <label class="form-label">Missing OUT handling</label>
@@ -237,7 +256,7 @@ function calcHours(){
   div.innerHTML=`Working Hours: <strong style="color:var(--green)">${hrs} hrs</strong> ${isNight?"🌙 Night Shift":""}`;
 }
 
-function editShift(id,name,code,cat,start,end,grace,aiStart,aiEnd,isNextDay,pbb,halfDay,otFml,neglect,hdMin,hdMax,minPresent,hdLateCutoff,countLate){
+function editShift(id,name,code,cat,start,end,grace,aiStart,aiEnd,isNextDay,pbb,halfDay,otFml,neglect,hdMin,hdMax,minPresent,hdLateCutoff,countLate,extraWorkPaid,shiftColor){
   document.getElementById("edit_shift_id").value=id;
   document.getElementById("s_name").value=name;
   document.getElementById("s_code").value=code;
@@ -256,10 +275,20 @@ function editShift(id,name,code,cat,start,end,grace,aiStart,aiEnd,isNextDay,pbb,
   document.getElementById("s_hd_late_cutoff") && (document.getElementById("s_hd_late_cutoff").value=hdLateCutoff||'');
   document.getElementById("s_count_late") && (document.getElementById("s_count_late").value=(countLate===undefined?1:countLate));
   updateRangeLabel();
-  document.getElementById("s_ot_formula").value=otFml||'total_minus_shift';
+  document.getElementById("s_extra_work_paid").value=(extraWorkPaid===undefined?1:extraWorkPaid);
+  // Legacy shifts may still have ot_formula='not_applicable' from before Extra Work Paid existed —
+  // that option no longer exists in this dropdown, fall back to the default calculation method.
+  document.getElementById("s_ot_formula").value=(otFml && otFml!=='not_applicable') ? otFml : 'total_minus_shift';
+  document.getElementById("s_shift_color").value=shiftColor||'#0096dc';
+  toggleOtFormulaVisibility();
   document.getElementById("s_neglect_li").value=neglect||0;
   document.getElementById("shiftModalTitle").textContent="✏️ Edit Shift";
   calcHours(); openModal("addShiftModal");
+}
+
+function toggleOtFormulaVisibility(){
+  const paid = document.getElementById("s_extra_work_paid").value;
+  document.getElementById("s_ot_formula_group").style.display = (paid === "0") ? "none" : "block";
 }
 
 async function saveShift(){
@@ -279,7 +308,9 @@ async function saveShift(){
     min_present_minutes:parseInt(document.getElementById("s_min_present")?.value||0),
     half_day_late_cutoff:document.getElementById("s_hd_late_cutoff")?.value||null,
     count_late_marks:parseInt(document.getElementById("s_count_late")?.value||1),
+    extra_work_paid:parseInt(document.getElementById("s_extra_work_paid").value),
     ot_formula:document.getElementById("s_ot_formula").value,
+    shift_color:document.getElementById("s_shift_color").value||'#0096dc',
     neglect_last_in:document.getElementById("s_neglect_li").value,
     allowed_in_start:document.getElementById("s_ai_start").value||null,
     allowed_in_end:document.getElementById("s_ai_end").value||null,

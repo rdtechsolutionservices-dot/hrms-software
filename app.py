@@ -639,6 +639,8 @@ def init_db():
         whatsapp_enabled INTEGER DEFAULT 0,
         whatsapp_api_url TEXT DEFAULT '',
         whatsapp_api_key TEXT DEFAULT '')""")
+    try: c.execute("ALTER TABLE email_settings ADD COLUMN from_email TEXT DEFAULT ''")
+    except: pass
     # Add whatsapp columns if upgrading from older DB
     try: c.execute("ALTER TABLE email_settings ADD COLUMN whatsapp_enabled INTEGER DEFAULT 0")
     except: pass
@@ -1154,6 +1156,16 @@ def init_db():
         c.execute("ALTER TABLE shifts ADD COLUMN count_late_marks INTEGER DEFAULT 1")
     except: pass
 
+    # ── Extra Work Paid (Yes/No) — single explicit switch controlling whether
+    #    this shift's extra hours are computed as OT at all and feed the
+    #    Extra Working module for payout. Replaces the old category-based
+    #    "Staff OT not allowed / Associate OT allowed" rule entirely —
+    #    this is now purely a per-shift decision, fully admin-controlled.
+    try:
+        c.execute("ALTER TABLE shifts ADD COLUMN extra_work_paid INTEGER DEFAULT 1")
+        c.execute("ALTER TABLE shifts ADD COLUMN shift_color TEXT DEFAULT '#0096dc'")
+    except: pass
+
     # ── Employee Shifts ──
     c.execute("""CREATE TABLE IF NOT EXISTS employee_shifts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1589,6 +1601,16 @@ def init_db():
         conn.execute("UPDATE shifts SET count_late_marks=0 WHERE category='Associate'")
         conn.execute("UPDATE shifts SET count_late_marks=1 WHERE category='Staff'")
         conn.execute("INSERT INTO _schema_migrations (name, applied_on) VALUES ('shift_category_rules_backfill', date('now'))")
+
+    # One-time backfill: Extra Work Paid — derives the new explicit Yes/No
+    # switch from each shift's existing ot_formula, so nothing changes for
+    # any shift at migration time. Going forward, Extra Work Paid alone
+    # decides whether that shift's extra hours are computed and paid —
+    # this fully replaces the old category-based OT eligibility rule.
+    if not conn.execute("SELECT 1 FROM _schema_migrations WHERE name='shift_extra_work_paid_backfill'").fetchone():
+        conn.execute("UPDATE shifts SET extra_work_paid=0 WHERE ot_formula='not_applicable'")
+        conn.execute("UPDATE shifts SET extra_work_paid=1 WHERE ot_formula IS NULL OR ot_formula!='not_applicable'")
+        conn.execute("INSERT INTO _schema_migrations (name, applied_on) VALUES ('shift_extra_work_paid_backfill', date('now'))")
 
     # ── Performance indexes ──────────────────────────────────
     for idx_sql in [
@@ -2186,12 +2208,12 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
 
     Fields used from shift:
       start_time, end_time, is_next_day, working_hours, grace_minutes,
-      ot_formula, half_day_minutes, neglect_last_in
+      extra_work_paid, ot_formula, half_day_minutes, neglect_last_in
 
-    OT Formulas (eSSL exact):
+    Extra Work Paid (Yes/No, Shift Master) decides whether OT is computed
+    at all for this shift. When Yes, OT Formula decides the method:
       'out_minus_shift_end'  : OT = OUT - Shift End  (if OUT > Shift End)
       'total_minus_shift'    : OT = Worked - Shift Duration
-      'not_applicable'       : OT = 0
 
     Status override: WOP / Holiday → full duration = OT (WOP/Holiday OT)
     """
@@ -2237,6 +2259,7 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         wh_min = int(_sh_wh * 60)
         grace      = int(shift.get("grace_minutes") or 15)
         ot_formula = str(shift.get("ot_formula") or "total_minus_shift")
+        extra_work_paid = int(shift.get("extra_work_paid", 1))
         half_day_m = int(shift.get("half_day_minutes") or 240)
         neglect_li = int(shift.get("neglect_last_in") or 0)
     else:
@@ -2248,6 +2271,7 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         wh_min     = 510  # 8:30 hrs standard
         grace      = 15
         ot_formula = "total_minus_shift"
+        extra_work_paid = 1
         half_day_m = 240
         neglect_li = 0
 
@@ -2362,13 +2386,22 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         r["is_half_day"] = 1
     # else: full day present (worked_net >= hd_max)
 
-    # ── OT Calculation ──────────────────────────────────────────
-    # Formula: OT = worked_net - shift_hours
-    # worked_net = total worked minutes after break deduction
-    # 100% shift-master driven via each shift's ot_formula field.
-    if ot_formula == "not_applicable":
+    # ── OT / Extra Working Calculation ───────────────────────────
+    # extra_work_paid (Shift Master toggle) is the SINGLE, explicit switch
+    # deciding whether this shift's extra hours are computed at all and
+    # feed the Extra Working module for payout — fully shift-driven,
+    # not category-driven. Category is for grouping/sorting only.
+    if not extra_work_paid:
         r["ot_minutes"] = 0
+    elif ot_formula == "out_minus_shift_end":
+        # OT = OUT time − Shift End time (only counts time worked past shift end)
+        if pout is not None and pout > sh_end_adj:
+            ot = pout - sh_end_adj
+            r["ot_minutes"] = max(0, ot) if ot >= 30 else 0
+        else:
+            r["ot_minutes"] = 0
     else:
+        # total_minus_shift (default): OT = Total Worked − Shift Duration
         ot = worked_net - wh_min
         # Minimum 30 minutes OT rule: if OT < 30 min, do not count as OT
         r["ot_minutes"] = max(0, ot) if ot >= 30 else 0
@@ -14143,8 +14176,9 @@ def send_email(to_email, subject, html_body, email_type="general"):
         return False, "Email not configured. Go to Settings → Email Settings."
 
     try:
+        from_addr = settings.get("from_email") or settings["email"]
         msg = MIMEMultipart("alternative")
-        msg["From"] = f"{settings['sender_name']} <{settings['email']}>"
+        msg["From"] = f"{settings['sender_name']} <{from_addr}>"
         msg["To"]   = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(html_body, "html"))
@@ -14183,6 +14217,20 @@ def send_email(to_email, subject, html_body, email_type="general"):
                    "Settings → Org settings → Modern authentication → enable SMTP AUTH for your user\n"
                    "Option 3: Use smtp.office365.com port 587 with App Password "
                    "(requires enabling legacy auth in Exchange Admin Center)")
+        # Friendly message for Gmail "Application-specific password required" (534 / 5.7.9)
+        elif "534" in err and ("Application-specific password" in err or "5.7.9" in err):
+            err = ("Gmail rejected the login — you're using your regular Gmail password, but Gmail "
+                   "requires a 16-character App Password for SMTP. Fix in 3 steps:\n"
+                   "1. Turn on 2-Step Verification: myaccount.google.com/security\n"
+                   "2. Generate an App Password: myaccount.google.com/apppasswords "
+                   "(select app 'Mail', device 'Other', name it e.g. 'HRMS')\n"
+                   "3. Copy the 16-character code Google shows (remove any spaces) and paste it "
+                   "into the Password field here — NOT your normal Gmail login password. Save Settings again.")
+        # Friendly message for wrong password / bad credentials generally
+        elif "535" in err and ("Username and Password not accepted" in err or "BadCredentials" in err):
+            err = ("Gmail rejected the login credentials. Make sure: (1) the Username field has your full "
+                   "email address, (2) the Password field has a 16-character App Password (not your normal "
+                   "password), and (3) 2-Step Verification is turned on for this Google account.")
         try:
             conn = get_db()
             conn.execute("INSERT INTO email_logs (to_email,subject,type,status,sent_on,error) VALUES (?,?,?,?,?,?)",
@@ -14237,9 +14285,10 @@ def email_settings():
             port = int(d.get("smtp_port",587) or 587)
         conn.execute("INSERT OR IGNORE INTO email_settings (id) VALUES (1)")
         conn.execute("""UPDATE email_settings SET provider=?,smtp_host=?,smtp_port=?,
-            email=?,password=?,sender_name=?,is_active=? WHERE id=1""",
+            email=?,password=?,sender_name=?,from_email=?,is_active=? WHERE id=1""",
             (provider,host,port,d.get("email",""),d.get("password",""),
-             d.get("sender_name","RD HRMS & Payroll Solution"),
+             d.get("sender_name", get_company_name()),
+             d.get("from_email","").strip(),
              1 if d.get("is_active") else 0))
         conn.commit()
         flash_msg = "Email settings saved!"
@@ -16675,8 +16724,9 @@ def add_shift():
              half_day_minutes,neglect_last_in,
              is_night_shift,allowed_in_start,allowed_in_end,is_active,created_on,
              half_day_min_minutes,full_day_min_minutes,
-             min_present_minutes,half_day_late_cutoff,count_late_marks)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,date('now'),?,?,?,?,?)""",
+             min_present_minutes,half_day_late_cutoff,count_late_marks,
+             extra_work_paid,shift_color)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,date('now'),?,?,?,?,?,?,?)""",
             (d["shift_name"],d["shift_code"],d.get("category","Associate"),
              st,et,is_next_day,wh,int(d.get("grace_minutes",15)),
              d.get("ot_formula","total_minus_shift"),pbb,
@@ -16686,7 +16736,9 @@ def add_shift():
              int(d.get("full_day_min_minutes",390)),
              int(d.get("min_present_minutes",0) or 0),
              d.get("half_day_late_cutoff","") or None,
-             int(d.get("count_late_marks",1))))
+             int(d.get("count_late_marks",1)),
+             int(d.get("extra_work_paid",1)),
+             d.get("shift_color","#0096dc") or "#0096dc"))
         conn.commit()
         return jsonify({"success":True})
     except Exception as e:
@@ -16719,7 +16771,8 @@ def edit_shift(sid):
             punch_begin_before=?,half_day_minutes=?,neglect_last_in=?,
             is_night_shift=?,allowed_in_start=?,allowed_in_end=?,is_active=?,
             half_day_min_minutes=?,full_day_min_minutes=?,
-            min_present_minutes=?,half_day_late_cutoff=?,count_late_marks=?
+            min_present_minutes=?,half_day_late_cutoff=?,count_late_marks=?,
+            extra_work_paid=?,shift_color=?
             WHERE id=?""",
             (d["shift_name"],d["shift_code"],d.get("category","Associate"),st,et,
              is_next_day,wh,int(d.get("grace_minutes",15)),
@@ -16732,6 +16785,8 @@ def edit_shift(sid):
              int(d.get("min_present_minutes",0) or 0),
              d.get("half_day_late_cutoff","") or None,
              int(d.get("count_late_marks",1)),
+             int(d.get("extra_work_paid",1)),
+             d.get("shift_color","#0096dc") or "#0096dc",
              sid))
         conn.commit()
         return jsonify({"success":True})
