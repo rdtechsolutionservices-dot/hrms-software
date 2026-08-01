@@ -220,6 +220,10 @@ def init_db():
         permissions TEXT DEFAULT '')""")
     try: c.execute("ALTER TABLE users ADD COLUMN otp_login_enabled INTEGER DEFAULT 0")
     except: pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN email TEXT DEFAULT ''")
+        c.execute("ALTER TABLE users ADD COLUMN mobile TEXT DEFAULT ''")
+    except: pass
 
     c.execute("""CREATE TABLE IF NOT EXISTS login_otp (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -3936,6 +3940,17 @@ def _employee_email_for(emp_id, conn):
     row = dict(row)
     return row.get("official_email") or row.get("email") or row.get("personal_email") or None
 
+def _otp_email_for(user, conn):
+    """Best email for OTP delivery: the user account's own Email (set in Add User) takes
+    priority, falling back to the linked Employee Profile's email if not set."""
+    try:
+        acct_email = user["email"] if "email" in user.keys() else None
+    except Exception:
+        acct_email = None
+    if acct_email and acct_email.strip():
+        return acct_email.strip()
+    return _employee_email_for(user["emp_id"], conn)
+
 def _complete_login(user, perms):
     """Finish login: set session, log activity, decide redirect. perms already resolved."""
     conn_d = get_db()
@@ -4002,7 +4017,7 @@ def login():
         if user and user["password"]==hp(p):
             if user["otp_login_enabled"]:
                 conn_e = get_db()
-                email = _employee_email_for(user["emp_id"], conn_e)
+                email = _otp_email_for(user, conn_e)
                 conn_e.close()
                 if not email:
                     return _render_login(error="OTP login is enabled for this account but no email is on file in the Employee Profile. Contact admin.")
@@ -4049,7 +4064,7 @@ def login_verify_otp():
         conn.close(); session.pop("otp_pending_uid", None)
         return redirect("/login")
     row = conn.execute("SELECT * FROM login_otp WHERE user_id=? ORDER BY id DESC LIMIT 1", (uid,)).fetchone()
-    email = _employee_email_for(user["emp_id"], conn)
+    email = _otp_email_for(user, conn)
     masked = (email[:2] + "***" + email[email.find("@"):]) if email and "@" in email else ""
     if not row:
         conn.close()
@@ -4082,7 +4097,7 @@ def login_resend_otp():
     if not user:
         conn.close(); session.pop("otp_pending_uid", None)
         return redirect("/login")
-    email = _employee_email_for(user["emp_id"], conn)
+    email = _otp_email_for(user, conn)
     if not email:
         conn.close()
         return render_template("login_otp.html", masked_email="", error="No email on file. Contact admin.")
@@ -10654,10 +10669,12 @@ def add_user():
     try:
         # Default permissions for new employee users
         default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career"]
-        conn.execute("""INSERT INTO users (username, password, role, emp_id, name, is_active, permissions)
-            VALUES (?,?,?,?,?,1,?)""",
+        conn.execute("""INSERT INTO users (username, password, role, emp_id, name, email, mobile, is_active, permissions)
+            VALUES (?,?,?,?,?,?,?,1,?)""",
             (d["username"], hp(d["password"]), d.get("role","employee"),
-             d.get("emp_id",""), d.get("name",""), ",".join(default_perms)))
+             d.get("emp_id",""), d.get("name",""),
+             d.get("email","").strip(), d.get("mobile","").strip(),
+             ",".join(default_perms)))
         conn.commit()
         uid = conn.execute("SELECT id FROM users WHERE username=?", (d["username"],)).fetchone()["id"]
         for p in default_perms:
@@ -20055,10 +20072,15 @@ def my_attendance_punch():
     d = request.json or {}
     punch_type = d.get("type")
     reason = (d.get("reason") or "").strip()
+    lat = d.get("lat")
+    lng = d.get("lng")
+    accuracy = d.get("accuracy")
     if punch_type not in ("IN", "OUT"):
         return jsonify({"success": False, "error": "Invalid punch type."})
     if not reason:
         return jsonify({"success": False, "error": "Please provide a reason for marking attendance from outside the office."})
+    if lat is None or lng is None:
+        return jsonify({"success": False, "error": "Location access is required to mark Outside Attendance. Please allow location and try again."})
 
     today_str = date.today().strftime("%Y-%m-%d")
     now_time  = datetime.now().strftime("%H:%M")
@@ -20088,9 +20110,9 @@ def my_attendance_punch():
 
         conn.execute("""INSERT INTO outside_attendance_requests
             (emp_code, department, request_type, request_time, request_date, reason,
-             status, ip_address, created_on)
-            VALUES (?,?,?,?,?,?,'Pending',?,?)""",
-            (emp_code, dept, punch_type, now_time, today_str, reason,
+             latitude, longitude, accuracy_m, status, ip_address, created_on)
+            VALUES (?,?,?,?,?,?,?,?,?,'Pending',?,?)""",
+            (emp_code, dept, punch_type, now_time, today_str, reason, lat, lng, accuracy,
              request.remote_addr, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
         conn.commit()
         return jsonify({"success": True,

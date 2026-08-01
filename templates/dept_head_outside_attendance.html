@@ -44,6 +44,15 @@
             &nbsp;·&nbsp; {{ r.request_date }}
           </div>
           {% if r.reason %}<div style="font-size:11px;color:var(--muted);margin-top:4px;">📝 {{ r.reason }}</div>{% endif %}
+          {% if r.latitude and r.longitude %}
+          <div style="font-size:11px;margin-top:4px;">
+            📍 <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">
+              View location on map</a>
+            {% if r.accuracy_m %}<span style="color:var(--muted);"> (±{{ r.accuracy_m|round(0) }}m accuracy)</span>{% endif %}
+          </div>
+          {% else %}
+          <div style="font-size:11px;color:#ef4444;margin-top:4px;">⚠️ No location captured with this request</div>
+          {% endif %}
           <div style="font-size:10px;color:var(--muted);margin-top:2px;">Requested: {{ r.created_on[:16] if r.created_on else '—' }}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">

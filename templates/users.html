@@ -113,6 +113,16 @@
             {% for e in employees %}<option value="{{ e.emp_code }}">{{ e.emp_code }} — {{ e.emp_name }}</option>{% endfor %}
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" id="a_email" placeholder="user@example.com">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">For Email OTP / notifications</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-control" type="tel" id="a_mobile" placeholder="+91 98765 43210">
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">For WhatsApp OTP / notifications</div>
+        </div>
       </div>
       <div class="alert alert-info" style="font-size:11px;">Default perms for Employee role: Payslip Portal + Leave Portal + Attendance Portal</div>
       <div id="a_result"></div>
@@ -561,7 +571,9 @@ async function addUser(){
     name:     document.getElementById("a_name").value.trim(),
     password: document.getElementById("a_pass").value,
     role:     document.getElementById("a_role").value,
-    emp_id:   document.getElementById("a_empid").value
+    emp_id:   document.getElementById("a_empid").value,
+    email:    document.getElementById("a_email").value.trim(),
+    mobile:   document.getElementById("a_mobile").value.trim()
   };
   if(!data.username||!data.password){ showToast("Username and password required","error"); return; }
   if(data.password.length<4){ showToast("Password too short","error"); return; }

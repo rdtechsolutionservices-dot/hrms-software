@@ -202,28 +202,65 @@ function submitOutsidePunch(type){
     return;
   }
 
-  resultEl.innerHTML = '<span style="color:var(--muted);">Sending request…</span>';
+  if (!navigator.geolocation){
+    resultEl.innerHTML = '<span style="color:#ef4444;">❌ This browser does not support location access. Please use Chrome, Safari, Edge, Firefox, or Opera.</span>';
+    return;
+  }
+
+  // All major browsers (Chrome, Safari, Edge, Firefox, Opera) block the location
+  // permission prompt entirely on plain http:// — it fails instantly with no popup
+  // at all, which looks identical to "denied". This only works on https:// (or
+  // localhost). Catch this case up front with a clear, actionable message.
+  const isLocalhost = ["localhost","127.0.0.1"].includes(location.hostname);
+  if (window.isSecureContext === false && !isLocalhost){
+    const httpsUrl = "https://" + location.hostname + ":5443" + location.pathname;
+    resultEl.innerHTML = '<span style="color:#ef4444;">🔒 Location requires a secure (https://) connection — this page is open over http://. '
+      + `Open <a href="${httpsUrl}" style="color:#0096dc;text-decoration:underline;">${httpsUrl}</a> instead `
+      + '(first visit shows a one-time "Not Secure" browser warning — tap Advanced → Proceed, this is expected on a local network), then try again.</span>';
+    return;
+  }
+
+  resultEl.innerHTML = '<span style="color:var(--muted);">📍 Getting your location…</span>';
   inBtn.disabled = true; outBtn.disabled = true;
 
-  fetch("/my-attendance/punch", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({type: type, reason: reason})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success){
-      resultEl.innerHTML = `<span style="color:#10b981;">✅ ${d.message}</span>`;
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${d.error}</span>`;
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      const lat = pos.coords.latitude, lng = pos.coords.longitude, accuracy = pos.coords.accuracy;
+      resultEl.innerHTML = '<span style="color:var(--muted);">Sending request…</span>';
+      fetch("/my-attendance/punch", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({type: type, reason: reason, lat: lat, lng: lng, accuracy: accuracy})
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success){
+          resultEl.innerHTML = `<span style="color:#10b981;">✅ ${d.message}</span>`;
+          setTimeout(() => location.reload(), 1200);
+        } else {
+          resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${d.error}</span>`;
+          inBtn.disabled = false; outBtn.disabled = false;
+        }
+      })
+      .catch(() => {
+        resultEl.innerHTML = '<span style="color:#ef4444;">❌ Request failed. Try again.</span>';
+        inBtn.disabled = false; outBtn.disabled = false;
+      });
+    },
+    function(err){
+      let msg = "Location access denied or unavailable. Location is required to mark Outside Attendance.";
+      if (err.code === 1) {
+        msg = "Location permission was denied. Open your browser's site settings for this page and allow Location, then try again.";
+      } else if (err.code === 2) {
+        msg = "Location unavailable right now (GPS/network issue). Move to an open area and try again.";
+      } else if (err.code === 3) {
+        msg = "Location request timed out. Please try again.";
+      }
+      resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${msg}</span>`;
       inBtn.disabled = false; outBtn.disabled = false;
-    }
-  })
-  .catch(() => {
-    resultEl.innerHTML = '<span style="color:#ef4444;">❌ Request failed. Try again.</span>';
-    inBtn.disabled = false; outBtn.disabled = false;
-  });
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
 }
 </script>
 {% endblock %}
