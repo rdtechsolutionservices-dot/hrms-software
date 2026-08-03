@@ -95,7 +95,7 @@
           <td style="padding:7px;text-align:right;color:#ef4444;">{{ "{:,.0f}".format(e.esic_on_ot) }}</td>
           <td style="padding:7px;text-align:right;font-weight:800;color:#0096dc;font-size:13px;">{{ "{:,.0f}".format(e.net_ot_final) }}</td>
           <td style="padding:7px;text-align:center;">
-            <button onclick="sendSingleWA('{{ e.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;" title="Send WhatsApp to {{ e.emp_name }}"></button>
+            <button onclick="sendSingleWA('{{ e.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;" title="Send WhatsApp to {{ e.emp_name }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></button>
           </td>
         </tr>
         {% endfor %}

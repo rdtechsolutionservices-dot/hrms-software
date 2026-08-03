@@ -4125,6 +4125,157 @@ def login_resend_otp():
         return render_template("login_otp.html", masked_email=masked, error=f"Could not resend OTP ({msg}).")
     return render_template("login_otp.html", masked_email=masked, error="", resent=True)
 
+# ── Forgot Password (username -> email OTP -> reset) ─────────
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "GET":
+        return render_template("forgot_password.html", step="username", error="")
+
+    username = request.form.get("username", "").strip()
+    if not username:
+        return render_template("forgot_password.html", step="username", error="Please enter your username.")
+
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE username=? AND is_active=1", (username,)).fetchone()
+    if not user:
+        conn.close()
+        # Do not reveal whether the username exists — generic message either way
+        return render_template("forgot_password.html", step="username",
+            error="If this username exists, an OTP has been sent to its registered email.")
+
+    email = _otp_email_for(user, conn)
+    if not email:
+        conn.close()
+        return render_template("forgot_password.html", step="username",
+            error="No email is on file for this account. Contact admin to reset your password.")
+
+    import random
+    otp_code = f"{random.randint(0,999999):06d}"
+    expires_at = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("DELETE FROM login_otp WHERE user_id=?", (user["id"],))
+    conn.execute("INSERT INTO login_otp (user_id, otp_code, expires_at, attempts, created_on) VALUES (?,?,?,0,?)",
+        (user["id"], otp_code, expires_at, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+
+    subject = f"Password Reset OTP — {get_company_name()}"
+    body = make_email_header() + f"""
+        <div style="padding:28px;font-family:Arial,sans-serif;">
+            <p style="font-size:14px;color:#334155;">Hi {user['name'] or user['username']},</p>
+            <p style="font-size:14px;color:#334155;">Use this One-Time Password to reset your password:</p>
+            <div style="text-align:center;margin:24px 0;">
+                <span style="display:inline-block;background:#0a0f1c;color:#0096dc;font-size:32px;font-weight:800;letter-spacing:8px;padding:16px 28px;border-radius:12px;">{otp_code}</span>
+            </div>
+            <p style="font-size:12px;color:#64748b;">This code expires in 5 minutes. If you did not request a password reset, you can ignore this email.</p>
+        </div>""" + make_email_footer()
+    ok, msg = send_email(email, subject, body, email_type="password_reset")
+    conn.close()
+
+    if not ok:
+        return render_template("forgot_password.html", step="username",
+            error=f"Could not send OTP email ({msg}). Contact admin.")
+
+    masked = email[:2] + "***" + email[email.find("@"):] if "@" in email else email
+    session["pwreset_pending_uid"] = user["id"]
+    session.pop("pwreset_verified_uid", None)
+    return render_template("forgot_password.html", step="otp", masked_email=masked, error="")
+
+@app.route("/forgot-password/verify", methods=["POST"])
+def forgot_password_verify():
+    uid = session.get("pwreset_pending_uid")
+    if not uid:
+        return redirect("/forgot-password")
+    code = request.form.get("otp", "").strip()
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id=? AND is_active=1", (uid,)).fetchone()
+    if not user:
+        conn.close(); session.pop("pwreset_pending_uid", None)
+        return redirect("/forgot-password")
+
+    email = _otp_email_for(user, conn)
+    masked = (email[:2] + "***" + email[email.find("@"):]) if email and "@" in email else ""
+    row = conn.execute("SELECT * FROM login_otp WHERE user_id=? ORDER BY id DESC LIMIT 1", (uid,)).fetchone()
+    conn.close()
+
+    if not row:
+        return render_template("forgot_password.html", step="otp", masked_email=masked,
+            error="OTP expired or not found. Please request a new one.")
+    if row["attempts"] >= 5:
+        return render_template("forgot_password.html", step="otp", masked_email=masked,
+            error="Too many attempts. Please request a new OTP.")
+    if datetime.now() > datetime.strptime(row["expires_at"], "%Y-%m-%d %H:%M:%S"):
+        return render_template("forgot_password.html", step="otp", masked_email=masked,
+            error="OTP expired. Please request a new one.")
+    if code != row["otp_code"]:
+        conn2 = get_db()
+        conn2.execute("UPDATE login_otp SET attempts=attempts+1 WHERE id=?", (row["id"],))
+        conn2.commit(); conn2.close()
+        return render_template("forgot_password.html", step="otp", masked_email=masked,
+            error="Incorrect OTP. Please try again.")
+
+    # OTP correct — allow password reset, consume the OTP
+    conn3 = get_db()
+    conn3.execute("DELETE FROM login_otp WHERE user_id=?", (uid,))
+    conn3.commit(); conn3.close()
+    session["pwreset_verified_uid"] = uid
+    session.pop("pwreset_pending_uid", None)
+    return render_template("forgot_password.html", step="reset", error="")
+
+@app.route("/forgot-password/resend", methods=["POST"])
+def forgot_password_resend():
+    uid = session.get("pwreset_pending_uid")
+    if not uid:
+        return redirect("/forgot-password")
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id=? AND is_active=1", (uid,)).fetchone()
+    if not user:
+        conn.close(); session.pop("pwreset_pending_uid", None)
+        return redirect("/forgot-password")
+    email = _otp_email_for(user, conn)
+    if not email:
+        conn.close()
+        return render_template("forgot_password.html", step="otp", masked_email="", error="No email on file. Contact admin.")
+    import random
+    otp_code = f"{random.randint(0,999999):06d}"
+    expires_at = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("DELETE FROM login_otp WHERE user_id=?", (uid,))
+    conn.execute("INSERT INTO login_otp (user_id, otp_code, expires_at, attempts, created_on) VALUES (?,?,?,0,?)",
+        (uid, otp_code, expires_at, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    subject = f"Password Reset OTP — {get_company_name()}"
+    body = make_email_header() + f"""
+        <div style="padding:28px;font-family:Arial,sans-serif;">
+            <p style="font-size:14px;color:#334155;">Hi {user['name'] or user['username']},</p>
+            <p style="font-size:14px;color:#334155;">Here's your new One-Time Password:</p>
+            <div style="text-align:center;margin:24px 0;">
+                <span style="display:inline-block;background:#0a0f1c;color:#0096dc;font-size:32px;font-weight:800;letter-spacing:8px;padding:16px 28px;border-radius:12px;">{otp_code}</span>
+            </div>
+            <p style="font-size:12px;color:#64748b;">This code expires in 5 minutes.</p>
+        </div>""" + make_email_footer()
+    ok, msg = send_email(email, subject, body, email_type="password_reset")
+    conn.close()
+    masked = email[:2] + "***" + email[email.find("@"):] if "@" in email else email
+    if not ok:
+        return render_template("forgot_password.html", step="otp", masked_email=masked, error=f"Could not resend OTP ({msg}).")
+    return render_template("forgot_password.html", step="otp", masked_email=masked, error="", resent=True)
+
+@app.route("/forgot-password/reset", methods=["POST"])
+def forgot_password_reset():
+    uid = session.get("pwreset_verified_uid")
+    if not uid:
+        return redirect("/forgot-password")
+    pw1 = request.form.get("password", "")
+    pw2 = request.form.get("password2", "")
+    if not pw1 or len(pw1) < 4:
+        return render_template("forgot_password.html", step="reset", error="Password must be at least 4 characters.")
+    if pw1 != pw2:
+        return render_template("forgot_password.html", step="reset", error="Passwords do not match.")
+
+    conn = get_db()
+    conn.execute("UPDATE users SET password=? WHERE id=?", (hp(pw1), uid))
+    conn.commit(); conn.close()
+    session.pop("pwreset_verified_uid", None)
+    return render_template("forgot_password.html", step="done", error="")
+
 @app.route("/logout")
 def logout(): session.clear(); return redirect("/login")
 
@@ -18072,7 +18223,7 @@ def att_report_advanced():
         for emp in emps:
             rows = get_att(emp["emp_code"])
             wd = get_wd(year, month if month else date.today().month, emp["category"],
-                        weekly_off=emp.get("weekly_off","Sunday") or "Sunday")
+                        weekly_off=(emp["weekly_off"] if "weekly_off" in emp.keys() else "Sunday") or "Sunday")
             present = sum(0.5 if r["is_half_day"] else 1 for r in rows if r["status"] not in ("Absent","Leave","WO"))
             twm = sum(r["working_minutes"] or 0 for r in rows)
             ws.append([emp["emp_code"],emp["emp_name"],emp["department"] or "—",emp["category"],wd,present,

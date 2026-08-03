@@ -2,6 +2,12 @@
 {% block title %}Reports & Analytics{% endblock %}
 {% block page_title %} Reports & Analytics{% endblock %}
 {% block content %}
+<style>
+#attPreviewTableWrap table{border-collapse:collapse;width:100%;font-size:11px;}
+#attPreviewTableWrap td,#attPreviewTableWrap th{border:1px solid var(--border);padding:4px 7px;white-space:nowrap;color:var(--text);}
+#attPreviewTableWrap tr:first-child td{background:#eef2f7;font-weight:700;}
+#attPreviewTableWrap tr:nth-child(even){background:var(--surface);}
+</style>
 
 <!-- Month/Year Selector -->
 <div class="toolbar" style="margin-bottom:16px;">
@@ -91,15 +97,7 @@
       </select>
     </div>
 
-    <button class="btn btn-primary" style="width:100%;font-size:13px;" onclick="generateAttReport(this)">Generate Report</button>
-
-    <!-- Preview after generate -->
-    <div id="attReportPreview" style="display:none;margin-top:10px;">
-      <div style="background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px;" id="attPreviewInfo"></div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-success btn-sm" style="flex:1;" onclick="downloadAttReport(this)">Download Excel</button>
-      </div>
-    </div>
+    <button class="btn btn-primary" style="width:100%;font-size:13px;" id="attGenBtn" onclick="generateAttReport(this)">Generate Report</button>
   </div>
 
   <!-- ══ RIGHT: OTHER REPORTS ══ -->
@@ -298,8 +296,29 @@
   </div>
 </div>
 
+<!-- Attendance Report — Excel Data Preview Modal -->
+<div class="modal-overlay" id="attExcelPreviewModal">
+  <div class="modal modal-lg" style="width:920px;max-width:95vw;">
+    <div class="modal-header">
+      <span class="modal-title">Report Preview</span>
+      <button class="modal-close" onclick="closeModal('attExcelPreviewModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="attPreviewInfo" style="background:var(--surface);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--muted);"></div>
+      <div style="max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px;">
+        <div id="attPreviewTableWrap" style="font-size:11px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('attExcelPreviewModal')">Close</button>
+      <button class="btn btn-success" id="attExcelDownloadBtn" onclick="downloadAttReport(this)">Download Excel</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════
 // REPORTS & ANALYTICS — All JS in one clean block, no duplicates
@@ -348,11 +367,11 @@ function syncEmpCode(inp){
   }
 }
 
-// ── Generate Attendance Report ───────────────────────────
+// ── Generate Attendance Report — fetch, preview as Excel-like table, then download ──
 let _attPayload = null;
-function generateAttReport(btn){
-  if(btn){ btn.textContent=" Generating..."; btn.disabled=true; }
+let _attBlob = null;
 
+async function generateAttReport(btn){
   const isRange  = document.getElementById("att_range").checked;
   const isYearly = document.getElementById("att_yearly").checked;
   const empCode  = document.getElementById("att_emp").value.trim();
@@ -373,8 +392,6 @@ function generateAttReport(btn){
     to_date:     isRange ? document.getElementById("att_to").value   : ""
   };
 
-  if(btn){ btn.textContent=" Generate Report"; btn.disabled=false; }
-
   if(isRange && (!_attPayload.from_date || !_attPayload.to_date)){
     showToast("Please select From and To date!","error"); return;
   }
@@ -384,15 +401,7 @@ function generateAttReport(btn){
   const period = isRange  ? (_attPayload.from_date + " to " + _attPayload.to_date) :
                  isYearly ? _attPayload.year : (monthName + " " + _attPayload.year);
 
-  document.getElementById("attPreviewInfo").innerHTML =
-    " Ready: <strong>" + rptType + "</strong> | <strong>" + empName + "</strong> | <strong>" + period + "</strong>";
-  document.getElementById("attReportPreview").style.display = "block";
-  showToast("Report ready — click Download!");
-}
-
-async function downloadAttReport(btn){
-  if(!_attPayload){ showToast("Click Generate first!","error"); return; }
-  if(btn){ btn.textContent=" Downloading..."; btn.disabled=true; }
+  if(btn){ btn.textContent="Generating..."; btn.disabled=true; }
 
   const url = (_attPayload.rpt_type === "summary") ?
     "/reports/attendance-advanced" : "/reports/attendance-register";
@@ -405,22 +414,42 @@ async function downloadAttReport(btn){
   try{
     const resp = await fetch(url, {method:"POST",
       headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-    if(btn){ btn.textContent=" Download Excel"; btn.disabled=false; }
-    if(resp.ok){
-      const blob = await resp.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "Attendance_" + (_attPayload.rpt_type||"report") + "_" + (_attPayload.emp_code||"All") + ".xlsx";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showToast(" Downloaded!");
-    } else {
+    if(btn){ btn.textContent="Generate Report"; btn.disabled=false; }
+
+    if(!resp.ok){
       const txt = await resp.text();
-      showToast(" Error: " + txt.substring(0,100), "error");
+      showToast("Error: " + txt.substring(0,100), "error");
+      return;
     }
+
+    _attBlob = await resp.blob();
+
+    // Parse the generated xlsx client-side and render it as a preview table
+    const arrayBuf = await _attBlob.arrayBuffer();
+    const wb = XLSX.read(arrayBuf, {type:"array"});
+    const firstSheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[firstSheetName];
+    const htmlTable = XLSX.utils.sheet_to_html(sheet, {editable:false});
+
+    document.getElementById("attPreviewInfo").innerHTML =
+      "Ready: <strong>" + rptType + "</strong> | <strong>" + empName + "</strong> | <strong>" + period + "</strong>" +
+      " | Sheet: <strong>" + firstSheetName + "</strong>" + (wb.SheetNames.length>1 ? " (+" + (wb.SheetNames.length-1) + " more)" : "");
+    document.getElementById("attPreviewTableWrap").innerHTML = htmlTable;
+
+    openModal("attExcelPreviewModal");
   } catch(e){
-    if(btn){ btn.textContent=" Download Excel"; btn.disabled=false; }
-    showToast(" " + e.message, "error");
+    if(btn){ btn.textContent="Generate Report"; btn.disabled=false; }
+    showToast(e.message, "error");
   }
+}
+
+function downloadAttReport(btn){
+  if(!_attBlob){ showToast("Nothing to download — generate the report first!","error"); return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(_attBlob);
+  a.download = "Attendance_" + (_attPayload?.rpt_type||"report") + "_" + (_attPayload?.emp_code||"All") + ".xlsx";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast("Downloaded!");
 }
 
 // ── Salary & Other Reports Export ───────────────────────

@@ -7,7 +7,7 @@
 
 <style>
 :root{
-  --bg:#f1f5f9;--surface:#ffffff;--card:#ffffff;--border:#e2e8f0;
+  --bg:#eef1f6;--surface:#f5f7fa;--card:#f6f8fb;--border:#dde3ec;
   --accent:#2563eb;--accent2:#3b82f6;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
   --text:#0f172a;--muted:#475569;
   --sidebar:#0f172a;--sidebar-text:#e8edf5;--sidebar-muted:#94a3b8;--sidebar-hover:#1c2942;--sidebar-border:#1e293b;
@@ -325,7 +325,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
     <div class="sfoot">
       <div class="avatar">{{ (session.name or 'HR')[:2].upper() }}</div>
       <div><div class="sfoot-name">{{ session.name or 'User' }}</div><div class="sfoot-role">{{ (session.role or '')|capitalize }}</div></div>
-      <span class="sfoot-logout" title="Change Password" onclick="openModal('changePwModal')" style="font-size:14px;margin-right:4px;"></span>
+      <span class="sfoot-logout" title="Change Password" onclick="openModal('changePwModal')" style="margin-right:4px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></span>
       <a href="/logout" class="sfoot-logout" title="Logout">⏻</a>
     </div>
   </div>
