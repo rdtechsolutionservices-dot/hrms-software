@@ -20,7 +20,7 @@
       <span style="font-size:26px;"></span>
       <div>
         <div style="font-weight:800;font-size:13px;">{{ b.name }}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);">Birthday Today! &nbsp;·&nbsp; {{ b.dept or '' }}</div>
+        <div style="font-size:11px;color:var(--muted);">Birthday Today! &nbsp;·&nbsp; {{ b.dept or '' }}</div>
       </div>
     </div>
     {% endfor %}
@@ -29,7 +29,7 @@
       <span style="font-size:26px;"></span>
       <div>
         <div style="font-weight:800;font-size:13px;">{{ a.name }}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);"> {{ a.years }} Year Anniversary! &nbsp;·&nbsp; {{ a.dept or '' }}</div>
+        <div style="font-size:11px;color:var(--muted);"> {{ a.years }} Year Anniversary! &nbsp;·&nbsp; {{ a.dept or '' }}</div>
       </div>
     </div>
     {% endfor %}
@@ -144,7 +144,7 @@
 <!-- ── WO & ABSENT PANEL ── -->
 <div id="woAbsentPanel" style="display:none;background:var(--card);border:1px solid rgba(107,114,128,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div style="font-weight:700;font-size:15px;color:#9ca3af;">Week Off & Absent — Did Not Come on WO Day</div>
+    <div style="font-weight:700;font-size:15px;color:var(--text);">Week Off & Absent — Did Not Come on WO Day</div>
     <button onclick="document.getElementById('woAbsentPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;"></button>
   </div>
   <div style="overflow-x:auto;">

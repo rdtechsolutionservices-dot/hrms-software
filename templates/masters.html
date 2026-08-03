@@ -3,7 +3,7 @@
 {% block page_title %} Masters{% endblock %}
 {% block content %}
 <style>
-  #masters-container, #masters-container * { font-family: Verdana, 'Verdana Light', Arial, sans-serif !important; }
+  #masters-container, #masters-container * { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif !important; }
   .master-header { transition: background 0.15s; }
   .master-header:hover { background: rgba(255,255,255,0.04) !important; }
 </style>
@@ -600,7 +600,7 @@ async function loadCustomFields(){
   }
   tbody.innerHTML = _customFields.map(f=>`
     <tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:6px 10px;font-family:Verdana,monospace;color:#a78bfa;font-weight:600;">${f.field_name}</td>
+      <td style="padding:6px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#a78bfa;font-weight:600;">${f.field_name}</td>
       <td style="padding:6px;font-weight:700;">${f.field_label}</td>
       <td style="padding:6px;text-align:center;">${f.field_type==='select'?`<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;">Dropdown (${f.options?(f.options.split('|').length+' opts'):'no opts'})</span>`:`<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(0,150,220,.15);color:#0096dc;">${f.field_type}</span>`}</td>
       <td style="padding:6px;text-align:center;">${f.is_required?'<span style="color:#10b981;font-weight:700;">Yes</span>':'<span style="color:var(--muted);">No</span>'}</td>

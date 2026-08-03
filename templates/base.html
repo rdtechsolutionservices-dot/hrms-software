@@ -9,14 +9,14 @@
 :root{
   --bg:#f1f5f9;--surface:#ffffff;--card:#ffffff;--border:#e2e8f0;
   --accent:#2563eb;--accent2:#3b82f6;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
-  --text:#1e293b;--muted:#64748b;
+  --text:#0f172a;--muted:#475569;
   --sidebar:#0f172a;--sidebar-text:#e8edf5;--sidebar-muted:#94a3b8;--sidebar-hover:#1c2942;--sidebar-border:#1e293b;
   --hover:#eef2f7;
   --shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
   --shadow-md:0 4px 14px rgba(15,23,42,.08);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Verdana,'Verdana Light',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 a{text-decoration:none;color:inherit;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
 .shell{display:flex;flex:1;height:100vh;}
@@ -24,15 +24,16 @@ a{text-decoration:none;color:inherit;}
 .logo{padding:16px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px;}
 .logo-img{width:40px;height:40px;border-radius:10px;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:none;}
 .logo-img img{width:38px;height:38px;object-fit:contain;}
-.logo-img span{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:800;font-size:12px;color:#2563eb;}
-.logo-text .ln{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:800;font-size:13px;color:var(--sidebar-text);line-height:1.3;}
+.logo-img span{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:800;font-size:12px;color:#2563eb;}
+.logo-text .ln{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:800;font-size:13px;color:var(--sidebar-text);line-height:1.3;}
 .logo-text .ls{font-size:10px;color:var(--sidebar-muted);margin-top:2px;}
 .nav{padding:10px 8px;flex:1;overflow-y:auto;}
 .nav-sec{font-size:10px;color:var(--sidebar-muted);letter-spacing:.12em;text-transform:uppercase;padding:8px 10px 4px;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:var(--sidebar-muted);transition:background .15s,color .15s;margin-bottom:2px;}
 .nav-item:hover{background:var(--sidebar-hover);color:var(--sidebar-text);}
 .nav-item.active{background:rgba(59,130,246,.22);color:#93c5fd;}
-.nav-item .ni{font-size:15px;width:20px;text-align:center;}
+.nav-item .ni{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.nav-item .ni svg{width:16px;height:16px;}
 .sidebar-footer{padding:12px 14px;border-top:1px solid var(--sidebar-border);}
 .sfoot{display:flex;align-items:center;gap:10px;}
 .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
@@ -42,7 +43,7 @@ a{text-decoration:none;color:inherit;}
 .sfoot-logout:hover{color:var(--red);}
 .main{flex:1;display:flex;flex-direction:column;margin-left:240px;min-width:0;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-.page-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-size:20px;color:var(--text);}
+.page-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:20px;color:var(--text);}
 .page-subtitle{font-size:13px;color:var(--muted);margin-top:2px;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
 .tbadge{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
@@ -89,12 +90,12 @@ a,button,.nav-item,.btn,.kpi-box,.stat-card,.table-card,input,select,.form-contr
 .sc-yellow::before{background:linear-gradient(90deg,var(--yellow),#fbbf24);}
 .sc-purple::before{background:linear-gradient(90deg,var(--purple),#a78bfa);}
 .stat-icon{font-size:22px;margin-bottom:10px;}
-.stat-value{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:800;font-size:26px;line-height:1;color:var(--text);}
+.stat-value{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:800;font-size:26px;line-height:1;color:var(--text);}
 .stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
 .stat-sub{font-size:11px;margin-top:4px;color:var(--green);}
 .table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;box-shadow:var(--shadow);}
 .table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.table-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-size:14px;color:var(--text);}
+.table-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:14px;color:var(--text);}
 table{width:100%;border-collapse:collapse;}
 thead th{padding:10px 14px;text-align:left;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;background:#f8fafc;border-bottom:1px solid var(--border);}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
@@ -111,8 +112,8 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
 .badge-staff{background:#eff6ff;color:var(--accent);}
 .badge-associate{background:#fffbeb;color:#b45309;}
 .badge-director{background:#f5f3ff;color:#7c3aed;}
-.sal-text{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:9px;font-family:Verdana,sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+.sal-text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:9px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;}
 .btn-primary{background:var(--accent);color:white;}.btn-primary:hover{background:#1d4ed8;}
 .btn-success{background:var(--green);color:white;}
 .btn-danger{background:var(--red);color:white;}
@@ -121,20 +122,20 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
 .btn-sm{padding:5px 11px;font-size:12px;}
 .form-group{margin-bottom:14px;}
 .form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
-.form-control{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;font-family:Verdana,sans-serif;}
+.form-control{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
 .form-control:focus{border-color:var(--accent);}
-.form-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:Verdana,sans-serif;}
+.form-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
 .form-check{display:flex;align-items:center;gap:8px;font-size:13px;}
 .form-check input{width:15px;height:15px;accent-color:var(--accent);}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 13px;}
-.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:200px;font-family:Verdana,sans-serif;}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:200px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-overlay.show{opacity:1;pointer-events:all;}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(15,23,42,.25);transform:translateY(20px);transition:transform .2s;}
 .modal-overlay.show .modal{transform:translateY(0);}
 .modal-lg{width:820px;}
 .modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-size:16px;color:var(--text);}
+.modal-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:16px;color:var(--text);}
 .modal-close{width:28px;height:28px;border-radius:50%;background:var(--hover);border:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .modal-body{padding:20px;}
 .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
@@ -150,7 +151,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
 .month-selector select{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;outline:none;}
 .two-col{display:grid;grid-template-columns:1fr 340px;gap:16px;}
 .mini-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
-.mini-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);}
+.mini-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text);}
 #toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:300px;box-shadow:var(--shadow-md);color:var(--text);}
 #toast.show{transform:translateY(0);opacity:1;}
 #toast.toast-success{border-color:#a7f3d0;color:#059669;}
@@ -217,106 +218,106 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
     {% endif %}
 
     {% if is_admin or 'dashboard' in perms %}
-    <a href="/dashboard" class="nav-item {% if request.path=='/dashboard' %}active{% endif %}"><span class="ni"></span>Dashboard</a>
+    <a href="/dashboard" class="nav-item {% if request.path=='/dashboard' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>Dashboard</a>
     {% endif %}
 
     {% if is_admin or 'emp_view' in perms or 'emp_add_edit' in perms %}
-    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni"></span>Employee Profiles</a>
+    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>Employee Profiles</a>
     {% endif %}
 
     {% if is_admin or 'masters' in perms %}
-    <a href="/masters" class="nav-item {% if request.path=='/masters' %}active{% endif %}"><span class="ni"></span>Masters</a>
+    <a href="/masters" class="nav-item {% if request.path=='/masters' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>Masters</a>
     {% endif %}
 
     {% if is_admin or 'att_register' in perms or 'manual_entry' in perms %}
-    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni"></span>Time & Attendance</a>
-    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" > Attendance Corrections</a>{% endif %}
+    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg></span>Time & Attendance</a>
+    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>Attendance Corrections</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'machines' in perms %}
-    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" > Device Integration</a>
+    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span>Device Integration</a>
     {% endif %}
-    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" > Shift Roster</a>{% endif %}
-    {% if is_admin or 'weekly_off' in perms %}<a href="/weekly-off" class="nav-item {% if '/weekly-off' in request.path %}active{% endif %}" > Weekly Off Management</a>{% endif %}
-    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" > Missed Punch Alerts</a>{% endif %}
-    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" > Holiday Calendar</a>{% endif %}
-    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" > Absence Management</a>{% endif %}
-    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" > Late Arrival Report</a>{% endif %}
+    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>Shift Roster</a>{% endif %}
+    {% if is_admin or 'weekly_off' in perms %}<a href="/weekly-off" class="nav-item {% if '/weekly-off' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.57 2.64"></path><polyline points="21 3 21 8 16 8"></polyline></svg></span>Weekly Off Management</a>{% endif %}
+    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>Missed Punch Alerts</a>{% endif %}
+    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></svg></span>Holiday Calendar</a>{% endif %}
+    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="17" y1="11" x2="23" y2="11"></line></svg></span>Absence Management</a>{% endif %}
+    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 6 12 12 16 15"></polyline></svg></span>Late Arrival Report</a>{% endif %}
 
     {% if is_admin or 'manpower' in perms %}
-    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni"></span>Workforce Planning</a>
+    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>Workforce Planning</a>
     {% endif %}
-    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" > Separation Management</a>{% endif %}
+    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span>Separation Management</a>{% endif %}
 
     {% if is_admin or 'payroll_view' in perms or 'payroll_process' in perms %}
     <div class="nav-sec">{% if is_admin %}Payroll{% endif %}</div>
-    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni"></span>Payroll Processing</a>
+    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></span>Payroll Processing</a>
     {% endif %}
-    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" > Payslip Center</a>{% endif %}
-    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni"></span>Payroll Insights</a>{% endif %}
+    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>Payslip Center</a>{% endif %}
+    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>Payroll Insights</a>{% endif %}
 
-    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" > Payroll Configuration</a>{% endif %}
-    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path and '/career' not in request.path %}active{% endif %}" > Compensation Management</a>{% endif %}
-    {% if is_admin or 'career_overview' in perms or 'salary_revision' in perms %}<a href="/salary/career-overview" class="nav-item {% if '/salary/career-overview' in request.path %}active{% endif %}">Career & Growth Overview</a>{% endif %}
+    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>Payroll Configuration</a>{% endif %}
+    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path and '/career' not in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg></span>Compensation Management</a>{% endif %}
+    {% if is_admin or 'career_overview' in perms or 'salary_revision' in perms %}<a href="/salary/career-overview" class="nav-item {% if '/salary/career-overview' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"></path></svg></span>Career & Growth Overview</a>{% endif %}
     {# Working Days module removed — now auto-calculated from employee weekly_off #}
 
     {% if is_admin or 'extra_working' in perms %}
-    <a href="/extra-working" class="nav-item {% if '/extra-working' in request.path %}active{% endif %}"><span class="ni"></span>Extra Working</a>
+    <a href="/extra-working" class="nav-item {% if '/extra-working' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 1.5"></path><path d="M9 2h6"></path></svg></span>Extra Working</a>
     {% endif %}
 
     {% if is_admin or 'leave_approve' in perms or 'leave_balance' in perms or 'leave_master' in perms %}
     <div class="nav-sec">{% if is_admin %}Leave{% endif %}</div>
-    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni"></span>Leave Configuration</a>{% endif %}
-    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni"></span>Leave Requests{% if leave_mgmt_pending_count and leave_mgmt_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ leave_mgmt_pending_count }}</span>{% endif %}</a>{% endif %}
-    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni"></span>Leave Ledger</a>{% endif %}
+    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>Leave Configuration</a>{% endif %}
+    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>Leave Requests{% if leave_mgmt_pending_count and leave_mgmt_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ leave_mgmt_pending_count }}</span>{% endif %}</a>{% endif %}
+    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span>Leave Ledger</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'deductions_view' in perms or 'deductions_add' in perms %}
-    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni"></span>Recovery Management</a>
+    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg></span>Recovery Management</a>
     {% endif %}
 
     {% if is_admin or 'reports_att' in perms or 'reports_salary' in perms or 'reports_payroll' in perms %}
-    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni"></span>Reports Center</a>
-    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" > Yearly Attendance</a>{% endif %}
+    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>Reports Center</a>
+    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" ><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>Yearly Attendance</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'letters_view' in perms %}
-    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni"></span>HR Documents</a>
+    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22 6 12 13 2 6"></polyline></svg></span>HR Documents</a>
     {% endif %}
     {% if is_admin or 'document_log' in perms %}
-    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni"></span>Document Repository</a>
+    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>Document Repository</a>
     {% endif %}
 
     {% if is_admin or 'users' in perms %}
     <div class="nav-sec">{% if is_admin %}Admin{% endif %}</div>
-    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni"></span>User Administration</a>
-    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni"></span>Branding Settings</a>
-    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni"></span>Communication Center</a>
+    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>User Administration</a>
+    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>Branding Settings</a>
+    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22 6 12 13 2 6"></polyline></svg></span>Communication Center</a>
     {% endif %}
 
     {% if role == 'employee' %}
     <div class="nav-sec">My Account</div>
     {% endif %}
     {% if role == 'employee' or 'my_payslip' in perms %}
-    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni"></span>Payslip Portal</a>
+    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></span>Payslip Portal</a>
     {% endif %}
     {% if role == 'employee' or 'my_career' in perms %}
-    <a href="/my/career" class="nav-item {% if '/my/career' in request.path %}active{% endif %}"><span class="ni"></span>My Career Journey</a>
+    <a href="/my/career" class="nav-item {% if '/my/career' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M15.5 13.5 17 22l-5-3-5 3 1.5-8.5"></path></svg></span>My Career Journey</a>
     {% endif %}
     {% if role == 'employee' or 'my_leaves' in perms %}
-    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni"></span>Leave Portal</a>
+    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>Leave Portal</a>
     {% endif %}
     {% if role == 'employee' or 'my_attendance' in perms %}
-    <a href="/my-attendance" class="nav-item {% if '/my-attendance' in request.path %}active{% endif %}"><span class="ni"></span>Attendance Portal</a>
+    <a href="/my-attendance" class="nav-item {% if '/my-attendance' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg></span>Attendance Portal</a>
     {% endif %}
     {% if 'dept_head_approve' in perms %}
-    <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni"></span>Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
+    <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
     {% endif %}
     {% if role == 'admin' or 'outside_att_approve' in perms or 'dept_head_approve' in perms %}
-    <a href="/dept-head/attendance-requests" class="nav-item {% if '/attendance-requests' in request.path %}active{% endif %}"><span class="ni"></span>Outside Attendance Requests{% if outside_att_pending_count and outside_att_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ outside_att_pending_count }}</span>{% endif %}</a>
+    <a href="/dept-head/attendance-requests" class="nav-item {% if '/attendance-requests' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></span>Outside Attendance Requests{% if outside_att_pending_count and outside_att_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ outside_att_pending_count }}</span>{% endif %}</a>
     {% endif %}
     {% if 'users' in perms %}
-    <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni"></span>Department Heads</a>
+    <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>Department Heads</a>
     {% endif %}
 
 </nav>
@@ -342,13 +343,6 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;color:var(--text);}
     <div class="topbar-right">
       <span id="todayDate" class="tbadge tbadge-blue"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> <span id="todayDateText">Loading...</span></span>
       <span id="liveClock" class="tbadge tbadge-blue" style="font-variant-numeric:tabular-nums;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg> <span id="liveClockText">--:--:--</span></span>
-      <span class="tbadge tbadge-green"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block;"></span> LAN Active</span>
-      {% if session.role=='admin' %}<span class="tbadge tbadge-yellow">Admin</span>{% endif %}
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:24px;background:var(--hover);cursor:pointer;margin-left:2px;" onclick="document.querySelector('.sidebar-footer .sfoot-logout')?.scrollIntoView()">
-        <span class="avatar" style="width:28px;height:28px;font-size:11px;">{{ (session.get('name') or session.get('user') or 'A')[0]|upper }}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--text);">{{ session.get('name') or session.get('user') or 'User' }}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
     </div>
   </div>
   <div class="content">{% block content %}{% endblock %}</div>
