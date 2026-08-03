@@ -5,7 +5,7 @@
 <title>Resignation Acceptance — {{ emp.emp_name }}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
+  body { font-family: Verdana, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
   @media print { body{background:white;} .no-print{display:none!important;} .letter-page{box-shadow:none;margin:0;border-radius:0;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} }
   .no-print { background:#1a1a2e; padding:10px 24px; display:flex; gap:12px; align-items:center; }
   .no-print button { padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; }
@@ -48,8 +48,8 @@
 </head>
 <body>
 <div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨️ Print Letter</button>
-  <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <button class="btn-print" onclick="window.print()">Print Letter</button>
+  <button class="btn-close" onclick="window.close()">Close</button>
   <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">Resignation Acceptance — {{ emp.emp_name }}</span>
 </div>
 <div class="letter-page">
@@ -83,15 +83,15 @@
     </div>
 
     <p class="para">Dear <strong>{{ emp.emp_name }}</strong>,</p>
-    <p class="para">This is to formally acknowledge receipt of your resignation letter dated <strong>{{ resignation_date or today }}</strong>, tendering your resignation from the position of <strong>{{ emp.designation or 'Employee' }}</strong> in the <strong>{{ emp.department or 'Production' }}</strong> department at <strong>{{ company }}</strong>.</p>
+    <p class="para">This is to formally acknowledge receipt of your resignation letter dated <strong>{{ resignation_date or today }}</strong>, tendering your resignation from the position of <strong>{{ emp.designation or 'Employee' }}</strong>in the <strong>{{ emp.department or 'Production' }}</strong>department at <strong>{{ company }}</strong>.</p>
     <p class="para">We hereby accept your resignation with effect from <strong>{{ last_working_day or today }}</strong>, subject to completion of all handover formalities and settlement of dues.</p>
 
     <div class="clearance-box">
-      <div class="clearance-title">📋 Exit Formalities</div>
-      <div class="clearance-item">✔ Please complete the handover of all responsibilities before the last working day.</div>
-      <div class="clearance-item">✔ Return all company assets, access cards, and documents.</div>
-      <div class="clearance-item">✔ Full and final settlement will be processed within 30 days of the last working day.</div>
-      <div class="clearance-item">✔ No dues certificate will be issued upon completion of exit formalities.</div>
+      <div class="clearance-title">Exit Formalities</div>
+      <div class="clearance-item">Please complete the handover of all responsibilities before the last working day.</div>
+      <div class="clearance-item">Return all company assets, access cards, and documents.</div>
+      <div class="clearance-item">Full and final settlement will be processed within 30 days of the last working day.</div>
+      <div class="clearance-item">No dues certificate will be issued upon completion of exit formalities.</div>
     </div>
 
     {% if custom_lines %}
@@ -100,7 +100,7 @@
     </div>
     {% endif %}
 
-    <p class="para">We appreciate your contributions during your tenure with <strong>{{ company }}</strong> and wish you all the very best in your future endeavours.</p>
+    <p class="para">We appreciate your contributions during your tenure with <strong>{{ company }}</strong>and wish you all the very best in your future endeavours.</p>
 
     <div class="sig-section">
       <div class="sig-block">

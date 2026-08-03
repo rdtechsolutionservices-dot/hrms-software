@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Indian Calendar{% endblock %}
-{% block page_title %}🗓️ Indian Calendar — Drik Panchang{% endblock %}
+{% block page_title %} Indian Calendar — Drik Panchang{% endblock %}
 {% block content %}
 <div class="toolbar">
   <div class="month-selector">
@@ -31,29 +31,29 @@
   </div>
   <div>
     <div class="mini-card">
-      <div class="mini-title">📅 Today's Panchang</div>
+      <div class="mini-title">Today's Panchang</div>
       <div style="font-size:13px;line-height:2.2;">
-        <div>🌙 <strong>Tithi:</strong> <span id="p_t" style="color:var(--text)">—</span></div>
-        <div>⭐ <strong>Nakshatra:</strong> <span id="p_n" style="color:var(--text)">—</span></div>
-        <div>🔱 <strong>Vaar:</strong> <span id="p_v" style="color:var(--text)">—</span></div>
-        <div>🌅 <strong>Paksha:</strong> <span id="p_p" style="color:var(--text)">—</span></div>
-        <div>🪔 <strong>Yoga:</strong> <span id="p_y" style="color:var(--text)">—</span></div>
+        <div> <strong>Tithi:</strong> <span id="p_t" style="color:var(--text)">—</span></div>
+        <div> <strong>Nakshatra:</strong> <span id="p_n" style="color:var(--text)">—</span></div>
+        <div> <strong>Vaar:</strong> <span id="p_v" style="color:var(--text)">—</span></div>
+        <div> <strong>Paksha:</strong> <span id="p_p" style="color:var(--text)">—</span></div>
+        <div> <strong>Yoga:</strong> <span id="p_y" style="color:var(--text)">—</span></div>
       </div>
     </div>
     <div class="mini-card">
-      <div class="mini-title">🎉 {{ month_name }} Festivals</div>
+      <div class="mini-title"> {{ month_name }} Festivals</div>
       <div id="festivals" style="font-size:13px;">Loading...</div>
     </div>
     <div class="mini-card">
-      <div class="mini-title">🗓️ Holiday Legend</div>
+      <div class="mini-title">Holiday Legend</div>
       <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(0,82,204,.2);border:1px solid #0052cc;border-radius:3px;"></div><span>🏛️ National Holiday</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(245,158,11,.2);border:1px solid #f59e0b;border-radius:3px;"></div><span>🕌 Religious Festival</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(16,185,129,.2);border:1px solid #10b981;border-radius:3px;"></div><span>🏢 Company Event</span></div>
-        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(139,92,246,.2);border:1px solid #8b5cf6;border-radius:3px;"></div><span>⭐ Optional Holiday</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(0,82,204,.2);border:1px solid #0052cc;border-radius:3px;"></div><span>National Holiday</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(245,158,11,.2);border:1px solid #f59e0b;border-radius:3px;"></div><span>Religious Festival</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(16,185,129,.2);border:1px solid #10b981;border-radius:3px;"></div><span>Company Event</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;background:rgba(139,92,246,.2);border:1px solid #8b5cf6;border-radius:3px;"></div><span>Optional Holiday</span></div>
       </div>
-      <div class="mini-title">🏖️ Staff Sundays Off</div>
-      <div style="font-size:13px;">{% for week in cal %}{% for day in week %}{% if day!=0 %}{% set dow=(day+month*3+year)%7 %}{% if dow==0 %}<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;padding:5px 8px;background:rgba(244,63,94,.08);border-radius:7px;"><span>📅</span><span style="color:var(--red);font-weight:600">{{ month_name[:3] }} {{ day }}, {{ year }}</span></div>{% endif %}{% endif %}{% endfor %}{% endfor %}</div>
+      <div class="mini-title">Staff Sundays Off</div>
+      <div style="font-size:13px;">{% for week in cal %}{% for day in week %}{% if day!=0 %}{% set dow=(day+month*3+year)%7 %}{% if dow==0 %}<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;padding:5px 8px;background:rgba(244,63,94,.08);border-radius:7px;"><span></span><span style="color:var(--red);font-weight:600">{{ month_name[:3] }} {{ day }}, {{ year }}</span></div>{% endif %}{% endif %}{% endfor %}{% endfor %}</div>
     </div>
   </div>
 </div>
@@ -65,7 +65,7 @@ const TITHI=["Pratipada","Dwitiya","Tritiya","Chaturthi","Panchami","Shashthi","
 const NAKSH=["Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha","Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishtha","Shatabhisha","Purva Bhadra","Uttara Bhadra","Revati"];
 const YOGA=["Vishkambha","Preeti","Ayushman","Saubhagya","Shobhana","Atiganda","Sukarma","Dhriti","Shula","Ganda","Vriddhi","Dhruva","Vyaghata","Harshana","Vajra","Siddhi","Vyatipata","Variyan","Parigha","Shiva","Siddha","Sadhya","Shubha","Shukla","Brahma","Indra","Vaidhriti"];
 const VARS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const FEST={1:["🪔 Makar Sankranti (Jan 14)","🌸 Lohri (Jan 13)","🎊 Republic Day (Jan 26)"],2:["💛 Vasant Panchami","❤️ Maha Shivratri"],3:["🌈 Holi","🎊 Holika Dahan"],4:["🌺 Ram Navami","🙏 Hanuman Jayanti","🌐 Ambedkar Jayanti (Apr 14)"],5:["🌸 Buddha Purnima"],6:["🌤️ Ganga Dussehra"],7:["🎋 Guru Purnima"],8:["🎊 Raksha Bandhan","🪷 Janmashtami","🦁 Independence Day (Aug 15)"],9:["🐘 Ganesh Chaturthi","💛 Navratri"],10:["🎉 Navratri","⚔️ Dussehra","🙏 Gandhi Jayanti (Oct 2)"],11:["🪔 Dhanteras","✨ Diwali","👫 Bhai Dooj"],12:["🎄 Christmas (Dec 25)","🌟 New Year's Eve (Dec 31)"]};
+const FEST={1:[" Makar Sankranti (Jan 14)"," Lohri (Jan 13)"," Republic Day (Jan 26)"],2:[" Vasant Panchami"," Maha Shivratri"],3:[" Holi"," Holika Dahan"],4:[" Ram Navami"," Hanuman Jayanti"," Ambedkar Jayanti (Apr 14)"],5:[" Buddha Purnima"],6:[" Ganga Dussehra"],7:[" Guru Purnima"],8:[" Raksha Bandhan"," Janmashtami"," Independence Day (Aug 15)"],9:[" Ganesh Chaturthi"," Navratri"],10:[" Navratri"," Dussehra"," Gandhi Jayanti (Oct 2)"],11:[" Dhanteras"," Diwali"," Bhai Dooj"],12:[" Christmas (Dec 25)"," New Year's Eve (Dec 31)"]};
 function getTithi(d){return TITHI[(d+MONTH*3)%15];}
 document.querySelectorAll("[id^='t']").forEach(el=>{const d=parseInt(el.id.substring(1));if(!isNaN(d)&&d>0)el.textContent=getTithi(d).substring(0,9);});
 const td=new Date();

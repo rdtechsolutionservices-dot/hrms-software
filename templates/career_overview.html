@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Career & Compensation Overview{% endblock %}
-{% block page_title %}📊 Career & Compensation Overview{% endblock %}
+{% block page_title %} Career & Compensation Overview{% endblock %}
 {% block content %}
 
 {# ── Pre-compute safe values in Python-side via Jinja ── #}
@@ -13,24 +13,24 @@
 <!-- ─── KPI Cards ─────────────────────────────────────── -->
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;">
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:24px;margin-bottom:4px;">👥</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Active Employees</div>
     <div style="font-weight:800;font-size:22px;color:var(--text);margin-top:4px;" id="kpi_emp">{{ emps|length }}</div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:24px;margin-bottom:4px;">📈</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Total Revisions</div>
     <div style="font-weight:800;font-size:22px;color:#0096dc;margin-top:4px;" id="kpi_rev">{{ increments|length }}</div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:24px;margin-bottom:4px;">💰</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Avg. Current Gross</div>
     <div style="font-weight:800;font-size:22px;color:var(--green);margin-top:4px;" id="kpi_avg">
       ₹{{ "{:,.0f}".format(avg_gross) }}
     </div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:24px;margin-bottom:4px;">🏷️</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Designation Changes</div>
     <div style="font-weight:800;font-size:22px;color:#f59e0b;margin-top:4px;" id="kpi_desig">
       {{ desig_count.v }}
@@ -48,14 +48,14 @@
     <div style="font-size:10px;color:#0096dc;margin-top:4px;">Click for details ›</div>
   </div>
   <div class="mini-card kpi-click" style="text-align:center;cursor:pointer;" onclick="showLeftDetails()">
-    <div style="font-size:24px;margin-bottom:4px;">🚪</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">No. of Left/Resigned (Staff/Associates)</div>
     <div style="font-weight:800;font-size:22px;color:var(--red);margin-top:4px;" id="kpi_left">0</div>
     <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="kpi_left_sub">M: 0 &nbsp;|&nbsp; F: 0</div>
     <div style="font-size:10px;color:#0096dc;margin-top:4px;">Click for details ›</div>
   </div>
   <div class="mini-card kpi-click" style="text-align:center;cursor:pointer;" onclick="showEarnDetails()">
-    <div style="font-size:24px;margin-bottom:4px;">💵</div>
+    <div style="font-size:24px;margin-bottom:4px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Salary + OT Total Earn Value</div>
     <div style="font-weight:800;font-size:22px;color:var(--green);margin-top:4px;" id="kpi_earn">₹0</div>
     <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="kpi_earn_sub">Salary: ₹0 &nbsp;|&nbsp; OT: ₹0</div>
@@ -108,7 +108,7 @@
       <input class="form-control" id="f_srch" placeholder="Name or Code…" oninput="applyFilters()" style="min-width:180px;">
     </div>
     <div style="margin-left:auto;margin-top:18px;">
-      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✖ Clear Filters</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear Filters</button>
     </div>
   </div>
 </div>
@@ -116,25 +116,25 @@
 <!-- ─── Charts Row ────────────────────────────────────── -->
 <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px;">
   <div class="mini-card">
-    <div class="mini-title" style="margin-bottom:12px;">📈 Increment Trend — Count by Month</div>
+    <div class="mini-title" style="margin-bottom:12px;">Increment Trend — Count by Month</div>
     <canvas id="trendChart" style="max-height:200px;"></canvas>
   </div>
   <div class="mini-card">
-    <div class="mini-title" style="margin-bottom:12px;">🏆 Highest Increment</div>
+    <div class="mini-title" style="margin-bottom:12px;">Highest Increment</div>
     <div id="topEarners" style="font-size:12px;"></div>
   </div>
 </div>
 
 <!-- Salary Distribution Chart -->
 <div class="mini-card" style="margin-bottom:18px;">
-  <div class="mini-title" style="margin-bottom:12px;">💰 Salary Distribution — Gross Range (Active Employees)</div>
+  <div class="mini-title" style="margin-bottom:12px;">Salary Distribution — Gross Range (Active Employees)</div>
   <canvas id="distChart" style="max-height:180px;"></canvas>
 </div>
 
 <!-- ─── Revision History Table ────────────────────────── -->
 <div class="table-card">
   <div class="table-header">
-    <span class="table-title">📋 All Career Revisions</span>
+    <span class="table-title">All Career Revisions</span>
     <span style="font-size:12px;color:var(--muted);" id="tbl_count">{{ increments|length }} records</span>
   </div>
   <table id="coTable">
@@ -200,7 +200,7 @@
         </td>
         <td style="font-size:12px;color:var(--muted);">{{ r.reason or '—' }}</td>
         <td>
-          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📋 History</a>
+          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">History</a>
         </td>
       </tr>
       {% endfor %}
@@ -214,8 +214,8 @@
 <!-- ─── Current Compensation Snapshot ────────────────── -->
 <div class="table-card" style="margin-top:18px;">
   <div class="table-header">
-    <span class="table-title">👥 Current Compensation Snapshot</span>
-    <input class="form-control" id="f_snap" placeholder="🔍 Filter…" oninput="filterSnapshot()" style="width:200px;">
+    <span class="table-title">Current Compensation Snapshot</span>
+    <input class="form-control" id="f_snap" placeholder=" Filter…" oninput="filterSnapshot()" style="width:200px;">
   </div>
   <table id="snapTable">
     <thead>
@@ -264,7 +264,7 @@
           {% endif %}
         </td>
         <td>
-          <a href="/salary/history/{{ e.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📋 History</a>
+          <a href="/salary/history/{{ e.emp_code }}" class="btn btn-ghost btn-sm" style="font-size:11px;">History</a>
         </td>
       </tr>
       {% endfor %}
@@ -277,7 +277,7 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <span class="modal-title">🆕 New Joining Details</span>
-      <button class="modal-close" onclick="closeModal('joinModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('joinModal')"></button>
     </div>
     <div class="modal-body">
       <div id="joinModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
@@ -300,8 +300,8 @@
 <div class="modal-overlay" id="leftModal">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <span class="modal-title">🚪 Left / Resigned Details</span>
-      <button class="modal-close" onclick="closeModal('leftModal')">✕</button>
+      <span class="modal-title">Left / Resigned Details</span>
+      <button class="modal-close" onclick="closeModal('leftModal')"></button>
     </div>
     <div class="modal-body">
       <div id="leftModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
@@ -324,8 +324,8 @@
 <div class="modal-overlay" id="earnModal">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <span class="modal-title">💵 Salary + OT Total Earn — Individual Breakup</span>
-      <button class="modal-close" onclick="closeModal('earnModal')">✕</button>
+      <span class="modal-title">Salary + OT Total Earn — Individual Breakup</span>
+      <button class="modal-close" onclick="closeModal('earnModal')"></button>
     </div>
     <div class="modal-body">
       <div id="earnModalSummary" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Shift Roster{% endblock %}
-{% block page_title %}🔄 Shift Roster{% endblock %}
+{% block page_title %} Shift Roster{% endblock %}
 {% block content %}
 
 <div class="toolbar" style="margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-  <button class="btn btn-primary" onclick="openModal('singleModal')">👤 Assign Single Employee</button>
-  <button class="btn btn-success" onclick="openModal('bulkModal')">📥 Bulk Import Excel</button>
-  <a href="/shift-roster/download-template" class="btn btn-ghost">📄 Download Template</a>
-  <button class="btn btn-ghost" style="background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="openModal('reportModal')">📊 Generate Report</button>
+  <button class="btn btn-primary" onclick="openModal('singleModal')">Assign Single Employee</button>
+  <button class="btn btn-success" onclick="openModal('bulkModal')">Bulk Import Excel</button>
+  <a href="/shift-roster/download-template" class="btn btn-ghost">Download Template</a>
+  <button class="btn btn-ghost" style="background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="openModal('reportModal')">Generate Report</button>
 </div>
 
 <!-- Info Card -->
 <div style="background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;">
-  <div style="font-weight:700;color:#0096dc;margin-bottom:6px;">📋 Excel Import Format</div>
+  <div style="font-weight:700;color:#0096dc;margin-bottom:6px;">Excel Import Format</div>
   <div style="font-size:12px;color:var(--muted);font-family:monospace;">
     emp_code &nbsp;|&nbsp; shift_code &nbsp;|&nbsp; date<br>
     1001 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp; GS &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp; 2026-03-01<br>
@@ -22,7 +22,7 @@
 
 <!-- Shift Codes Reference -->
 <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
-  <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:12px;">📌 Available Shift Codes</div>
+  <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:12px;">Available Shift Codes</div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;">
     {% for s in shifts %}
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;">
@@ -36,7 +36,7 @@
 
 <!-- View Assignments -->
 <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;">
-  <div style="font-weight:700;font-size:13px;margin-bottom:12px;">🔍 View Assignments</div>
+  <div style="font-weight:700;font-size:13px;margin-bottom:12px;">View Assignments</div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
     <div>
       <label style="font-size:12px;color:var(--muted);">From Date</label>
@@ -55,7 +55,7 @@
         {% endfor %}
       </select>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="viewAssignments()">🔍 View</button>
+    <button class="btn btn-primary btn-sm" onclick="viewAssignments()">View</button>
   </div>
   <div id="assignTable" style="margin-top:14px;overflow-x:auto;"></div>
 </div>
@@ -63,7 +63,7 @@
 <!-- ── MISSING SHIFT TAB ── -->
 <div style="background:var(--card);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:16px;margin-bottom:20px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-    <div style="font-weight:700;font-size:13px;color:#ef4444;">⚠️ Missing Shift Employees 
+    <div style="font-weight:700;font-size:13px;color:#ef4444;">Missing Shift Employees 
       <span style="background:rgba(239,68,68,.15);color:#ef4444;padding:2px 8px;border-radius:20px;font-size:11px;margin-left:6px;">{{ missing_shift|length }}</span>
     </div>
     <div style="font-size:11px;color:var(--muted);">Employees with no shift assigned or shift expired as of today</div>
@@ -100,7 +100,7 @@
         <td style="padding:7px;text-align:center;">
           <button class="btn btn-primary btn-sm" style="font-size:10px;padding:3px 10px;"
             onclick="quickAssign('{{ e.emp_code }}','{{ e.emp_name }}')">
-            ➕ Assign Shift
+             Assign Shift
           </button>
         </td>
       </tr>
@@ -109,14 +109,14 @@
     </table>
   </div>
   {% else %}
-  <div style="text-align:center;padding:20px;color:#10b981;font-size:13px;">✅ All active employees have current shift assignments!</div>
+  <div style="text-align:center;padding:20px;color:#10b981;font-size:13px;">All active employees have current shift assignments!</div>
   {% endif %}
 </div>
 
 <!-- ── SINGLE ASSIGN MODAL ── -->
 <div class="modal-overlay" id="singleModal">
   <div class="modal" style="width:520px;">
-    <div class="modal-header"><span class="modal-title">👤 Assign Shift — Single Employee</span><button class="modal-close" onclick="closeModal('singleModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Assign Shift — Single Employee</span><button class="modal-close" onclick="closeModal('singleModal')"></button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group col-span-2">
@@ -153,7 +153,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('singleModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="assignSingle()">✅ Assign Shift</button>
+      <button class="btn btn-primary" onclick="assignSingle()">Assign Shift</button>
     </div>
   </div>
 </div>
@@ -161,13 +161,13 @@
 <!-- ── BULK IMPORT MODAL ── -->
 <div class="modal-overlay" id="bulkModal">
   <div class="modal" style="width:480px;">
-    <div class="modal-header"><span class="modal-title">📥 Bulk Import — Excel</span><button class="modal-close" onclick="closeModal('bulkModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Bulk Import — Excel</span><button class="modal-close" onclick="closeModal('bulkModal')"></button></div>
     <div class="modal-body">
       <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--muted);">
         <strong style="color:#10b981;">Required columns:</strong><br>
         <code>emp_code</code> &nbsp;|&nbsp; <code>shift_code</code> &nbsp;|&nbsp; <code>date</code>
         <br><br>
-        <a href="/shift-roster/download-template" style="color:#0096dc;">📄 Download Template</a>
+        <a href="/shift-roster/download-template" style="color:#0096dc;">Download Template</a>
       </div>
       <div class="form-group">
         <label class="form-label">Select Excel File</label>
@@ -177,7 +177,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('bulkModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="importBulk()">📥 Import</button>
+      <button class="btn btn-primary" onclick="importBulk()">Import</button>
     </div>
   </div>
 </div>
@@ -185,7 +185,7 @@
 <!-- ── REPORT MODAL ── -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal" style="width:460px;">
-    <div class="modal-header"><span class="modal-title">📊 Generate Shift Roster Report</span><button class="modal-close" onclick="closeModal('reportModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Generate Shift Roster Report</span><button class="modal-close" onclick="closeModal('reportModal')"></button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Downloads an Excel report of all shift assignments for the selected date range. The file format matches the upload template — you can edit and re-upload it directly.</div>
       <div class="form-grid">
@@ -210,7 +210,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('reportModal')">Cancel</button>
-      <button class="btn btn-success" onclick="downloadReport()">📥 Download Report</button>
+      <button class="btn btn-success" onclick="downloadReport()">Download Report</button>
     </div>
   </div>
 </div>
@@ -247,15 +247,15 @@ async function assignSingle(){
   const div   = document.getElementById("singleResult");
   if(!emp||!shift||!from||!to){showToast("All fields required!","error");return;}
   if(from > to){showToast("From date must be before To date!","error");return;}
-  div.innerHTML=`<div class="alert alert-info">⏳ Assigning shift...</div>`;
+  div.innerHTML=`<div class="alert alert-info">Assigning shift...</div>`;
   const r = await api("/shift-roster/assign-single","POST",{
     emp_code:emp, shift_code:shift, from_date:from, to_date:to
   });
   if(r.success){
-    div.innerHTML=`<div class="alert alert-success">✅ <strong>${r.shift}</strong> assigned for <strong>${r.days}</strong> days!</div>`;
+    div.innerHTML=`<div class="alert alert-success"> <strong>${r.shift}</strong>assigned for <strong>${r.days}</strong>days!</div>`;
     setTimeout(()=>closeModal("singleModal"),2000);
   } else {
-    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
   }
 }
 
@@ -263,18 +263,18 @@ async function importBulk(){
   const file = document.getElementById("bulkFile").files[0];
   const div  = document.getElementById("bulkResult");
   if(!file){showToast("Please select a file!","error");return;}
-  div.innerHTML=`<div class="alert alert-info">⏳ Importing...</div>`;
+  div.innerHTML=`<div class="alert alert-info">Importing...</div>`;
   const form = new FormData();
   form.append("file", file);
   const r = await (await fetch("/shift-roster/assign-bulk",{method:"POST",body:form})).json();
   if(r.success){
     div.innerHTML=`<div class="alert alert-success">
-      ✅ <strong>${r.assigned}</strong> assignments imported!
-      ${r.errors&&r.errors.length?`<br><small style="color:#f59e0b;">⚠️ ${r.errors.length} errors: ${r.errors.slice(0,3).join(", ")}</small>`:""}
+       <strong>${r.assigned}</strong>assignments imported!
+      ${r.errors&&r.errors.length?`<br><small style="color:#f59e0b;"> ${r.errors.length} errors: ${r.errors.slice(0,3).join(", ")}</small>`:""}
     </div>`;
     setTimeout(()=>closeModal("bulkModal"),2500);
   } else {
-    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
   }
 }
 
@@ -283,7 +283,7 @@ async function viewAssignments(){
   const to   = document.getElementById("view_to").value;
   const dept = document.getElementById("view_dept").value;
   const div  = document.getElementById("assignTable");
-  div.innerHTML=`<div class="alert alert-info">⏳ Loading...</div>`;
+  div.innerHTML=`<div class="alert alert-info">Loading...</div>`;
   const r = await api(`/shift-roster/get-assignments?from_date=${from}&to_date=${to}&dept=${encodeURIComponent(dept)}`);
   if(!r||!r.length){
     div.innerHTML=`<div style="color:var(--muted);text-align:center;padding:20px;">No assignments found for selected period.</div>`;

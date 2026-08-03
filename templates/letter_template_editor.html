@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if tmpl else 'New' }} Letter Template{% endblock %}
-{% block page_title %}🧩 {{ 'Edit' if tmpl else 'New' }} Letter Template{% endblock %}
+{% block page_title %} {{ 'Edit' if tmpl else 'New' }} Letter Template{% endblock %}
 {% block content %}
 
 <div class="mini-card" style="margin-bottom:16px;">
@@ -34,18 +34,18 @@
     </div>
     <div class="form-group" style="margin-bottom:0;">
       <label class="form-check" style="margin-top:28px;">
-        <input type="checkbox" id="t_header" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_header) }}> Show Company Header
+        <input type="checkbox" id="t_header" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_header) }}>Show Company Header
       </label>
     </div>
     <div class="form-group" style="margin-bottom:0;">
       <label class="form-check" style="margin-top:28px;">
-        <input type="checkbox" id="t_footer" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_footer) }}> Show Company Footer
+        <input type="checkbox" id="t_footer" onchange="schedulePaginate(true)" {{ 'checked' if not tmpl or (tmpl and tmpl.show_footer) }}>Show Company Footer
       </label>
     </div>
   </div>
 
   <div class="form-group" style="margin-bottom:10px;">
-    <label class="form-label">📐 Body Margins (mm) <span style="font-size:10px;color:var(--muted);">— distance from the page edge to where body text starts</span></label>
+    <label class="form-label">Body Margins (mm) <span style="font-size:10px;color:var(--muted);">— distance from the page edge to where body text starts</span></label>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <div><label style="font-size:11px;color:var(--muted);">Top</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_top" style="width:80px;" value="{{ tmpl.margin_top if tmpl else 15 }}" oninput="schedulePaginate(true)"></div>
       <div><label style="font-size:11px;color:var(--muted);">Right</label><input type="number" min="0" max="60" step="0.5" class="form-control" id="m_right" style="width:80px;" value="{{ tmpl.margin_right if tmpl else 18 }}" oninput="schedulePaginate(true)"></div>
@@ -55,7 +55,7 @@
   </div>
 
   <div class="form-group" style="margin-bottom:0;">
-    <label class="form-label">📏 Header / Footer Distance (mm) <span style="font-size:10px;color:var(--muted);">— like Word's "distance from edge"; can be smaller than the body margin above, leaving a gap before the text starts</span></label>
+    <label class="form-label">Header / Footer Distance (mm) <span style="font-size:10px;color:var(--muted);">— like Word's "distance from edge"; can be smaller than the body margin above, leaving a gap before the text starts</span></label>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
       <div><label style="font-size:11px;color:var(--muted);">Header from top</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_header" style="width:100px;" value="{{ tmpl.header_margin if tmpl else 10 }}" oninput="schedulePaginate(true)"></div>
       <div><label style="font-size:11px;color:var(--muted);">Footer from bottom</label><input type="number" min="0" max="80" step="0.5" class="form-control" id="m_footer" style="width:100px;" value="{{ tmpl.footer_margin if tmpl else 10 }}" oninput="schedulePaginate(true)"></div>
@@ -75,7 +75,7 @@
     </div>
     {% else %}
     <div style="font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;">
-      No signatures added yet. Go to the Letter Generator page → 🖊️ Named Signatures to add one (e.g. "Director", "HR Department").
+      No signatures added yet. Go to the Letter Generator page →  Named Signatures to add one (e.g. "Director", "HR Department").
     </div>
     {% endif %}
     <div style="font-size:11px;color:var(--muted);margin-top:4px;"><a href="/letters#sig-manager" target="_blank" style="color:#0096dc;">+ Manage Signatures</a></div>
@@ -84,7 +84,7 @@
 
 <div class="mini-card" style="margin-bottom:16px;">
   <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
-    ✍️ Write the letter exactly the way it should look. Use <b>Insert Field</b> to drop in a fillable value (like Employee Name
+     Write the letter exactly the way it should look. Use <b>Insert Field</b>to drop in a fillable value (like Employee Name
     or Department). For anything else that changes each time (a date, an incident detail), choose <b>+ Custom Field…</b>.
     The header and footer stay fixed at the top/bottom of every page — once text runs past a page, a new page starts
     automatically, just like Word.
@@ -93,7 +93,7 @@
   <!-- Toolbar (Word-style) -->
   <div class="wtoolbar">
     <select class="tb-btn" id="fontFamily" style="cursor:pointer;min-width:120px;" onchange="fmt('fontName', this.value)" title="Font">
-      <option value="Calibri">Calibri</option>
+      <option value="Verdana">Verdana</option>
       <option value="'Times New Roman'">Times New Roman</option>
       <option value="Arial">Arial</option>
       <option value="Georgia">Georgia</option>
@@ -114,12 +114,12 @@
     <button type="button" class="tb-btn" onclick="fmt('superscript')" title="Superscript">X²</button>
     <span class="tb-sep"></span>
     <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Text color">A<input type="color" id="txtColor" value="#000000" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('foreColor', this.value)"></label>
-    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color">🖍<input type="color" id="hlColor" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color"><input type="color" id="hlColor" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
     <span class="tb-sep"></span>
     <button type="button" class="tb-btn" onclick="fmt('justifyLeft')" title="Align left">⬅</button>
     <button type="button" class="tb-btn" onclick="fmt('justifyCenter')" title="Align center">↔</button>
-    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right">➡</button>
-    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify">☰</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right"></button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify"></button>
     <span class="tb-sep"></span>
     <button type="button" class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullets">• List</button>
     <button type="button" class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbering">1. List</button>
@@ -134,10 +134,10 @@
       <option value="h3">Heading 2</option>
       <option value="h4">Heading 3</option>
     </select>
-    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">✖ Clear</button>
+    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">Clear</button>
     <span class="tb-sep"></span>
     <select id="field_picker" class="tb-btn" style="cursor:pointer;min-width:160px;" onchange="insertPickedField(this.value); this.selectedIndex=0;">
-      <option value="">➕ Insert Field…</option>
+      <option value="">Insert Field…</option>
       <optgroup label="Employee Details">
         <option value="emp_name">Employee Name</option>
         <option value="emp_code">Employee Code</option>
@@ -196,7 +196,7 @@
       <div>
         <div id="hRuler" style="height:20px;position:relative;background:#d8dce6;border:1px solid #b8bdc9;border-bottom:none;cursor:default;"></div>
         <div id="pageStack" style="position:relative;">
-          <div id="editor" contenteditable="true" style="background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);color:#111;font-family:Calibri,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ (tmpl.body_html if tmpl else '<p>Dear {{emp_name}},</p><p>&nbsp;</p><p>Type your letter content here…</p>') | safe }}</div>
+          <div id="editor" contenteditable="true" style="background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);color:#111;font-family:Verdana,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ (tmpl.body_html if tmpl else '<p>Dear {{emp_name}},</p><p>&nbsp;</p><p>Type your letter content here…</p>') | safe }}</div>
         </div>
       </div>
     </div>
@@ -205,8 +205,8 @@
 </div>
 
 <div style="display:flex;gap:10px;">
-  <button class="btn btn-success" onclick="saveTemplate()">💾 Save Template</button>
-  <a href="/letters/templates" class="btn btn-ghost">✖ Cancel</a>
+  <button class="btn btn-success" onclick="saveTemplate()">Save Template</button>
+  <a href="/letters/templates" class="btn btn-ghost">Cancel</a>
 </div>
 
 {% endblock %}
@@ -341,7 +341,7 @@ function buildRuler(axis){
     } else {
       handle.style.top = (pos-3) + "px"; handle.style.left = "12px"; handle.style.width = "8px"; handle.style.height = "6px";
     }
-    handle.addEventListener("mousedown", e=> startRulerDrag(e, axis, mk.id, totalMm));
+    handle.addEventListener("mousedown", e=>startRulerDrag(e, axis, mk.id, totalMm));
     el.appendChild(handle);
   });
 }

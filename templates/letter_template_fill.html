@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Generate Letter — {{ tmpl.template_name }}{% endblock %}
-{% block page_title %}📄 Generate — {{ tmpl.template_name }}{% endblock %}
+{% block page_title %} Generate — {{ tmpl.template_name }}{% endblock %}
 {% block content %}
 
 <div style="display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:18px;align-items:start;">
@@ -26,13 +26,13 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">📅 Letter Date <span style="font-size:10px;color:var(--muted);">(this is the date that will print on the letter)</span></label>
+        <label class="form-label">Letter Date <span style="font-size:10px;color:var(--muted);">(this is the date that will print on the letter)</span></label>
         <input type="date" class="form-control" name="letter_date" value="{{ today }}" oninput="schedulePreview()">
       </div>
 
       {% if custom_tokens %}
       <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:14px;">
-        <div style="font-weight:700;font-size:13px;margin-bottom:10px;">✏️ Fields for this letter</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Fields for this letter</div>
         {% for tok in custom_tokens %}
         {% set ftype = field_types.get(tok, 'text') %}
         <div class="form-group">
@@ -49,7 +49,7 @@
       </div>
       {% endif %}
 
-      <button type="submit" class="btn btn-success" style="width:100%;margin-top:6px;">📤 Submit for Approval</button>
+      <button type="submit" class="btn btn-success" style="width:100%;margin-top:6px;">Submit for Approval</button>
     </form>
     <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">
       A document number is assigned and printing becomes available only after this letter is approved.
@@ -59,7 +59,7 @@
 
   <div class="mini-card" style="padding:0;overflow:hidden;position:sticky;top:14px;">
     <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-weight:700;font-size:13px;">👁️ Live Preview</span>
+      <span style="font-weight:700;font-size:13px;">Live Preview</span>
       <span id="previewStatus" style="font-size:11px;color:var(--muted);">updating…</span>
     </div>
     <iframe id="previewFrame" style="width:100%;height:80vh;border:none;background:#e8eaf0;"></iframe>

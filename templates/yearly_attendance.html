@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Yearly Attendance Report{% endblock %}
-{% block page_title %}📅 Employee-wise Yearly Attendance Report{% endblock %}
+{% block page_title %} Employee-wise Yearly Attendance Report{% endblock %}
 {% block content %}
 <style>
 .ya-table { width:100%; border-collapse:collapse; font-size:10px; }
@@ -35,8 +35,8 @@
     <option value="">All Schemes</option>
     {% for s in schemes %}<option {% if s==selected_scheme %}selected{% endif %}>{{ s }}</option>{% endfor %}
   </select>
-  <input class="form-control" id="srch" placeholder="🔍 Search name/code..." oninput="filterRows()" style="width:180px;">
-  <a id="exportBtn" href="/export/yearly-attendance?year={{ year }}&dept={{ selected_dept }}&cat={{ selected_cat }}&scheme={{ selected_scheme }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export Excel</a>
+  <input class="form-control" id="srch" placeholder=" Search name/code..." oninput="filterRows()" style="width:180px;">
+  <a id="exportBtn" href="/export/yearly-attendance?year={{ year }}&dept={{ selected_dept }}&cat={{ selected_cat }}&scheme={{ selected_scheme }}" class="btn btn-ghost btn-sm" style="color:#10b981;">Export Excel</a>
   <div style="margin-left:auto;font-size:11px;color:var(--muted);">{{ emp_data|length }} employees &nbsp;|&nbsp; Year: {{ year }}</div>
 </div>
 
@@ -92,7 +92,7 @@
 </div>
 {% else %}
 <div class="mini-card" style="text-align:center;padding:60px;color:var(--muted);">
-  <div style="font-size:40px;">📅</div>
+  <div style="font-size:40px;"></div>
   <div style="margin-top:12px;">No attendance data found for {{ year }}</div>
 </div>
 {% endif %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}My Leaves{% endblock %}
-{% block page_title %}🌴 My Leave Management{% endblock %}
+{% block page_title %} My Leave Management{% endblock %}
 {% block content %}
 
 {% if emp %}
@@ -18,7 +18,7 @@
 <!-- Leave Balance KPIs -->
 {% if balance %}
 <div style="margin-bottom:20px;">
-  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">📊 Leave Balance — {{ year }}</div>
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Leave Balance — {{ year }}</div>
   {% set active_codes = active_leave_types|map(attribute='code')|list if (active_leave_types is defined and active_leave_types) else ['CL','EL','SL'] %}
   {% set ns = namespace(total_allotted=0, total_used=0) %}
   {% if 'CL' in active_codes %}{% set ns.total_allotted = ns.total_allotted + (balance.cl_allotted or 0) %}{% set ns.total_used = ns.total_used + (balance.cl_used or 0) %}{% endif %}
@@ -62,20 +62,20 @@
   </div>
 </div>
 {% else %}
-<div class="alert alert-info" style="margin-bottom:16px;">📋 Leave balance not set yet. Please contact HR.</div>
+<div class="alert alert-info" style="margin-bottom:16px;">Leave balance not set yet. Please contact HR.</div>
 {% endif %}
 
 <!-- Apply Leave Button -->
 <div class="toolbar" style="margin-bottom:12px;">
-  <div style="font-weight:700;font-size:14px;">📋 Apply for Leave</div>
-  <button class="btn btn-primary" onclick="openModal('applyModal')" style="margin-left:auto;">➕ Apply Leave</button>
+  <div style="font-weight:700;font-size:14px;">Apply for Leave</div>
+  <button class="btn btn-primary" onclick="openModal('applyModal')" style="margin-left:auto;">Apply Leave</button>
 </div>
 
 <!-- Pending Requests -->
 {% set pending_list = requests|selectattr('status','equalto','Pending')|list %}
 {% if pending_list %}
 <div class="table-card" style="margin-bottom:18px;">
-  <div style="font-weight:700;font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);">⏳ Your Pending Requests</div>
+  <div style="font-weight:700;font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);">Your Pending Requests</div>
   <div style="padding:10px 14px;">
     {% for r in pending_list %}
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
@@ -86,11 +86,11 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         {% if r.dept_head_status == 'Pending' %}
-          <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Awaiting Dept Head</span>
+          <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Awaiting Dept Head</span>
         {% elif r.dept_head_status == 'Approved' %}
-          <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Dept Head OK — Awaiting Director</span>
+          <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Dept Head OK — Awaiting Director</span>
         {% elif r.dept_head_status == 'Rejected' %}
-          <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected by Dept Head</span>
+          <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Rejected by Dept Head</span>
         {% endif %}
         <button onclick="cancelLeave({{ r.id }})" style="background:none;border:1px solid rgba(244,63,94,.4);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Cancel</button>
       </div>
@@ -104,7 +104,7 @@
 {% set history_list = requests|rejectattr('status','equalto','Pending')|list %}
 {% if history_list %}
 <div class="table-card" style="margin-bottom:18px;">
-  <div style="font-weight:700;font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);">📋 Leave History</div>
+  <div style="font-weight:700;font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);">Leave History</div>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
       <thead>
@@ -135,11 +135,11 @@
           </td>
           <td style="padding:7px;text-align:center;">
             {% if r.status == 'Approved' %}
-            <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
+            <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Approved</span>
             {% elif r.status == 'Rejected' %}
-            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
+            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Rejected</span>
             {% elif r.status == 'Cancelled' %}
-            <span style="background:rgba(100,100,100,.15);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🚫 Cancelled</span>
+            <span style="background:rgba(100,100,100,.15);color:var(--muted);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Cancelled</span>
             {% else %}
             <span style="color:var(--muted);font-size:10px;">{{ r.status }}</span>
             {% endif %}
@@ -157,12 +157,12 @@
 <div class="modal-overlay" id="applyModal">
   <div class="modal" style="width:480px;">
     <div class="modal-header">
-      <span class="modal-title">➕ Apply for Leave</span>
-      <button class="modal-close" onclick="closeModal('applyModal')">✕</button>
+      <span class="modal-title">Apply for Leave</span>
+      <button class="modal-close" onclick="closeModal('applyModal')"></button>
     </div>
     <div class="modal-body">
       <div class="alert alert-info" style="font-size:11px;margin-bottom:14px;">
-        ℹ️ Your request will go to your Department Head for approval, then to Director for final approval.
+        ℹ Your request will go to your Department Head for approval, then to Director for final approval.
       </div>
       <div class="form-group" style="margin-bottom:14px;">
         <label class="form-label">Leave Type *</label>
@@ -173,13 +173,13 @@
           {% endfor %}
         </select>
         <div id="cl_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(0,150,220,.08);border-radius:6px;color:#0096dc;">
-          📌 Casual Leave: Min 0.5 day, Max 2 days. For longer periods, please apply for Earned Leave (EL).
+           Casual Leave: Min 0.5 day, Max 2 days. For longer periods, please apply for Earned Leave (EL).
         </div>
         <div id="lwp_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(244,63,94,.08);border-radius:6px;color:#f43f5e;">
-          ⚠️ Leave Without Pay: This leave is unpaid. Salary will be deducted for these days.
+           Leave Without Pay: This leave is unpaid. Salary will be deducted for these days.
         </div>
         <div id="el_hint" style="display:none;font-size:11px;margin-top:5px;padding:7px 10px;background:rgba(16,185,129,.08);border-radius:6px;color:#10b981;">
-          📊 Earned Leave available: <strong id="el_bal_disp">{{ balance_el|round(1) if balance_el is defined else 0 }}</strong> day(s)
+           Earned Leave available: <strong id="el_bal_disp">{{ balance_el|round(1) if balance_el is defined else 0 }}</strong>day(s)
         </div>
       </div>
       <div class="form-grid">
@@ -212,7 +212,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="applyLeave()">📋 Submit Request</button>
+      <button class="btn btn-primary" onclick="applyLeave()">Submit Request</button>
     </div>
   </div>
 </div>
@@ -270,7 +270,7 @@ function calcDays(){
   if(!from){if(dg)dg.style.display="none";return;}
   if(half){
     if(dg)dg.style.display="block";
-    if(isNonWorking(from)){dd.textContent="⚠️ Non-working day";dd.style.color="#ef4444";dn.textContent=isHoliday(from)?"This date is a holiday":`This date is your ${WEEKLY_OFF}`;}
+    if(isNonWorking(from)){dd.textContent=" Non-working day";dd.style.color="#ef4444";dn.textContent=isHoliday(from)?"This date is a holiday":`This date is your ${WEEKLY_OFF}`;}
     else{dd.textContent="0.5 day";dd.style.color="#0096dc";dn.textContent="Half day leave";}
   } else if(to&&from<=to){
     const wdays=countWorkingDays(from,to);
@@ -286,16 +286,16 @@ async function applyLeave(){
   const to=half?from:document.getElementById("ap_to").value;
   const reason=document.getElementById("ap_reason").value.trim();
   const div=document.getElementById("apRes");
-  if(!lt){div.innerHTML='<div class="alert alert-danger">❌ Please select a Leave Type.</div>';return;}
-  if(!from){div.innerHTML='<div class="alert alert-danger">❌ Please select From Date.</div>';return;}
-  if(!half&&!to){div.innerHTML='<div class="alert alert-danger">❌ Please select To Date.</div>';return;}
-  if(!half&&from>to){div.innerHTML='<div class="alert alert-danger">❌ To date must be after From date.</div>';return;}
-  if(!reason){div.innerHTML='<div class="alert alert-danger">❌ Please enter a reason.</div>';return;}
-  if(isNonWorking(from)){const r2=isHoliday(from)?"a holiday":`your ${WEEKLY_OFF} (weekly off)`;div.innerHTML=`<div class="alert alert-danger">❌ ${from} is ${r2}. Please select a working day.</div>`;return;}
-  div.innerHTML='<div class="alert alert-info">⏳ Submitting...</div>';
+  if(!lt){div.innerHTML='<div class="alert alert-danger">Please select a Leave Type.</div>';return;}
+  if(!from){div.innerHTML='<div class="alert alert-danger">Please select From Date.</div>';return;}
+  if(!half&&!to){div.innerHTML='<div class="alert alert-danger">Please select To Date.</div>';return;}
+  if(!half&&from>to){div.innerHTML='<div class="alert alert-danger">To date must be after From date.</div>';return;}
+  if(!reason){div.innerHTML='<div class="alert alert-danger">Please enter a reason.</div>';return;}
+  if(isNonWorking(from)){const r2=isHoliday(from)?"a holiday":`your ${WEEKLY_OFF} (weekly off)`;div.innerHTML=`<div class="alert alert-danger"> ${from} is ${r2}. Please select a working day.</div>`;return;}
+  div.innerHTML='<div class="alert alert-info">Submitting...</div>';
   const r=await api("/leaves/apply","POST",{from_date:from,to_date:to,is_half_day:half,reason:reason,leave_type:lt});
-  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ ${r.leave_type} leave request submitted for ${r.days} day(s).</div>`;setTimeout(()=>{closeModal("applyModal");location.reload();},2400);}
-  else{div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;}
+  if(r.success){div.innerHTML=`<div class="alert alert-success"> ${r.leave_type} leave request submitted for ${r.days} day(s).</div>`;setTimeout(()=>{closeModal("applyModal");location.reload();},2400);}
+  else{div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;}
 }
 async function cancelLeave(lid){
   if(!confirm("Cancel this leave request?"))return;

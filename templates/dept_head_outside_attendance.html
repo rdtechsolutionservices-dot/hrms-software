@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Outside Attendance Requests{% endblock %}
-{% block page_title %}📍 Outside Attendance — Approval{% endblock %}
+{% block page_title %} Outside Attendance — Approval{% endblock %}
 {% block content %}
 
 {% if my_depts %}
@@ -11,7 +11,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-danger">⚠️ No departments assigned to you as Department Head. Contact Admin.</div>
+<div class="alert alert-danger">No departments assigned to you as Department Head. Contact Admin.</div>
 {% endif %}
 
 <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
@@ -22,11 +22,11 @@
 <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
   <a href="?tab=pending" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
     {% if tab=='pending' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
-    ⏳ Pending ({{ pending|length }})
+     Pending ({{ pending|length }})
   </a>
   <a href="?tab=history" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
     {% if tab=='history' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
-    📋 History
+     History
   </a>
 </div>
 
@@ -40,33 +40,33 @@
             <span style="color:var(--muted);font-weight:400;font-size:11px;">({{ r.emp_code }} · {{ r.department }} · {{ r.designation or '' }})</span>
           </div>
           <div style="font-size:12px;margin-top:5px;">
-            {% if r.request_type == 'IN' %}🟢{% else %}🔴{% endif %} <strong>{{ r.request_type }}</strong> at <strong>{{ r.request_time }}</strong>
+            {% if r.request_type == 'IN' %}{% else %}{% endif %} <strong>{{ r.request_type }}</strong>at <strong>{{ r.request_time }}</strong>
             &nbsp;·&nbsp; {{ r.request_date }}
           </div>
-          {% if r.reason %}<div style="font-size:11px;color:var(--muted);margin-top:4px;">📝 {{ r.reason }}</div>{% endif %}
+          {% if r.reason %}<div style="font-size:11px;color:var(--muted);margin-top:4px;"> {{ r.reason }}</div>{% endif %}
           {% if r.latitude and r.longitude %}
           <div style="font-size:11px;margin-top:4px;">
-            📍 <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">
+             <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">
               View location on map</a>
             {% if r.accuracy_m %}<span style="color:var(--muted);"> (±{{ r.accuracy_m|round(0) }}m accuracy)</span>{% endif %}
           </div>
           {% else %}
-          <div style="font-size:11px;color:#ef4444;margin-top:4px;">⚠️ No location captured with this request</div>
+          <div style="font-size:11px;color:#ef4444;margin-top:4px;">No location captured with this request</div>
           {% endif %}
           <div style="font-size:10px;color:var(--muted);margin-top:2px;">Requested: {{ r.created_on[:16] if r.created_on else '—' }}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
-            onclick="oaAction({{ r.id }},'approve')">✅ Approve</button>
+            onclick="oaAction({{ r.id }},'approve')">Approve</button>
           <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
-            onclick="oaAction({{ r.id }},'reject')">❌ Reject</button>
+            onclick="oaAction({{ r.id }},'reject')">Reject</button>
         </div>
       </div>
     </div>
     {% endfor %}
   {% else %}
     <div style="text-align:center;padding:50px;color:var(--muted);">
-      <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+      <div style="font-size:40px;margin-bottom:12px;"></div>
       <div style="font-weight:700;">No pending outside attendance requests</div>
       <div style="font-size:12px;margin-top:4px;">All caught up!</div>
     </div>
@@ -76,7 +76,7 @@
   <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
     <input type="hidden" name="tab" value="history">
     <div style="position:relative;">
-      <input class="form-control" type="text" id="empSearchInput" list="empSuggestions" placeholder="🔍 Employee name..."
+      <input class="form-control" type="text" id="empSearchInput" list="empSuggestions" placeholder=" Employee name..."
         value="{% for e in employees_list %}{% if e.emp_code==f_emp %}{{ e.emp_name }}{% endif %}{% endfor %}"
         oninput="resolveEmpCode()" style="width:190px;">
       <input type="hidden" name="emp" id="empCodeInput" value="{{ f_emp }}">
@@ -110,7 +110,7 @@
     </select>
     <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
     {% if f_emp or f_dept or f_month or f_year or f_status or f_type %}
-    <a href="?tab=history" class="btn btn-ghost btn-sm" style="color:#ef4444;">✕ Clear</a>
+    <a href="?tab=history" class="btn btn-ghost btn-sm" style="color:#ef4444;">Clear</a>
     {% endif %}
   </form>
 
@@ -139,13 +139,13 @@
           <td style="padding:8px;max-width:200px;">{{ r.reason or '—' }}</td>
           <td style="text-align:center;padding:8px;">
             {% if r.latitude and r.longitude %}
-            <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">📍 View</a>
+            <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">View</a>
             {% else %}
             <span style="color:var(--muted);">—</span>
             {% endif %}
           </td>
           <td style="text-align:center;padding:8px;">
-            {% if r.status == 'Approved' %}<span style="color:#10b981;">✅ Approved</span>{% else %}<span style="color:#ef4444;">❌ Rejected</span>{% endif %}
+            {% if r.status == 'Approved' %}<span style="color:#10b981;">Approved</span>{% else %}<span style="color:#ef4444;">Rejected</span>{% endif %}
             {% if r.review_remarks %}<div style="font-size:10px;color:var(--muted);">{{ r.review_remarks }}</div>{% endif %}
           </td>
           <td style="padding:8px 12px;">{{ r.reviewed_by }} <span style="color:var(--muted);">({{ r.reviewed_on }})</span></td>
@@ -186,7 +186,7 @@ function oaAction(id, action){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({action: action, remarks: remarks})
   })
-  .then(r => r.json())
+  .then(r =>r.json())
   .then(d => {
     if (d.success){
       const el = document.getElementById(`req_${id}`);
@@ -195,7 +195,7 @@ function oaAction(id, action){
       alert(d.error || 'Action failed');
     }
   })
-  .catch(() => alert('Action failed'));
+  .catch(() =>alert('Action failed'));
 }
 </script>
 {% endblock %}

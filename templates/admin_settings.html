@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Admin Settings{% endblock %}
-{% block page_title %}⚙️ Admin Settings{% endblock %}
+{% block page_title %} Admin Settings{% endblock %}
 {% block content %}
 
 {% if msg %}
 <div class="alert alert-{{ 'success' if 'updated' in msg else 'danger' }}" style="margin-bottom:14px;">
-  {{ '✅' if 'updated' in msg else '⚠️' }} {{ msg }}
+  {{ '' if 'updated' in msg else '' }} {{ msg }}
 </div>
 {% endif %}
 
 <!-- Software / Company Name -->
 <div class="table-card" style="padding:20px;margin-bottom:16px;">
-  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🏷️ Software / Company Name</div>
+  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">Software / Company Name</div>
   <form method="POST">
     <div class="form-group">
       <label class="form-label">Display Name</label>
       <input type="text" name="company_name" class="form-control" value="{{ settings.company_name or 'RD HRMS & Payroll Solution' }}" placeholder="e.g. RD HRMS & Payroll Solution" maxlength="80" required>
       <div style="font-size:10px;color:var(--muted);margin-top:4px;">This name appears on the Login page, sidebar, reports, payslips, letters, and emails throughout the system.</div>
     </div>
-    <button type="submit" class="btn btn-primary btn-sm">💾 Save Name</button>
+    <button type="submit" class="btn btn-primary btn-sm">Save Name</button>
   </form>
 </div>
 
 <!-- Company Logo -->
 <div class="table-card" style="padding:20px;margin-bottom:16px;">
-  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🖼️ Company Logo</div>
+  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">Company Logo</div>
   
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
     <!-- Current Logo Preview -->
@@ -38,7 +38,7 @@
         </div>
         {% else %}
         <div style="color:var(--muted);font-size:13px;" id="noLogoMsg">
-          <div style="font-size:32px;margin-bottom:8px;">🏭</div>
+          <div style="font-size:32px;margin-bottom:8px;"></div>
           No logo uploaded<br>
           <span style="font-size:11px;">Sidebar shows company name as text</span>
         </div>
@@ -61,9 +61,9 @@
           <img id="previewImg" style="max-height:80px;max-width:200px;object-fit:contain;border:1px solid var(--border);border-radius:8px;padding:8px;">
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button type="submit" class="btn btn-primary btn-sm">📤 Upload Logo</button>
+          <button type="submit" class="btn btn-primary btn-sm">Upload Logo</button>
           {% if settings.logo_filename %}
-          <button type="button" class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteLogo()">🗑️ Remove Logo</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteLogo()">Remove Logo</button>
           {% endif %}
         </div>
       </form>
@@ -71,13 +71,13 @@
   </div>
   
   <div style="margin-top:16px;padding:12px;background:rgba(0,150,220,.08);border-radius:8px;font-size:12px;color:var(--muted);">
-    💡 The logo will appear in the sidebar (top-left) and on the login page. Refresh the page after uploading.
+     The logo will appear in the sidebar (top-left) and on the login page. Refresh the page after uploading.
   </div>
 </div>
 
 <!-- Login Page Branding -->
 <div class="table-card" style="padding:20px;margin-bottom:16px;">
-  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">🎨 Login Page Branding</div>
+  <div style="font-weight:800;font-size:14px;margin-bottom:14px;color:#0096dc;">Login Page Branding</div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
     <!-- Current Background Preview -->
@@ -90,7 +90,7 @@
         <img src="/admin/login-bg?t={{ settings.updated_on }}" style="max-height:200px;max-width:100%;object-fit:contain;border-radius:8px;" alt="Login Background">
         {% else %}
         <div style="color:var(--muted);font-size:13px;">
-          <div style="font-size:32px;margin-bottom:8px;">🖼️</div>
+          <div style="font-size:32px;margin-bottom:8px;"></div>
           No background uploaded<br>
           <span style="font-size:11px;">Login page shows a default gradient</span>
         </div>
@@ -119,9 +119,9 @@
           <input type="text" name="login_subtext" class="form-control" value="{{ settings.login_subtext or '' }}" placeholder="Short supporting line" maxlength="140">
         </div>
         <div style="display:flex;gap:8px;margin-top:12px;">
-          <button type="submit" class="btn btn-primary btn-sm">📤 Save Branding</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Branding</button>
           {% if settings.login_bg_filename %}
-          <button type="button" class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteLoginBg()">🗑️ Remove Background</button>
+          <button type="button" class="btn btn-ghost btn-sm" style="color:#ef4444;" onclick="deleteLoginBg()">Remove Background</button>
           {% endif %}
         </div>
       </form>
@@ -129,7 +129,7 @@
   </div>
 
   <div style="margin-top:16px;padding:12px;background:rgba(0,150,220,.08);border-radius:8px;font-size:12px;color:var(--muted);">
-    💡 This image/video shows on the left side of the login page, with the headline overlaid on top. If nothing is uploaded, a default gradient background is used.
+     This image/video shows on the left side of the login page, with the headline overlaid on top. If nothing is uploaded, a default gradient background is used.
   </div>
 </div>
 

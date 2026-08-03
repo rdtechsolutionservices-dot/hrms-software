@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Payroll Settings{% endblock %}
-{% block page_title %}⚙️ Payroll Settings{% endblock %}
+{% block page_title %} Payroll Settings{% endblock %}
 {% block content %}
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
@@ -8,7 +8,7 @@
 <!-- LEFT: Statutory Settings -->
 <div>
   <div class="table-card" style="padding:20px;">
-    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">⚖️ Statutory Settings</div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">Statutory Settings</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
       <div class="form-group">
@@ -38,12 +38,12 @@
     </div>
 
     <div style="background:rgba(0,82,204,.08);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;">
-      <strong style="color:#0096dc;">💡 ESIC Rule:</strong> Gross ≤ ₹{{ "{:,.0f}".format(settings.esic_wage_limit or 21000) }} → ESIC applicable
+      <strong style="color:#0096dc;">ESIC Rule:</strong>Gross ≤ ₹{{ "{:,.0f}".format(settings.esic_wage_limit or 21000) }} → ESIC applicable
     </div>
 
     <!-- PT Settings -->
     <div style="margin-top:14px;">
-      <div style="font-weight:700;font-size:13px;margin-bottom:10px;">🏛️ Professional Tax (PT)</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Professional Tax (PT)</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="form-group">
           <label class="form-label">State</label>
@@ -55,7 +55,7 @@
         </div>
         <div class="form-group col-span-2">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-            <input type="checkbox" id="pt_app" {% if settings.pt_applicable %}checked{% endif %}> PT Applicable for company
+            <input type="checkbox" id="pt_app" {% if settings.pt_applicable %}checked{% endif %}>PT Applicable for company
           </label>
         </div>
       </div>
@@ -65,7 +65,7 @@
     <div style="margin-top:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div style="font-weight:700;font-size:13px;">PT Slabs</div>
-        <button class="btn btn-ghost btn-sm" onclick="addSlab()">➕ Add Slab</button>
+        <button class="btn btn-ghost btn-sm" onclick="addSlab()">Add Slab</button>
       </div>
       <table style="width:100%;font-size:12px;border-collapse:collapse;">
         <thead><tr style="border-bottom:1px solid var(--border);">
@@ -80,7 +80,7 @@
             <td style="padding:4px 6px;"><input type="number" class="form-control" style="font-size:11px;" value="{{ s.salary_from }}" onchange="updateSlab({{ s.id }},this)"></td>
             <td style="padding:4px 6px;"><input type="number" class="form-control" style="font-size:11px;" value="{{ s.salary_to }}" onchange="updateSlab({{ s.id }},this)"></td>
             <td style="padding:4px 6px;"><input type="number" class="form-control" style="font-size:11px;" value="{{ s.pt_amount }}" onchange="updateSlab({{ s.id }},this)"></td>
-            <td style="padding:4px;"><button class="btn btn-ghost btn-sm" style="color:var(--red);padding:2px 6px;" onclick="deleteSlab({{ s.id }})">🗑️</button></td>
+            <td style="padding:4px;"><button class="btn btn-ghost btn-sm" style="color:var(--red);padding:2px 6px;" onclick="deleteSlab({{ s.id }})"></button></td>
           </tr>
           {% endfor %}
         </tbody>
@@ -92,7 +92,7 @@
 <!-- RIGHT: Policy Settings -->
 <div>
   <div class="table-card" style="padding:20px;margin-bottom:16px;">
-    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">📋 Payroll Policy</div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">Payroll Policy</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="form-group">
         <label class="form-label">Working Days/Month</label>
@@ -125,7 +125,7 @@
         <label class="form-label">Short Time Allowance per Month — Staff (hours)</label>
         <input class="form-control" type="number" step="0.5" min="0" max="999" id="short_time_limit" value="{{ settings.short_time_limit_hrs or 5.0 }}">
         <div style="font-size:10px;color:var(--muted);margin-top:3px;">
-          Total early departure allowed per month before deduction. Set <strong>999</strong> to fully disable. (Staff only)
+          Total early departure allowed per month before deduction. Set <strong>999</strong>to fully disable. (Staff only)
         </div>
       </div>
       <div class="form-group">
@@ -139,7 +139,7 @@
   </div>
 
   <div class="table-card" style="padding:20px;margin-bottom:16px;">
-    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">🌴 Leave Policy</div>
+    <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">Leave Policy</div>
     <div style="background:rgba(16,185,129,.08);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;">
       <strong style="color:#10b981;">Staff Only</strong> — EL & CL applicable. Associate: no paid leaves.
     </div>
@@ -157,7 +157,7 @@
     </div>
   </div>
 
-  <button class="btn btn-primary" style="width:100%;" onclick="saveSettings()">💾 Save All Settings</button>
+  <button class="btn btn-primary" style="width:100%;" onclick="saveSettings()">Save All Settings</button>
   <div id="settingsResult" style="margin-top:10px;"></div>
 </div>
 
@@ -189,8 +189,8 @@ async function saveSettings(){
   };
   const r=await api("/payroll/settings","POST",data);
   const div=document.getElementById("settingsResult");
-  if(r.success){div.innerHTML='<div class="alert alert-success">✅ Settings saved!</div>';setTimeout(()=>div.innerHTML="",3000);}
-  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  if(r.success){div.innerHTML='<div class="alert alert-success">Settings saved!</div>';setTimeout(()=>div.innerHTML="",3000);}
+  else div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 async function updateSlab(id,el){
   const row=el.closest("tr");

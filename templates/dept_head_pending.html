@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dept Head Approval{% endblock %}
-{% block page_title %}✅ Department Head — Leave Approval{% endblock %}
+{% block page_title %} Department Head — Leave Approval{% endblock %}
 {% block content %}
 
 {% if my_depts %}
@@ -11,18 +11,18 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-danger">⚠️ No departments assigned to you as Department Head. Contact Admin.</div>
+<div class="alert alert-danger">No departments assigned to you as Department Head. Contact Admin.</div>
 {% endif %}
 
 <!-- Tabs -->
 <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
   <a href="?tab=pending" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
     {% if tab=='pending' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
-    ⏳ Pending ({{ pending|length }})
+     Pending ({{ pending|length }})
   </a>
   <a href="?tab=history&year={{ year }}" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
     {% if tab=='history' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
-    📋 History
+     History
   </a>
 </div>
 
@@ -37,25 +37,25 @@
             <span style="color:var(--muted);font-weight:400;font-size:11px;">({{ r.emp_code }} · {{ r.department }} · {{ r.designation or '' }})</span>
           </div>
           <div style="font-size:12px;margin-top:5px;">
-            📅 <strong>{{ r.from_date }}</strong>{% if r.from_date != r.to_date %} → <strong>{{ r.to_date }}</strong>{% endif %}
+             <strong>{{ r.from_date }}</strong>{% if r.from_date != r.to_date %} → <strong>{{ r.to_date }}</strong>{% endif %}
             &nbsp;·&nbsp; <strong>{{ r.days }} day{% if r.days != 1 %}s{% endif %}</strong>
             {% if r.is_half_day %}<span style="color:#f59e0b;font-size:10px;"> (Half Day)</span>{% endif %}
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">📝 {{ r.reason or '—' }}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;"> {{ r.reason or '—' }}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px;">Applied: {{ r.applied_on[:10] if r.applied_on else '—' }}</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
-            onclick="deptApprove({{ r.id }})">✅ Approve & Forward</button>
+            onclick="deptApprove({{ r.id }})">Approve & Forward</button>
           <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
-            onclick="deptReject({{ r.id }})">❌ Reject</button>
+            onclick="deptReject({{ r.id }})">Reject</button>
         </div>
       </div>
     </div>
     {% endfor %}
   {% else %}
     <div style="text-align:center;padding:50px;color:var(--muted);">
-      <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+      <div style="font-size:40px;margin-bottom:12px;"></div>
       <div style="font-weight:700;">No pending leave requests</div>
       <div style="font-size:12px;margin-top:4px;">All caught up!</div>
     </div>
@@ -91,21 +91,21 @@
           <td style="padding:7px;font-size:11px;color:var(--muted);">{{ r.reason or '—' }}</td>
           <td style="padding:7px;text-align:center;">
             {% if r.dept_head_status == 'Approved' %}
-              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
+              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Approved</span>
               <div style="font-size:9px;color:var(--muted);">{{ r.dept_head_approved_by }}</div>
             {% elif r.dept_head_status == 'Rejected' %}
-              <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
+              <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Rejected</span>
               {% if r.dept_head_rejection_reason %}<div style="font-size:9px;color:var(--muted);">{{ r.dept_head_rejection_reason }}</div>{% endif %}
             {% else %}—{% endif %}
           </td>
           <td style="padding:7px;text-align:center;">
             {% if r.status == 'Approved' %}
-              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Approved</span>
+              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Approved</span>
               {% if r.approved_by %}<div style="font-size:9px;color:var(--muted);">by {{ r.approved_by }}</div>{% endif %}
             {% elif r.status == 'Rejected' %}
-              <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Rejected</span>
+              <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Rejected</span>
             {% elif r.status == 'Pending' %}
-              <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">⏳ Awaiting Director</span>
+              <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Awaiting Director</span>
             {% endif %}
           </td>
         </tr>
@@ -122,8 +122,8 @@
 <div class="modal-overlay" id="rejectModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header">
-      <span class="modal-title">❌ Reject Leave Request</span>
-      <button class="modal-close" onclick="closeModal('rejectModal')">✕</button>
+      <span class="modal-title">Reject Leave Request</span>
+      <button class="modal-close" onclick="closeModal('rejectModal')"></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -134,7 +134,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('rejectModal')">Cancel</button>
-      <button class="btn btn-danger" onclick="confirmReject()">❌ Confirm Reject</button>
+      <button class="btn btn-danger" onclick="confirmReject()">Confirm Reject</button>
     </div>
   </div>
 </div>
@@ -149,7 +149,7 @@ async function deptApprove(id){
   const el = document.getElementById("req_"+id);
   const r = await api("/dept-head/approve/"+id,"POST",{});
   if(r.success){
-    if(el){ el.style.opacity="0.4"; el.innerHTML += '<div style="text-align:center;padding:10px;color:#10b981;font-weight:700;">✅ Approved — Forwarded to Director</div>'; }
+    if(el){ el.style.opacity="0.4"; el.innerHTML += '<div style="text-align:center;padding:10px;color:#10b981;font-weight:700;">Approved — Forwarded to Director</div>'; }
     setTimeout(()=>location.reload(), 1500);
   } else {
     alert("Error: "+r.error);
@@ -165,7 +165,7 @@ function deptReject(id){
 
 async function confirmReject(){
   const reason = document.getElementById("reject_reason").value.trim();
-  if(!reason){ document.getElementById("rejectRes").innerHTML='<div class="alert alert-danger">❌ Reason required</div>'; return; }
+  if(!reason){ document.getElementById("rejectRes").innerHTML='<div class="alert alert-danger">Reason required</div>'; return; }
   const r = await api("/dept-head/reject/"+_rejectId,"POST",{reason:reason});
   if(r.success){
     closeModal("rejectModal");
@@ -173,7 +173,7 @@ async function confirmReject(){
     if(el){ el.style.opacity="0.4"; }
     setTimeout(()=>location.reload(), 800);
   } else {
-    document.getElementById("rejectRes").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    document.getElementById("rejectRes").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
   }
 }
 </script>

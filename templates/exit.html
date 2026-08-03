@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Exit Management{% endblock %}
-{% block page_title %}🚪 Exit Management{% endblock %}
+{% block page_title %} Exit Management{% endblock %}
 {% block content %}
 <div class="toolbar">
-  <button class="btn btn-danger" onclick="openModal('exitModal')">🚪 Process Exit</button>
+  <button class="btn btn-danger" onclick="openModal('exitModal')">Process Exit</button>
   <span style="font-size:13px;color:var(--muted);margin-left:auto;">{{ exited|length }} exited employees</span>
 </div>
 <div class="table-card">
@@ -17,7 +17,7 @@
     <td>{{ e.resignation_date or '—' }}</td>
     <td>{{ e.last_working_day or '—' }}</td>
     <td style="font-size:12px;color:var(--muted)">{{ e.exit_reason or '—' }}</td>
-    <td><a href="/exit/ff/{{ e.emp_code }}" class="btn btn-ghost btn-sm">📋 F&F</a></td>
+    <td><a href="/exit/ff/{{ e.emp_code }}" class="btn btn-ghost btn-sm">F&F</a></td>
   </tr>{% endfor %}
   {% if not exited %}<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No exit records yet</td></tr>{% endif %}
   </tbody></table>
@@ -25,7 +25,7 @@
 <!-- Exit Modal -->
 <div class="modal-overlay" id="exitModal">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">🚪 Process Employee Exit</span><button class="modal-close" onclick="closeModal('exitModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Process Employee Exit</span><button class="modal-close" onclick="closeModal('exitModal')"></button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Employee Code</label><input class="form-control" id="ex_code" placeholder="VPL001" onblur="loadExitEmp()"></div>
       <div id="ex_name_show" style="font-size:13px;color:var(--accent2);margin-bottom:12px;display:none;"></div>
@@ -37,7 +37,7 @@
       <div class="form-group"><label class="form-label">Reason</label><input class="form-control" id="ex_reason" placeholder="Better opportunity, Personal reasons..."></div>
       <div id="ex_result" style="margin-top:12px;"></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('exitModal')">Cancel</button><button class="btn btn-danger" onclick="processExit()">🚪 Confirm Exit</button></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('exitModal')">Cancel</button><button class="btn btn-danger" onclick="processExit()">Confirm Exit</button></div>
   </div>
 </div>
 {% endblock %}
@@ -54,7 +54,7 @@ async function processExit(){
   if(!lwd){showToast("Enter last working day!","error");return;}
   const r=await api("/exit/process","POST",{emp_code:code,exit_type:document.getElementById("ex_type").value,resignation_date:document.getElementById("ex_res_date").value,last_working_day:lwd,reason:document.getElementById("ex_reason").value});
   const div=document.getElementById("ex_result");
-  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ Exit processed! Years of service: ${r.years_of_service} | Gratuity: ₹${r.gratuity.toLocaleString("en-IN")}${r.leave_encashment_amount?` | Leave Encashment: ₹${r.leave_encashment_amount.toLocaleString("en-IN")}`:''}</div>`;setTimeout(()=>{closeModal("exitModal");location.reload();},2500);}
-  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  if(r.success){div.innerHTML=`<div class="alert alert-success">Exit processed! Years of service: ${r.years_of_service} | Gratuity: ₹${r.gratuity.toLocaleString("en-IN")}${r.leave_encashment_amount?` | Leave Encashment: ₹${r.leave_encashment_amount.toLocaleString("en-IN")}`:''}</div>`;setTimeout(()=>{closeModal("exitModal");location.reload();},2500);}
+  else div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 </script>{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Wages Slip{% endblock %}
-{% block page_title %}🏭 Wages Slip — Associates{% endblock %}
+{% block page_title %} Wages Slip — Associates{% endblock %}
 {% block content %}
 
 <!-- TOOLBAR -->
@@ -16,8 +16,8 @@
     </select>
     <label style="margin-left:10px;">Type:</label>
     <select id="selSlipType" onchange="switchType(this.value)" style="font-weight:700;color:#f59e0b;">
-      <option value="salary">💰 Salary</option>
-      <option value="wages" selected>🏭 Wages (Associates)</option>
+      <option value="salary">Salary</option>
+      <option value="wages" selected>Wages (Associates)</option>
     </select>
   </div>
 
@@ -31,14 +31,14 @@
       <option value="" {% if not selected_scheme %}selected{% endif %}>All Schemes</option>
       {% for s in schemes %}<option value="{{ s }}" {% if s==selected_scheme %}selected{% endif %}>{{ s }}</option>{% endfor %}
     </select>
-    <input type="text" id="wSearch" placeholder="🔍 Search name / code..." class="form-control" style="width:200px;font-size:12px;" oninput="filterTable(this.value)">
+    <input type="text" id="wSearch" placeholder=" Search name / code..." class="form-control" style="width:200px;font-size:12px;" oninput="filterTable(this.value)">
     <span id="visCount" style="font-size:12px;color:var(--muted);">{{ emp_list|length }} Associates</span>
   </div>
 
   <div style="display:flex;gap:6px;margin-left:auto;">
-    <button class="btn btn-ghost btn-sm" onclick="toggleAll()">☑️ Select All</button>
-    <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" id="waSelBtn" onclick="sendWASelected()">📱 WhatsApp Selected</button>
-    <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;" onclick="sendWAAll()">📱 WhatsApp All</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleAll()">Select All</button>
+    <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" id="waSelBtn" onclick="sendWASelected()">WhatsApp Selected</button>
+    <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;" onclick="sendWAAll()">WhatsApp All</button>
   </div>
 </div>
 
@@ -95,7 +95,7 @@
           <td style="padding:7px;text-align:right;color:#ef4444;">{{ "{:,.0f}".format(e.esic_on_ot) }}</td>
           <td style="padding:7px;text-align:right;font-weight:800;color:#0096dc;font-size:13px;">{{ "{:,.0f}".format(e.net_ot_final) }}</td>
           <td style="padding:7px;text-align:center;">
-            <button onclick="sendSingleWA('{{ e.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;" title="Send WhatsApp to {{ e.emp_name }}">📱</button>
+            <button onclick="sendSingleWA('{{ e.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;" title="Send WhatsApp to {{ e.emp_name }}"></button>
           </td>
         </tr>
         {% endfor %}
@@ -150,24 +150,24 @@ function toggleAllCb(cb){ document.querySelectorAll(".w-cb").forEach(c=>c.checke
 function updateWaBtn(){
   const cnt=document.querySelectorAll(".w-cb:checked").length;
   const btn=document.getElementById("waSelBtn");
-  if(btn) btn.textContent=cnt>0?'📱 WhatsApp Selected ('+cnt+')':'📱 WhatsApp Selected';
+  if(btn) btn.textContent=cnt>0?' WhatsApp Selected ('+cnt+')':' WhatsApp Selected';
 }
 
 function buildMsg(e){
   const lines=[
     `━━━━━━━━━━━━━━━━━━━━━━`,
-    `🏭 *VPL Wages Slip — ${MONTH_NAME} ${YEAR}*`,
+    ` *VPL Wages Slip — ${MONTH_NAME} ${YEAR}*`,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `Employee Code : ${e.emp_code}`,
     `Employee Name : ${e.emp_name}`,
     ``,
-    `💰 *Wages Details*`,
+    ` *Wages Details*`,
     `Gross Wages   : ₹${fmt(e.net_ot_pay)}`,
     ``,
-    `📉 *Deductions*`,
+    ` *Deductions*`,
     `ESIC          : ₹${fmt(e.esic_on_ot)}`,
     ``,
-    `✅ *Net Payable : ₹${fmt(e.net_ot_final)}*`,
+    ` *Net Payable : ₹${fmt(e.net_ot_final)}*`,
     `━━━━━━━━━━━━━━━━━━━━━━`,
     `{{ company_name }}`,
   ];
@@ -180,8 +180,8 @@ async function sendSingleWA(code){
   if(!e){showToast("Not found","error");return;}
   const r=await api("/wa/send-wages","POST",{emp_code:code,message:buildMsg(e)});
   document.getElementById("waResult").innerHTML=r.success
-    ?`<div class="alert alert-success">✅ Sent to ${e.emp_name}</div>`
-    :`<div class="alert alert-danger">❌ ${r.error||"Failed"}</div>`;
+    ?`<div class="alert alert-success">Sent to ${e.emp_name}</div>`
+    :`<div class="alert alert-danger"> ${r.error||"Failed"}</div>`;
 }
 
 async function sendWASelected(){
@@ -197,15 +197,15 @@ async function sendWAAll(){
 }
 async function sendBulk(codes){
   const res=document.getElementById("waResult");
-  res.innerHTML='<div class="alert alert-info">⏳ Sending...</div>';
+  res.innerHTML='<div class="alert alert-info">Sending...</div>';
   const msgs=codes.map(code=>{
     const e=EMP_DATA.find(x=>x.emp_code===code);
     return e?{emp_code:code,message:buildMsg(e)}:null;
   }).filter(Boolean);
   const r=await api("/wa/send-wages-bulk","POST",{messages:msgs});
   res.innerHTML=r.success
-    ?`<div class="alert alert-success">✅ Sent: ${r.sent} | Failed: ${r.failed} | No Phone: ${r.no_phone}</div>`
-    :`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    ?`<div class="alert alert-success">Sent: ${r.sent} | Failed: ${r.failed} | No Phone: ${r.no_phone}</div>`
+    :`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 </script>
 {% endblock %}

@@ -74,8 +74,8 @@
     <select id="selYear" onchange="reloadPage()">{% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
     <label style="margin-left:10px;">Type:</label>
     <select id="selSlipType" onchange="switchSlipType(this.value)" style="font-weight:700;color:#0096dc;">
-      <option value="salary" {% if slip_type!='wages' %}selected{% endif %}>💰 Salary</option>
-      <option value="wages" {% if slip_type=='wages' %}selected{% endif %}>🏭 Wages (Associates)</option>
+      <option value="salary" {% if slip_type!='wages' %}selected{% endif %}>Salary</option>
+      <option value="wages" {% if slip_type=='wages' %}selected{% endif %}>Wages (Associates)</option>
     </select>
   </div>
   <div style="display:flex;gap:5px;{% if slip_type=='wages' %}display:none;{% endif %}" id="catFilterBar">
@@ -86,15 +86,15 @@
   <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
     <span style="font-size:11px;color:var(--muted);font-weight:600;">Payslip Branding:</span>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;{% if has_header %}color:#10b981;border-color:#10b981;{% endif %}">
-      📄 Header {% if has_header %}<span style="color:#10b981;">✓</span>{% endif %}
+       Header {% if has_header %}<span style="color:#10b981;"></span>{% endif %}
       <input type="file" accept="image/*" style="display:none;" onchange="uploadLS('header',this)">
     </label>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;{% if has_footer %}color:#10b981;border-color:#10b981;{% endif %}">
-      📋 Footer {% if has_footer %}<span style="color:#10b981;">✓</span>{% endif %}
+       Footer {% if has_footer %}<span style="color:#10b981;"></span>{% endif %}
       <input type="file" accept="image/*" style="display:none;" onchange="uploadLS('footer',this)">
     </label>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px;{% if has_seal %}color:#10b981;border-color:#10b981;{% endif %}">
-      🔏 Seal {% if has_seal %}<span style="color:#10b981;">✓</span>{% endif %}
+       Seal {% if has_seal %}<span style="color:#10b981;"></span>{% endif %}
       <input type="file" accept="image/*" style="display:none;" onchange="uploadLS('seal',this)">
     </label>
   </div>
@@ -108,9 +108,9 @@
     <input type="text" id="psSearch" placeholder="Search by name or code..." class="form-control" style="width:200px;font-size:12px;" oninput="filterPS(this.value)">
     <span style="font-size:12px;color:var(--muted)">{{ records|length }} records</span>
     <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap;">
-      <button class="btn btn-ghost btn-sm" onclick="toggleSelectAll()" id="selAllBtn" style="font-size:11px;">☑️ Select All</button>
-      <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;white-space:nowrap;" onclick="openBulkWA()">📱 WhatsApp Selected</button>
-      <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;white-space:nowrap;" onclick="openBulkWAAll()">📱 WhatsApp All</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleSelectAll()" id="selAllBtn" style="font-size:11px;">Select All</button>
+      <button class="btn btn-sm" style="background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;white-space:nowrap;" onclick="openBulkWA()">WhatsApp Selected</button>
+      <button class="btn btn-sm" style="background:rgba(37,211,102,.08);color:#25d366;border:1px solid rgba(37,211,102,.3);font-size:11px;white-space:nowrap;" onclick="openBulkWAAll()">WhatsApp All</button>
     </div>
   </div>
   <table>
@@ -146,7 +146,7 @@
         <td style="text-align:right;font-weight:800;color:var(--green)">₹{{ "{:,.0f}".format(r.net_salary or 0) }}</td>
         <td style="text-align:center">{{ r.present_days }}/{{ r.working_days }}</td>
         <td onclick="event.stopPropagation()" style="text-align:center;">
-          <button onclick="sendSingleWA('{{ r.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;line-height:1;" title="Send WhatsApp to {{ r.emp_name }}">📱</button>
+          <button onclick="sendSingleWA('{{ r.emp_code }}')" style="background:none;border:none;font-size:18px;cursor:pointer;line-height:1;" title="Send WhatsApp to {{ r.emp_name }}"></button>
         </td>
       </tr>
       {% endfor %}
@@ -157,7 +157,7 @@
   </table>
   <div id="selCount" style="padding:8px 14px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);display:none;">
     <span id="selCountText">0 selected</span>
-    <button class="btn btn-sm" style="margin-left:10px;background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" onclick="openBulkWA()">📱 Send WhatsApp to Selected</button>
+    <button class="btn btn-sm" style="margin-left:10px;background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);font-size:11px;" onclick="openBulkWA()">Send WhatsApp to Selected</button>
   </div>
 </div>
 
@@ -166,8 +166,8 @@
 <div class="modal-overlay no-print" id="waConfirmModal">
   <div class="modal" style="width:380px;">
     <div class="modal-header">
-      <span class="modal-title">📱 Send WhatsApp Salary Slip</span>
-      <button class="modal-close" onclick="closeModal('waConfirmModal')">✕</button>
+      <span class="modal-title">Send WhatsApp Salary Slip</span>
+      <button class="modal-close" onclick="closeModal('waConfirmModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="waModal_empCode">
@@ -180,7 +180,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('waConfirmModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmSingleWA()">📱 Send WhatsApp</button>
+      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmSingleWA()">Send WhatsApp</button>
     </div>
   </div>
 </div>
@@ -189,22 +189,22 @@
 <div class="modal-overlay no-print" id="waBulkModal">
   <div class="modal" style="width:400px;">
     <div class="modal-header">
-      <span class="modal-title">📱 Bulk WhatsApp Salary Slip</span>
-      <button class="modal-close" onclick="closeModal('waBulkModal')">✕</button>
+      <span class="modal-title">Bulk WhatsApp Salary Slip</span>
+      <button class="modal-close" onclick="closeModal('waBulkModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="waBulkMode">
       <div style="font-size:13px;margin-bottom:12px;">
-        Sending to <strong><span id="waBulkCount">0</span></strong> employee(s).
+        Sending to <strong><span id="waBulkCount">0</span></strong>employee(s).
       </div>
       <div style="background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.3);border-radius:8px;padding:12px;font-size:11px;color:var(--muted);margin-bottom:12px;">
-        ℹ️ Message will be sent to employee's registered mobile number. Employees without phone number will be skipped.
+        ℹ Message will be sent to employee's registered mobile number. Employees without phone number will be skipped.
       </div>
       <div id="waBulkRes"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('waBulkModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmBulkWA()">📱 Send WhatsApp to All Selected</button>
+      <button class="btn btn-primary" style="background:#25d366;border-color:#25d366;" onclick="confirmBulkWA()">Send WhatsApp to All Selected</button>
     </div>
   </div>
 </div>
@@ -246,7 +246,7 @@ function toggleSelectAll(){
   const cbs=document.querySelectorAll(".ps-cb");
   const allOn=[...cbs].every(c=>c.checked);
   cbs.forEach(c=>c.checked=!allOn);
-  document.getElementById("selAllBtn").textContent=allOn?"☑️ Select All":"☐ Deselect All";
+  document.getElementById("selAllBtn").textContent=allOn?" Select All":" Deselect All";
   updateSelCount();
 }
 function toggleAll(masterCb){
@@ -281,7 +281,7 @@ async function sendSingleWA(code){
     emp_codes:[code],
     month:{{ month }},year:{{ year }}
   });
-  showToast(r.success?"✅ Sent!":"❌ "+(r.error||"Failed"),r.success?"success":"error");
+  showToast(r.success?" Sent!":" "+(r.error||"Failed"),r.success?"success":"error");
 }
 async function confirmBulkWA(){
   const mode=document.getElementById("waBulkMode").value;
@@ -293,22 +293,22 @@ async function confirmBulkWA(){
     codes=[...document.querySelectorAll(".ps-row:not([style*='display: none']) .ps-cb")].map(c=>c.value);
   }
   if(!codes.length){div.innerHTML='<div class="alert alert-danger">No employees selected</div>';return;}
-  div.innerHTML='<div class="alert alert-info">⏳ Sending...</div>';
+  div.innerHTML='<div class="alert alert-info">Sending...</div>';
   const r=await api("/wa/send-payslip","POST",{emp_codes:codes,month:{{ month }},year:{{ year }}});
   if(r.success){
-    div.innerHTML=`<div class="alert alert-success">✅ Sent: ${r.sent||0} | Skipped: ${r.skipped||0} | No Phone: ${r.no_phone||0}</div>`;
+    div.innerHTML=`<div class="alert alert-success">Sent: ${r.sent||0} | Skipped: ${r.skipped||0} | No Phone: ${r.no_phone||0}</div>`;
   } else {
-    div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Error"}</div>`;
+    div.innerHTML=`<div class="alert alert-danger"> ${r.error||"Error"}</div>`;
   }
 }
 
 // ── Payslip Modal ────────────────────────────────────
 async function openPayslip(code){
-  document.getElementById("psModalBody").innerHTML='<div style="text-align:center;padding:40px;">⏳ Loading...</div>';
+  document.getElementById("psModalBody").innerHTML='<div style="text-align:center;padding:40px;">Loading...</div>';
   openModal("payslipModal");
   const r=await fetch(`/payslip/get/${code}/{{ month }}/{{ year }}`).then(r=>r.json());
   if(r.success) document.getElementById("psModalBody").innerHTML=r.html;
-  else document.getElementById("psModalBody").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  else document.getElementById("psModalBody").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 // ── Letter Settings ──────────────────────────────────
@@ -316,8 +316,8 @@ async function uploadLS(type,input){
   const f=input.files[0]; if(!f) return;
   const fd=new FormData(); fd.append("file",f); fd.append("type",type);
   const r=await fetch("/letter-settings/upload",{method:"POST",body:fd}).then(r=>r.json());
-  if(r.success){ showToast("✅ Uploaded!"); location.reload(); }
-  else showToast("❌ "+r.error,"error");
+  if(r.success){ showToast(" Uploaded!"); location.reload(); }
+  else showToast(" "+r.error,"error");
 }
 </script>
 {% endblock %}

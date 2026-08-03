@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Not Yet Approved{% endblock %}
-{% block page_title %}📄 Letter Generator{% endblock %}
+{% block page_title %} Letter Generator{% endblock %}
 {% block content %}
 
 <div class="mini-card" style="max-width:560px;margin:40px auto;text-align:center;padding:40px 30px;">
   {% if doc.status == 'Rejected' %}
-  <div style="font-size:48px;margin-bottom:14px;">❌</div>
+  <div style="font-size:48px;margin-bottom:14px;"></div>
   <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:var(--red);">This Letter Was Rejected</div>
   <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:10px;">
     <b>{{ doc.template_name }}</b>{% if doc.emp_name %} for <b>{{ doc.emp_name }}</b>{% endif %}
     {% if doc.reject_reason %}<br>Reason: {{ doc.reject_reason }}{% endif %}
   </div>
   {% else %}
-  <div style="font-size:48px;margin-bottom:14px;">⏳</div>
+  <div style="font-size:48px;margin-bottom:14px;"></div>
   <div style="font-weight:800;font-size:18px;margin-bottom:8px;">Pending Approval</div>
   <div style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:10px;">
     <b>{{ doc.template_name }}</b>{% if doc.emp_name %} for <b>{{ doc.emp_name }}</b>{% endif %} has not been approved yet.<br>

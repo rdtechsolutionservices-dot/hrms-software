@@ -5,7 +5,7 @@
 <title>Relieving Letter — {{ emp.emp_name }}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
+  body { font-family: Verdana, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
   @media print { body{background:white;} .no-print{display:none!important;} .letter-page{box-shadow:none;margin:0;border-radius:0;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} }
   .no-print { background:#1a1a2e; padding:10px 24px; display:flex; gap:12px; align-items:center; }
   .no-print button { padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; }
@@ -47,8 +47,8 @@
 </head>
 <body>
 <div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨️ Print Letter</button>
-  <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <button class="btn-print" onclick="window.print()">Print Letter</button>
+  <button class="btn-close" onclick="window.close()">Close</button>
   <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">Relieving Letter — {{ emp.emp_name }}</span>
 </div>
 <div class="letter-page">
@@ -81,19 +81,19 @@
       <div class="info-row"><span class="info-label">Last Working Day</span><span class="info-value">{{ today }}</span></div>
     </div>
 
-    <p class="para">This is to certify that <strong>{{ emp.emp_name }}</strong> (Employee Code: <strong>{{ emp.emp_code }}</strong>) has been employed with <strong>{{ company }}</strong> as <strong>{{ emp.designation or 'an employee' }}</strong> in the <strong>{{ emp.department or 'Production' }}</strong> department since <strong>{{ emp.date_of_joining or 'date of joining' }}</strong>.</p>
+    <p class="para">This is to certify that <strong>{{ emp.emp_name }}</strong> (Employee Code: <strong>{{ emp.emp_code }}</strong>) has been employed with <strong>{{ company }}</strong>as <strong>{{ emp.designation or 'an employee' }}</strong>in the <strong>{{ emp.department or 'Production' }}</strong>department since <strong>{{ emp.date_of_joining or 'date of joining' }}</strong>.</p>
 
-    <p class="para">{{ emp.emp_name.split()[0] }} has been relieved from the services of <strong>{{ company }}</strong> with effect from <strong>{{ today }}</strong>, upon completion of the notice period and all necessary handover formalities.</p>
+    <p class="para">{{ emp.emp_name.split()[0] }} has been relieved from the services of <strong>{{ company }}</strong>with effect from <strong>{{ today }}</strong>, upon completion of the notice period and all necessary handover formalities.</p>
 
     <div class="clearance-box">
-      <div class="clearance-title">✅ Clearance Status</div>
-      <div class="clearance-item">✔ All company assets have been returned</div>
-      <div class="clearance-item">✔ Knowledge transfer and handover completed</div>
-      <div class="clearance-item">✔ No dues pending as on date of relieving</div>
-      <div class="clearance-item">✔ Full and final settlement processed</div>
+      <div class="clearance-title">Clearance Status</div>
+      <div class="clearance-item">All company assets have been returned</div>
+      <div class="clearance-item">Knowledge transfer and handover completed</div>
+      <div class="clearance-item">No dues pending as on date of relieving</div>
+      <div class="clearance-item">Full and final settlement processed</div>
     </div>
 
-    <p class="para">We wish <strong>{{ emp.emp_name.split()[0] }}</strong> all the very best in future endeavours. {{ emp.emp_name.split()[0] }} is free to seek employment elsewhere with immediate effect.</p>
+    <p class="para">We wish <strong>{{ emp.emp_name.split()[0] }}</strong>all the very best in future endeavours. {{ emp.emp_name.split()[0] }} is free to seek employment elsewhere with immediate effect.</p>
 
     {% if custom_lines %}
     <div style="margin:14px 0;padding:12px 18px;background:#f8faff;border-radius:6px;border:1px solid #e2e8f0;">

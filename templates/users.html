@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Users{% endblock %}
-{% block page_title %}🔐 User Administration{% endblock %}
+{% block page_title %} User Administration{% endblock %}
 {% block content %}
 
 <!-- Toolbar -->
 <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
-  <button class="btn btn-primary btn-sm" onclick="openModal('addModal')">➕ Add User</button>
+  <button class="btn btn-primary btn-sm" onclick="openModal('addModal')">Add User</button>
   <input type="text" id="userSearch" class="form-control" placeholder="Search username, name, emp code..." style="width:220px;font-size:12px;" oninput="filterUsers()">
   <select class="form-select" id="filt_cat" style="width:140px;font-size:12px;" onchange="filterUsers()">
     <option value="">All Categories</option>
@@ -24,7 +24,7 @@
       <input type="checkbox" id="masterCb" onchange="toggleAll(this)">
       <span style="font-size:12px;font-weight:700;" id="selLabel">0 selected</span>
     </div>
-    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="assignDefaultSelected()">⚡ Assign Default to Selected</button>
+    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="assignDefaultSelected()">Assign Default to Selected</button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;" id="userTbl">
     <thead><tr style="border-bottom:2px solid var(--border);">
@@ -65,11 +65,11 @@
         </td>
         <td style="padding:7px;text-align:center;">
           <div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openPerms({{ u.id }},'{{ u.username }}')">🔑 Perms</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openRename({{ u.id }},'{{ u.username }}','{{ u.name or '' }}')">✏️ Rename</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openReset('{{ u.username }}')">🔒 Reset PW</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:10px;color:{% if u.is_active %}#ef4444{% else %}#10b981{% endif %};" onclick="toggleUser({{ u.id }})">{% if u.is_active %}🚫 Disable{% else %}✅ Enable{% endif %}</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;" onclick="deleteUser({{ u.id }},'{{ u.username }}')">🗑️ Delete</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openPerms({{ u.id }},'{{ u.username }}')">Perms</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openRename({{ u.id }},'{{ u.username }}','{{ u.name or '' }}')">Rename</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="openReset('{{ u.username }}')">Reset PW</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;color:{% if u.is_active %}#ef4444{% else %}#10b981{% endif %};" onclick="toggleUser({{ u.id }})">{% if u.is_active %} Disable{% else %} Enable{% endif %}</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;" onclick="deleteUser({{ u.id }},'{{ u.username }}')">Delete</button>
           </div>
         </td>
       </tr>
@@ -81,7 +81,7 @@
 <!-- Add User Modal -->
 <div class="modal-overlay" id="addModal">
   <div class="modal" style="width:460px;">
-    <div class="modal-header"><span class="modal-title">➕ Add User</span><button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Add User</span><button class="modal-close" onclick="closeModal('addModal')"></button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
@@ -129,7 +129,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="addUser()">➕ Create</button>
+      <button class="btn btn-primary" onclick="addUser()">Create</button>
     </div>
   </div>
 </div>
@@ -137,7 +137,7 @@
 <!-- Rename Modal -->
 <div class="modal-overlay" id="renameModal">
   <div class="modal" style="width:380px;">
-    <div class="modal-header"><span class="modal-title">✏️ Rename User</span><button class="modal-close" onclick="closeModal('renameModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Rename User</span><button class="modal-close" onclick="closeModal('renameModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="rn_uid">
       <div class="form-group">
@@ -152,7 +152,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('renameModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveRename()">✏️ Save</button>
+      <button class="btn btn-primary" onclick="saveRename()">Save</button>
     </div>
   </div>
 </div>
@@ -160,17 +160,17 @@
 <!-- Permissions Modal -->
 <div class="modal-overlay" id="permModal">
   <div class="modal" style="width:640px;">
-    <div class="modal-header"><span class="modal-title" id="permTitle">🔑 User Permissions</span><button class="modal-close" onclick="closeModal('permModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title" id="permTitle">User Permissions</span><button class="modal-close" onclick="closeModal('permModal')"></button></div>
     <div class="modal-body" style="padding:14px 16px;">
       <input type="hidden" id="perm_uid">
       <div style="background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.25);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;">
-          <input type="checkbox" id="perm_otp_login"> 🔐 Login via OTP — 6-digit code sent to this user's email on every login
+          <input type="checkbox" id="perm_otp_login">Login via OTP — 6-digit code sent to this user's email on every login
         </label>
         <div style="font-size:10px;color:var(--muted);margin-top:4px;margin-left:24px;">Email is picked up automatically from the user's Employee Profile.</div>
       </div>
       <div class="alert alert-info" style="font-size:11px;margin-bottom:12px;">
-        ✅ <strong>View</strong> — User can see the page/data. &nbsp;|&nbsp; ✏️ <strong>Edit</strong> — User can add, modify, save data on that page.
+         <strong>View</strong> — User can see the page/data. &nbsp;|&nbsp;  <strong>Edit</strong> — User can add, modify, save data on that page.
       </div>
 
       <div style="overflow-y:auto;max-height:52vh;border:1px solid var(--border);border-radius:8px;">
@@ -186,7 +186,7 @@
 
             <!-- SECTION: Dashboard -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">🖥️ Dashboard</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Dashboard</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Dashboard</td>
@@ -201,7 +201,7 @@
 
             <!-- SECTION: Employees -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">👤 Employees</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Employees</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Employee Profiles</td>
@@ -231,7 +231,7 @@
 
             <!-- SECTION: Attendance -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">🕐 Attendance</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Attendance</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Attendance Register &amp; Reports</td>
@@ -254,12 +254,12 @@
               <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="shift_roster" style="width:15px;height:15px;cursor:pointer;"></td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
-              <td style="padding:7px 12px;">📆 Weekly Off Management</td>
+              <td style="padding:7px 12px;">Weekly Off Management</td>
               <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="weekly_off" id="cb_weekly_off" onchange="syncEdit('weekly_off','weekly_off_edit')" style="width:15px;height:15px;cursor:pointer;"></td>
               <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="weekly_off_edit" id="cb_weekly_off_edit" onchange="syncView('weekly_off_edit','weekly_off')" style="width:15px;height:15px;cursor:pointer;"></td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
-              <td style="padding:7px 12px;">📥 Weekly Off Bulk Upload</td>
+              <td style="padding:7px 12px;">Weekly Off Bulk Upload</td>
               <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="weekly_off_bulk_upload" style="width:15px;height:15px;cursor:pointer;"></td>
               <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="weekly_off_bulk_upload" style="width:15px;height:15px;cursor:pointer;"></td>
             </tr>
@@ -291,7 +291,7 @@
 
             <!-- SECTION: Payroll -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💰 Payroll</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Payroll</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Payroll — View Summary</td>
@@ -351,7 +351,7 @@
 
             <!-- SECTION: Leave -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">🌴 Leave</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Leave</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Leave — Approve / Reject (HR)</td>
@@ -391,7 +391,7 @@
 
             <!-- SECTION: Reports & Deductions -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">📊 Reports &amp; Deductions</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Reports &amp; Deductions</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Attendance Reports</td>
@@ -431,7 +431,7 @@
 
             <!-- SECTION: Admin -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⚙️ Admin</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Admin</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">User Management</td>
@@ -441,7 +441,7 @@
 
             <!-- SECTION: Self-Service -->
             <tr style="background:var(--surface);border-bottom:1px solid var(--border);">
-              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">👁️ Self-Service (Employee)</td>
+              <td colspan="3" style="padding:5px 12px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Self-Service (Employee)</td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">My Payslip</td>
@@ -469,16 +469,16 @@
       </div>
 
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" onclick="selectAllPerms(true)">☑️ Select All</button>
-        <button class="btn btn-ghost btn-sm" onclick="selectAllPerms(false)">☐ Clear All</button>
-        <button class="btn btn-ghost btn-sm" onclick="setDefaultPerms()">🔄 Default (Employee)</button>
+        <button class="btn btn-ghost btn-sm" onclick="selectAllPerms(true)">Select All</button>
+        <button class="btn btn-ghost btn-sm" onclick="selectAllPerms(false)">Clear All</button>
+        <button class="btn btn-ghost btn-sm" onclick="setDefaultPerms()">Default (Employee)</button>
       </div>
       <div id="perm_result" style="margin-top:8px;"></div>
 
       <!-- Department Access -->
       <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
         <div style="font-weight:700;font-size:12px;color:#f59e0b;margin-bottom:6px;">
-          🏢 Department Access
+           Department Access
           <span style="font-weight:400;color:var(--muted);font-size:11px;"> — None checked = all departments</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;" id="deptCheckboxes">
@@ -493,7 +493,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('permModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="savePerms()">💾 Save Permissions</button>
+      <button class="btn btn-primary" onclick="savePerms()">Save Permissions</button>
     </div>
   </div>
 </div>
@@ -501,7 +501,7 @@
 <!-- Reset Password Modal -->
 <div class="modal-overlay" id="resetModal">
   <div class="modal" style="width:360px;">
-    <div class="modal-header"><span class="modal-title">🔒 Reset Password</span><button class="modal-close" onclick="closeModal('resetModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Reset Password</span><button class="modal-close" onclick="closeModal('resetModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="r_user">
       <div class="form-group">
@@ -512,7 +512,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('resetModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="resetPw()">🔒 Reset</button>
+      <button class="btn btn-primary" onclick="resetPw()">Reset</button>
     </div>
   </div>
 </div>
@@ -560,7 +560,7 @@ async function assignDefaultSelected(){
   if(!ids.length){ alert("Select at least one user first"); return; }
   if(!confirm(`Assign default access (Payslip Portal + Leave Portal + Attendance Portal) to ${ids.length} selected user(s)?`)) return;
   const r = await api("/users/assign-default-selected","POST",{user_ids: ids});
-  if(r.success){ showToast(`✅ Default access assigned to ${r.updated} user(s)`); }
+  if(r.success){ showToast(` Default access assigned to ${r.updated} user(s)`); }
   else { alert("Error: "+r.error); }
 }
 
@@ -579,8 +579,8 @@ async function addUser(){
   if(data.password.length<4){ showToast("Password too short","error"); return; }
   const r = await api("/users/add","POST",data);
   document.getElementById("a_result").innerHTML = r.success ?
-    '<div class="alert alert-success">✅ User created!</div>' :
-    `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    '<div class="alert alert-success">User created!</div>' :
+    `<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{ closeModal("addModal"); location.reload(); }, 900);
 }
 
@@ -596,11 +596,11 @@ async function saveRename(){
   const uid  = document.getElementById("rn_uid").value;
   const user = document.getElementById("rn_user").value.trim();
   const name = document.getElementById("rn_name").value.trim();
-  if(!user){ document.getElementById("rn_result").innerHTML='<div class="alert alert-danger">❌ Username required</div>'; return; }
+  if(!user){ document.getElementById("rn_result").innerHTML='<div class="alert alert-danger">Username required</div>'; return; }
   const r = await api(`/users/rename/${uid}`,"POST",{username: user, name: name});
   document.getElementById("rn_result").innerHTML = r.success ?
-    '<div class="alert alert-success">✅ Updated!</div>' :
-    `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    '<div class="alert alert-success">Updated!</div>' :
+    `<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{ closeModal("renameModal"); location.reload(); }, 900);
 }
 
@@ -619,7 +619,7 @@ function syncEdit(viewCode, editCode){
 }
 async function openPerms(uid, uname){
   document.getElementById("perm_uid").value = uid;
-  document.getElementById("permTitle").textContent = `🔑 Permissions — ${uname}`;
+  document.getElementById("permTitle").textContent = ` Permissions — ${uname}`;
   document.getElementById("perm_result").innerHTML = "";
   document.querySelectorAll(".perm-cb").forEach(cb=>cb.checked=false);
   document.querySelectorAll(".dept-cb").forEach(cb=>cb.checked=false);
@@ -637,7 +637,7 @@ async function openPerms(uid, uname){
       document.getElementById("perm_otp_login").checked = !!r.otp_login_enabled;
     }
   } catch(e){
-    document.getElementById("perm_result").innerHTML='<div class="alert alert-danger">❌ Error loading</div>';
+    document.getElementById("perm_result").innerHTML='<div class="alert alert-danger">Error loading</div>';
   }
 }
 async function savePerms(){
@@ -647,8 +647,8 @@ async function savePerms(){
   const otpLogin = document.getElementById("perm_otp_login").checked;
   const r = await api(`/users/permissions/${uid}`,"POST",{permissions:perms, dept_access:depts, otp_login_enabled:otpLogin});
   document.getElementById("perm_result").innerHTML = r.success ?
-    '<div class="alert alert-success">✅ Saved!</div>' :
-    `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    '<div class="alert alert-success">Saved!</div>' :
+    `<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>closeModal("permModal"), 900);
 }
 function selectAllPerms(v){
@@ -674,8 +674,8 @@ async function resetPw(){
   if(!data.password){ showToast("Password required","error"); return; }
   const r = await api("/users/reset-password","POST",data);
   document.getElementById("r_result").innerHTML = r.success ?
-    '<div class="alert alert-success">✅ Password reset!</div>' :
-    `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    '<div class="alert alert-success">Password reset!</div>' :
+    `<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>closeModal("resetModal"), 900);
 }
 
@@ -688,7 +688,7 @@ async function toggleUser(uid){
 async function deleteUser(uid, uname){
   if(!confirm(`Permanently delete user "${uname}"?\n\nThis cannot be undone.`)) return;
   const r = await api(`/users/delete/${uid}`,"POST",{});
-  if(r.success){ showToast("✅ User deleted"); location.reload(); }
+  if(r.success){ showToast(" User deleted"); location.reload(); }
   else { alert("Error: "+(r.error||"Failed")); }
 }
 

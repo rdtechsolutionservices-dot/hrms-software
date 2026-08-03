@@ -5,7 +5,7 @@
 <title>Warning Letter — {{ emp.emp_name }}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
+  body { font-family: Verdana, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
   @media print { body{background:white;} .no-print{display:none!important;} .letter-page{box-shadow:none;margin:0;border-radius:0;} *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;} }
   .no-print { background:#1a1a2e; padding:10px 24px; display:flex; gap:12px; align-items:center; }
   .no-print button { padding:7px 18px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; }
@@ -49,8 +49,8 @@
 </head>
 <body>
 <div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨️ Print Letter</button>
-  <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <button class="btn-print" onclick="window.print()">Print Letter</button>
+  <button class="btn-close" onclick="window.close()">Close</button>
   <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">Warning Letter — {{ emp.emp_name }}</span>
 </div>
 <div class="letter-page">
@@ -71,7 +71,7 @@
   {% endif %}
 
   <div class="letter-body">
-    <div class="letter-type-tag">⚠️ Confidential — Warning Notice</div>
+    <div class="letter-type-tag">Confidential — Warning Notice</div>
     <div class="letter-title">Warning Letter</div>
 
     <div class="emp-box">
@@ -88,12 +88,12 @@
 
     {% if incident %}
     <div class="incident-box">
-      <div class="incident-title">⚠️ Nature of Misconduct / Incident</div>
+      <div class="incident-title">Nature of Misconduct / Incident</div>
       <p style="font-size:13px;line-height:1.75;color:#222;white-space:pre-line;">{{ incident }}</p>
     </div>
     {% else %}
     <div class="incident-box">
-      <div class="incident-title">⚠️ Nature of Misconduct / Incident</div>
+      <div class="incident-title">Nature of Misconduct / Incident</div>
       <p style="font-size:13px;line-height:1.75;color:#555;">[Description of incident / misconduct]</p>
     </div>
     {% endif %}
@@ -102,7 +102,7 @@
 
     {% if action %}
     <div class="action-box">
-      <div class="action-title">📋 Corrective Action / Warning</div>
+      <div class="action-title">Corrective Action / Warning</div>
       <p style="font-size:13px;line-height:1.75;color:#222;white-space:pre-line;">{{ action }}</p>
     </div>
     {% endif %}

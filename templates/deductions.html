@@ -1,33 +1,33 @@
 {% extends "base.html" %}
 {% block title %}Deductions{% endblock %}
-{% block page_title %}💸 Deductions{% endblock %}
+{% block page_title %} Deductions{% endblock %}
 {% block content %}
 
 <!-- Section Tabs -->
 <div style="display:flex;gap:4px;background:var(--card);border-radius:10px;padding:4px;width:fit-content;margin-bottom:16px;">
-  <a href="/deductions" class="btn {% if not section or section=='all' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">📋 All</a>
-  <a href="/deductions?section=loan" class="btn {% if section=='loan' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">💳 Loan & Advance</a>
-  <a href="/deductions?section=canteen" class="btn {% if section=='canteen' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">🍱 Canteen & Uniform</a>
-  <a href="/deductions?section=fine" class="btn {% if section=='fine' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">⚠️ Fine & Penalty</a>
+  <a href="/deductions" class="btn {% if not section or section=='all' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">All</a>
+  <a href="/deductions?section=loan" class="btn {% if section=='loan' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">Loan & Advance</a>
+  <a href="/deductions?section=canteen" class="btn {% if section=='canteen' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">Canteen & Uniform</a>
+  <a href="/deductions?section=fine" class="btn {% if section=='fine' %}btn-primary{% else %}btn-ghost{% endif %}" style="font-size:12px;padding:6px 16px;">Fine & Penalty</a>
 </div>
 
 <!-- Top Bar -->
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
   {% if not section or section=='all' %}
-  <button class="btn btn-primary btn-sm" onclick="openAdd('loan')">💳 Add Loan/Advance</button>
-  <button class="btn btn-sm" style="background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.3);" onclick="openAdd('canteen')">🍱 Add Canteen/Uniform</button>
-  <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="openAdd('fine')">⚠️ Add Fine/Penalty</button>
+  <button class="btn btn-primary btn-sm" onclick="openAdd('loan')">Add Loan/Advance</button>
+  <button class="btn btn-sm" style="background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.3);" onclick="openAdd('canteen')">Add Canteen/Uniform</button>
+  <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="openAdd('fine')">Add Fine/Penalty</button>
   {% elif section=='loan' %}
-  <button class="btn btn-primary btn-sm" onclick="openAdd('loan')">💳 Add Loan / Advance</button>
+  <button class="btn btn-primary btn-sm" onclick="openAdd('loan')">Add Loan / Advance</button>
   {% elif section=='canteen' %}
-  <button class="btn btn-sm" style="background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.3);" onclick="openAdd('canteen')">🍱 Add Canteen / Uniform</button>
+  <button class="btn btn-sm" style="background:rgba(245,158,11,.15);color:#d97706;border:1px solid rgba(245,158,11,.3);" onclick="openAdd('canteen')">Add Canteen / Uniform</button>
   {% elif section=='fine' %}
-  <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="openAdd('fine')">⚠️ Add Fine / Penalty</button>
+  <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="openAdd('fine')">Add Fine / Penalty</button>
   {% endif %}
-  <label class="btn btn-ghost btn-sm" style="cursor:pointer;color:#0096dc;">📤 Bulk Upload <input type="file" accept=".xlsx,.csv" onchange="bulkUpload(this)" style="display:none;"></label>
-  <a href="/deductions/template" class="btn btn-ghost btn-sm">📥 Template</a>
-  <a href="/export/deductions" class="btn btn-ghost btn-sm" style="color:#0096dc;margin-left:auto;">📥 Export Excel</a>
-  <input class="form-control" id="srcEmp" placeholder="🔍 Search employee..." oninput="filterTable()" style="width:200px;">
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;color:#0096dc;">Bulk Upload <input type="file" accept=".xlsx,.csv" onchange="bulkUpload(this)" style="display:none;"></label>
+  <a href="/deductions/template" class="btn btn-ghost btn-sm">Template</a>
+  <a href="/export/deductions" class="btn btn-ghost btn-sm" style="color:#0096dc;margin-left:auto;">Export Excel</a>
+  <input class="form-control" id="srcEmp" placeholder=" Search employee..." oninput="filterTable()" style="width:200px;">
 </div>
 
 <!-- KPI Cards -->
@@ -106,8 +106,8 @@
           </span>
         </td>
         <td style="padding:7px;text-align:center;">
-          {% if can_edit_ded %}<button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick='editDed({{ {"id":d.id,"emp_code":d.emp_code,"emp_name":d.emp_name,"deduction_type":d.deduction_type,"description":d.description or "","total_amount":d.total_amount or 0,"monthly_amount":d.monthly_amount or 0,"start_month":d.start_month,"start_year":d.start_year,"end_month":d.end_month,"end_year":d.end_year,"status":d.status,"deduction_mode":d.deduction_mode or "loan"}|tojson }})'>✏️</button>{% endif %}
-          <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;" onclick="delDed({{ d.id }})">🗑️</button>
+          {% if can_edit_ded %}<button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick='editDed({{ {"id":d.id,"emp_code":d.emp_code,"emp_name":d.emp_name,"deduction_type":d.deduction_type,"description":d.description or "","total_amount":d.total_amount or 0,"monthly_amount":d.monthly_amount or 0,"start_month":d.start_month,"start_year":d.start_year,"end_month":d.end_month,"end_year":d.end_year,"status":d.status,"deduction_mode":d.deduction_mode or "loan"}|tojson }})'></button>{% endif %}
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;" onclick="delDed({{ d.id }})"></button>
         </td>
       </tr>
       {% endfor %}
@@ -122,12 +122,12 @@
 <div class="modal-overlay" id="loanModal">
   <div class="modal" style="width:500px;">
     <div class="modal-header">
-      <span class="modal-title">💳 Loan / Advance Deduction</span>
-      <button class="modal-close" onclick="closeModal('loanModal')">✕</button>
+      <span class="modal-title">Loan / Advance Deduction</span>
+      <button class="modal-close" onclick="closeModal('loanModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="l_editId">
-      <div class="alert alert-info" style="font-size:12px;">💡 Total amount recovered in monthly EMIs until fully paid.</div>
+      <div class="alert alert-info" style="font-size:12px;">Total amount recovered in monthly EMIs until fully paid.</div>
       <div class="form-grid">
         <div class="form-group col-span-2">
           <label class="form-label">Employee Code *</label>
@@ -137,8 +137,8 @@
         <div class="form-group">
           <label class="form-label">Type *</label>
           <select class="form-select" id="l_type">
-            <option value="Loan">💳 Loan Recovery</option>
-            <option value="Advance">💰 Salary Advance</option>
+            <option value="Loan">Loan Recovery</option>
+            <option value="Advance">Salary Advance</option>
           </select>
         </div>
         <div class="form-group">
@@ -172,7 +172,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('loanModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveLoan()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveLoan()">Save</button>
     </div>
   </div>
 </div>
@@ -181,13 +181,13 @@
 <div class="modal-overlay" id="canteenModal">
   <div class="modal" style="width:480px;">
     <div class="modal-header">
-      <span class="modal-title">🍱 Canteen / Uniform Deduction</span>
-      <button class="modal-close" onclick="closeModal('canteenModal')">✕</button>
+      <span class="modal-title">Canteen / Uniform Deduction</span>
+      <button class="modal-close" onclick="closeModal('canteenModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="c_editId">
       <div class="alert" style="font-size:12px;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#92400e;">
-        📅 Single month deduction — deducted only in the selected month.
+         Single month deduction — deducted only in the selected month.
       </div>
       <div class="form-grid">
         <div class="form-group col-span-2">
@@ -198,8 +198,8 @@
         <div class="form-group">
           <label class="form-label">Type *</label>
           <select class="form-select" id="c_type">
-            <option value="Lunch">🍱 Lunch / Canteen</option>
-            <option value="Uniform">👕 Uniform</option>
+            <option value="Lunch">Lunch / Canteen</option>
+            <option value="Uniform">Uniform</option>
           </select>
         </div>
         <div class="form-group">
@@ -228,7 +228,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('canteenModal')">Cancel</button>
-      <button class="btn" style="background:#d97706;color:#fff;" onclick="saveCanteen()">💾 Save</button>
+      <button class="btn" style="background:#d97706;color:#fff;" onclick="saveCanteen()">Save</button>
     </div>
   </div>
 </div>
@@ -237,13 +237,13 @@
 <div class="modal-overlay" id="fineModal">
   <div class="modal" style="width:480px;">
     <div class="modal-header">
-      <span class="modal-title">⚠️ Fine / Penalty</span>
-      <button class="modal-close" onclick="closeModal('fineModal')">✕</button>
+      <span class="modal-title">Fine / Penalty</span>
+      <button class="modal-close" onclick="closeModal('fineModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="f_editId">
       <div class="alert" style="font-size:12px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#991b1b;">
-        📅 Single month deduction — deducted only in the selected month.
+         Single month deduction — deducted only in the selected month.
       </div>
       <div class="form-grid">
         <div class="form-group col-span-2">
@@ -277,7 +277,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('fineModal')">Cancel</button>
-      <button class="btn" style="background:#ef4444;color:#fff;" onclick="saveFine()">💾 Save</button>
+      <button class="btn" style="background:#ef4444;color:#fff;" onclick="saveFine()">Save</button>
     </div>
   </div>
 </div>
@@ -317,7 +317,7 @@ async function loadEmpNameFor(inputId, showId){
   if(!code) return;
   const r=await fetch(`/api/emp-info?emp_code=${code}`);
   const d=await r.json();
-  document.getElementById(showId).textContent = d.success ? `✅ ${d.emp_name} — ${d.department||""}` : "❌ Not found";
+  document.getElementById(showId).textContent = d.success ? ` ${d.emp_name} — ${d.department||""}` : " Not found";
 }
 
 // ── Loan EMI calc ─────────────────────────────────────────────
@@ -357,7 +357,7 @@ async function saveLoan(){
   if(data.monthly_amount<=0){ showToast("EMI required","error"); return; }
   const url=editId?`/deductions/edit/${editId}`:"/deductions/add";
   const r=await api(url,"POST",editId?{...data,status:"Active"}:data);
-  document.getElementById("l_result").innerHTML=r.success?`<div class="alert alert-success">✅ Saved!</div>`:`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  document.getElementById("l_result").innerHTML=r.success?`<div class="alert alert-success">Saved!</div>`:`<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{ closeModal("loanModal"); window.location.href=window.location.href; },800);
 }
 
@@ -380,7 +380,7 @@ async function saveCanteen(){
   if(amt<=0){ showToast("Amount required","error"); return; }
   const url=editId?`/deductions/edit/${editId}`:"/deductions/add";
   const r=await api(url,"POST",editId?{...data,status:"Active"}:data);
-  document.getElementById("c_result").innerHTML=r.success?`<div class="alert alert-success">✅ Saved!</div>`:`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  document.getElementById("c_result").innerHTML=r.success?`<div class="alert alert-success">Saved!</div>`:`<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{ closeModal("canteenModal"); window.location.href=window.location.href; },800);
 }
 
@@ -404,7 +404,7 @@ async function saveFine(){
   if(!data.description){ showToast("Reason required","error"); return; }
   const url=editId?`/deductions/edit/${editId}`:"/deductions/add";
   const r=await api(url,"POST",editId?{...data,status:"Active"}:data);
-  document.getElementById("f_result").innerHTML=r.success?`<div class="alert alert-success">✅ Saved!</div>`:`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  document.getElementById("f_result").innerHTML=r.success?`<div class="alert alert-success">Saved!</div>`:`<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{ closeModal("fineModal"); window.location.href=window.location.href; },800);
 }
 
@@ -414,7 +414,7 @@ function editDed(d){
   if(type==="Loan"||type==="Advance"){
     document.getElementById("l_editId").value=d.id;
     document.getElementById("l_emp").value=d.emp_code;
-    document.getElementById("l_empname").textContent=`✅ ${d.emp_name}`;
+    document.getElementById("l_empname").textContent=` ${d.emp_name}`;
     document.getElementById("l_type").value=d.deduction_type;
     document.getElementById("l_desc").value=d.description||"";
     document.getElementById("l_total").value=d.total_amount||0;
@@ -426,7 +426,7 @@ function editDed(d){
   } else if(type==="Lunch"||type==="Uniform"){
     document.getElementById("c_editId").value=d.id;
     document.getElementById("c_emp").value=d.emp_code;
-    document.getElementById("c_empname").textContent=`✅ ${d.emp_name}`;
+    document.getElementById("c_empname").textContent=` ${d.emp_name}`;
     document.getElementById("c_type").value=d.deduction_type;
     document.getElementById("c_desc").value=d.description||"";
     document.getElementById("c_amount").value=d.monthly_amount||0;
@@ -436,7 +436,7 @@ function editDed(d){
   } else {
     document.getElementById("f_editId").value=d.id;
     document.getElementById("f_emp").value=d.emp_code;
-    document.getElementById("f_empname").textContent=`✅ ${d.emp_name}`;
+    document.getElementById("f_empname").textContent=` ${d.emp_name}`;
     document.getElementById("f_desc").value=d.description||"";
     document.getElementById("f_amount").value=d.monthly_amount||0;
     document.getElementById("f_month").value=d.start_month||_todayM;
@@ -458,7 +458,7 @@ async function bulkUpload(input){
   const f=input.files[0]; if(!f) return;
   const fd=new FormData(); fd.append("file",f);
   const r=await fetch("/deductions/bulk-upload",{method:"POST",body:fd}).then(r=>r.json());
-  showToast(r.success?`✅ ${r.added} records added`:`❌ ${r.error}`, r.success?"success":"error");
+  showToast(r.success?` ${r.added} records added`:` ${r.error}`, r.success?"success":"error");
   if(r.success) setTimeout(()=>location.reload(),1200);
 }
 </script>

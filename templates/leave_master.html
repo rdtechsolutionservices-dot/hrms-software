@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Leave Master{% endblock %}
-{% block page_title %}📋 Leave Master Settings{% endblock %}
+{% block page_title %} Leave Master Settings{% endblock %}
 {% block content %}
 
 <!-- Period Settings -->
 <div class="table-card" style="padding:16px;margin-bottom:14px;">
-  <div style="font-weight:800;font-size:14px;margin-bottom:12px;color:#0096dc;">⚙️ Leave Period Settings</div>
+  <div style="font-weight:800;font-size:14px;margin-bottom:12px;color:#0096dc;">Leave Period Settings</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;">
     <div class="form-group" style="margin:0;">
       <label class="form-label">Leave Year Type *</label>
       <select class="form-select" id="s_period">
-        <option value="calendar" {% if settings.period_type=='calendar' %}selected{% endif %}>📅 Calendar Year (Jan–Dec)</option>
-        <option value="financial" {% if settings.period_type=='financial' or not settings.period_type %}selected{% endif %}>📊 Financial Year (Apr–Mar)</option>
+        <option value="calendar" {% if settings.period_type=='calendar' %}selected{% endif %}>Calendar Year (Jan–Dec)</option>
+        <option value="financial" {% if settings.period_type=='financial' or not settings.period_type %}selected{% endif %}>Financial Year (Apr–Mar)</option>
       </select>
     </div>
     <div class="form-group" style="margin:0;" id="fin_month_grp">
@@ -24,19 +24,19 @@
     </div>
   </div>
   <div style="margin-top:10px;padding:10px;background:rgba(0,150,220,.08);border-radius:8px;font-size:12px;color:var(--muted);">
-    💡 <strong>Financial Year:</strong> April {{ settings.financial_year_start_month and "2026" or "2026" }} → March 2027 &nbsp;|&nbsp;
+     <strong>Financial Year:</strong>April {{ settings.financial_year_start_month and "2026" or "2026" }} → March 2027 &nbsp;|&nbsp;
     Leave quota allotted at start of period, balances reset at period end. Leave is credited only via
-    <strong>Earn Leave</strong> (Leave Balance page) or <strong>Manual Earn Credit</strong> below — Auto Leave Earn has been removed.
+    <strong>Earn Leave</strong> (Leave Balance page) or <strong>Manual Earn Credit</strong>below — Auto Leave Earn has been removed.
   </div>
   <div style="margin-top:12px;">
-    <button class="btn btn-primary btn-sm" onclick="savePeriodSettings()">💾 Save Period Settings</button>
+    <button class="btn btn-primary btn-sm" onclick="savePeriodSettings()">Save Period Settings</button>
   </div>
 </div>
 
 <!-- Leave Types -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
   <div style="font-weight:800;font-size:14px;">Leave Types & Earn Rules</div>
-  <button class="btn btn-primary btn-sm" onclick="openAddType()">➕ Add Leave Type</button>
+  <button class="btn btn-primary btn-sm" onclick="openAddType()">Add Leave Type</button>
 </div>
 
 <div class="table-card" style="overflow-x:auto;margin-bottom:14px;">
@@ -61,8 +61,8 @@
           <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(0,150,220,.15);color:#0096dc;font-weight:700;">{{ lt.applicable_to or 'Staff' }}</span>
         </td>
         <td style="padding:8px;text-align:center;font-weight:700;">{{ lt.annual_quota or 0 }} days</td>
-        <td style="padding:8px;text-align:center;">{% if lt.is_paid %}✅{% else %}❌{% endif %}</td>
-        <td style="padding:8px;text-align:center;">{% if lt.carry_forward %}✅{% else %}❌{% endif %}</td>
+        <td style="padding:8px;text-align:center;">{% if lt.is_paid %}{% else %}{% endif %}</td>
+        <td style="padding:8px;text-align:center;">{% if lt.carry_forward %}{% else %}{% endif %}</td>
         <td style="padding:8px;text-align:center;font-size:11px;color:#10b981;">
           {% if lt.earn_enabled %}
             Every {{ lt.earn_every_n_days or 30 }} days → {{ lt.earn_days_per_period or 0.75 }} days
@@ -79,8 +79,8 @@
           </span>
         </td>
         <td style="padding:8px;text-align:center;white-space:nowrap;">
-          <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick='editType({{ lt|tojson }})'>✏️ Edit</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:10px;color:{% if lt.is_active %}#ef4444{% else %}#10b981{% endif %};" onclick="toggleType({{ lt.id }})">{% if lt.is_active %}🚫{% else %}✅{% endif %}</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick='editType({{ lt|tojson }})'>Edit</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;color:{% if lt.is_active %}#ef4444{% else %}#10b981{% endif %};" onclick="toggleType({{ lt.id }})">{% if lt.is_active %}{% else %}{% endif %}</button>
         </td>
       </tr>
       {% endfor %}
@@ -91,14 +91,14 @@
 <!-- Earn Log & Manual Earn -->
 <div class="table-card" style="padding:16px;margin-bottom:14px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <div style="font-weight:800;font-size:14px;color:#10b981;">📈 Auto Leave Earn Log</div>
+    <div style="font-weight:800;font-size:14px;color:#10b981;">Auto Leave Earn Log</div>
     <div style="display:flex;gap:8px;align-items:center;">
       <select id="earnLogYear" class="form-select" style="width:100px;" onchange="loadEarnLog()">
         {% for y in range(2024,2030) %}<option {% if y==2026 %}selected{% endif %}>{{ y }}</option>{% endfor %}
       </select>
-      <a id="earnLogExportBtn" href="/leave-master/earn-log/export?year=2026" class="btn btn-ghost btn-sm">📥 Export Excel</a>
+      <a id="earnLogExportBtn" href="/leave-master/earn-log/export?year=2026" class="btn btn-ghost btn-sm">Export Excel</a>
       {% if not earn_auto_credit %}
-      <button class="btn btn-primary btn-sm" style="background:#7c3aed;" onclick="openManualEarn()">➕ Manual Earn Credit</button>
+      <button class="btn btn-primary btn-sm" style="background:#7c3aed;" onclick="openManualEarn()">Manual Earn Credit</button>
       {% endif %}
     </div>
   </div>
@@ -110,7 +110,7 @@
 {% if not earn_auto_credit %}
 <div class="modal-overlay" id="manualEarnModal">
   <div class="modal" style="width:380px;">
-    <div class="modal-header"><span class="modal-title">➕ Manual Leave Earn Credit</span><button class="modal-close" onclick="closeModal('manualEarnModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Manual Leave Earn Credit</span><button class="modal-close" onclick="closeModal('manualEarnModal')"></button></div>
     <div class="modal-body">
       <div style="font-size:12px;color:var(--muted);background:rgba(124,58,237,.08);border-radius:8px;padding:10px;margin-bottom:14px;">
         Manually credit monthly leave earn to all active employees based on leave type earn rules. Use when Auto-Earn is OFF.
@@ -133,7 +133,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('manualEarnModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#7c3aed;" onclick="doManualEarn()">✅ Credit Now</button>
+      <button class="btn btn-primary" style="background:#7c3aed;" onclick="doManualEarn()">Credit Now</button>
     </div>
   </div>
 </div>
@@ -141,15 +141,15 @@
 
 <!-- Bulk Leave Balance Upload -->
 <div class="table-card" style="padding:16px;margin-bottom:14px;">
-  <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:#7c3aed;">📤 Bulk Leave Balance Upload</div>
+  <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:#7c3aed;">Bulk Leave Balance Upload</div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
     Upload last year's carried EL + new year balances for all employees at once.
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <label class="btn btn-primary btn-sm" style="cursor:pointer;">
-      📤 Upload Excel <input type="file" accept=".xlsx" onchange="bulkBalanceUpload(this)" style="display:none;">
+       Upload Excel <input type="file" accept=".xlsx" onchange="bulkBalanceUpload(this)" style="display:none;">
     </label>
-    <a href="/leave-master/balance/template" class="btn btn-ghost btn-sm">📥 Download Template</a>
+    <a href="/leave-master/balance/template" class="btn btn-ghost btn-sm">Download Template</a>
     <span id="bulk_result" style="font-size:12px;"></span>
   </div>
 </div>
@@ -158,8 +158,8 @@
 <div class="modal-overlay" id="typeModal">
   <div class="modal" style="width:520px;">
     <div class="modal-header">
-      <span class="modal-title" id="typeModalTitle">➕ Add Leave Type</span>
-      <button class="modal-close" onclick="closeModal('typeModal')">✕</button>
+      <span class="modal-title" id="typeModalTitle">Add Leave Type</span>
+      <button class="modal-close" onclick="closeModal('typeModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="t_id">
@@ -189,11 +189,11 @@
           <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
               <input type="checkbox" id="t_paid" checked style="width:15px;height:15px;">
-              <span style="font-size:12px;">✅ Paid Leave</span>
+              <span style="font-size:12px;">Paid Leave</span>
             </label>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
               <input type="checkbox" id="t_carry" style="width:15px;height:15px;">
-              <span style="font-size:12px;">📦 Carry Forward to next year</span>
+              <span style="font-size:12px;">Carry Forward to next year</span>
             </label>
           </div>
         </div>
@@ -201,13 +201,13 @@
           <label class="form-label">Earn Rule</label>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
             <input type="checkbox" id="t_earn_en" onchange="toggleEarnFields()" style="width:15px;height:15px;">
-            <span style="font-size:12px;">⏱️ Enable Auto-Earn (EL type)</span>
+            <span style="font-size:12px;">Enable Auto-Earn (EL type)</span>
           </label>
         </div>
         <!-- Earn Fields -->
         <div id="earn_fields" style="display:none;" class="col-span-2">
           <div style="background:rgba(16,185,129,.08);border-radius:8px;padding:12px;border:1px solid rgba(16,185,129,.2);">
-            <div style="font-weight:700;font-size:12px;color:#10b981;margin-bottom:8px;">📈 Earn Rule Settings</div>
+            <div style="font-weight:700;font-size:12px;color:#10b981;margin-bottom:8px;">Earn Rule Settings</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;">
               <div class="form-group" style="margin:0;">
                 <label class="form-label" style="font-size:10px;">Every N Days Worked</label>
@@ -236,7 +236,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('typeModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveType()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveType()">Save</button>
     </div>
   </div>
 </div>
@@ -255,14 +255,14 @@ async function savePeriodSettings(){
     financial_year_start_month:parseInt(document.getElementById("s_fy_month").value),
     earn_auto_credit:false
   });
-  if(r.success) showToast("✅ Settings saved!");
+  if(r.success) showToast(" Settings saved!");
   else showToast(r.error||"Error","error");
 }
 
 // Leave type modal
 function openAddType(){
   document.getElementById("t_id").value="";
-  document.getElementById("typeModalTitle").textContent="➕ Add Leave Type";
+  document.getElementById("typeModalTitle").textContent=" Add Leave Type";
   document.getElementById("t_code").value="";
   document.getElementById("t_name").value="";
   document.getElementById("t_quota").value="";
@@ -281,7 +281,7 @@ function openAddType(){
 
 function editType(lt){
   document.getElementById("t_id").value=lt.id;
-  document.getElementById("typeModalTitle").textContent=`✏️ Edit — ${lt.code}`;
+  document.getElementById("typeModalTitle").textContent=` Edit — ${lt.code}`;
   document.getElementById("t_code").value=lt.code;
   document.getElementById("t_name").value=lt.name;
   document.getElementById("t_quota").value=lt.annual_quota||0;
@@ -324,8 +324,8 @@ async function saveType(){
   if(!data.name){showToast("Name required","error");return;}
   const r=await api("/leave-master/type/save","POST",data);
   document.getElementById("t_result").innerHTML=r.success?
-    '<div class="alert alert-success">✅ Saved!</div>':
-    `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    '<div class="alert alert-success">Saved!</div>':
+    `<div class="alert alert-danger"> ${r.error}</div>`;
   if(r.success) setTimeout(()=>{closeModal("typeModal");location.reload();},1000);
 }
 
@@ -341,10 +341,10 @@ async function bulkBalanceUpload(input){
   const span=document.getElementById("bulk_result");
   if(r.success){
     span.style.color="var(--green)";
-    span.textContent=`✅ ${r.done} records uploaded${r.errors?.length?" | ⚠️ "+r.errors.join(", "):""}`;
+    span.textContent=` ${r.done} records uploaded${r.errors?.length?" |  "+r.errors.join(", "):""}`;
   } else {
     span.style.color="var(--red)";
-    span.textContent=`❌ ${r.error}`;
+    span.textContent=` ${r.error}`;
   }
   input.value="";
 }
@@ -401,8 +401,8 @@ async function doManualEarn(){
   if(!confirm(`Credit monthly leave earn for all active employees — ${MONTHS_LIST[mo]} ${yr}?`)) return;
   const r=await api("/leave-master/manual-earn","POST",{year:yr,month:mo});
   document.getElementById("me_result").innerHTML=r.success
-    ?`<div class="alert alert-success" style="margin-top:10px;">✅ ${r.message}</div>`
-    :`<div class="alert alert-danger" style="margin-top:10px;">❌ ${r.error}</div>`;
+    ?`<div class="alert alert-success" style="margin-top:10px;"> ${r.message}</div>`
+    :`<div class="alert alert-danger" style="margin-top:10px;"> ${r.error}</div>`;
   if(r.success){setTimeout(()=>{closeModal("manualEarnModal");loadEarnLog();},1500);}
 }
 

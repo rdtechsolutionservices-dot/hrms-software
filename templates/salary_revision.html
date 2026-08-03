@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Salary Revision Report{% endblock %}
-{% block page_title %}📊 Salary Revision Report{% endblock %}
+{% block page_title %} Salary Revision Report{% endblock %}
 {% block content %}
 
 <div class="toolbar">
   <span style="font-size:13px;color:var(--muted);">{{ revisions|length }} total revisions</span>
-  <button class="btn btn-primary btn-sm" onclick="openModal('incModal')">📈 Apply Increment</button>
-  <label class="btn btn-ghost btn-sm" style="cursor:pointer;color:#10b981;">📤 Bulk Upload <input type="file" accept=".xlsx" onchange="bulkInc(this)" style="display:none;"></label>
-  <a href="/salary/increment/template" class="btn btn-ghost btn-sm">📥 Template</a>
-  <a href="/export/salary-revision" class="btn btn-ghost btn-sm" style="color:#0096dc;">📥 Export Report</a>
+  <button class="btn btn-primary btn-sm" onclick="openModal('incModal')">Apply Increment</button>
+  <label class="btn btn-ghost btn-sm" style="cursor:pointer;color:#10b981;">Bulk Upload <input type="file" accept=".xlsx" onchange="bulkInc(this)" style="display:none;"></label>
+  <a href="/salary/increment/template" class="btn btn-ghost btn-sm">Template</a>
+  <a href="/export/salary-revision" class="btn btn-ghost btn-sm" style="color:#0096dc;">Export Report</a>
   <div style="margin-left:auto;">
-    <input class="form-control" style="width:220px;" placeholder="🔍 Search employee..." id="srch" oninput="filterTable()">
+    <input class="form-control" style="width:220px;" placeholder=" Search employee..." id="srch" oninput="filterTable()">
   </div>
 </div>
 
 <!-- Increment Modal -->
 <div class="modal-overlay" id="incModal">
   <div class="modal" style="width:520px;">
-    <div class="modal-header"><span class="modal-title">📈 Apply Salary / Designation Change</span><button class="modal-close" onclick="closeModal('incModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Apply Salary / Designation Change</span><button class="modal-close" onclick="closeModal('incModal')"></button></div>
     <div class="modal-body">
       <div class="form-grid">
 
@@ -51,7 +51,7 @@
         <div class="form-group col-span-2" style="margin-top:4px;">
           <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleSalarySection()">
             <input type="checkbox" id="i_chk_salary" style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;" onclick="event.stopPropagation();toggleSalarySection()" checked>
-            <label for="i_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">💰 Salary Increment</label>
+            <label for="i_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">Salary Increment</label>
           </div>
         </div>
 
@@ -86,7 +86,7 @@
         </table>
         <!-- Editable Basic & HRA — available to all users with access to this page -->
         <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px;margin-top:6px;">
-          <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:8px;">✏️ Adjust New Basic &amp; HRA</div>
+          <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:8px;">Adjust New Basic &amp; HRA</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
             <div>
               <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW BASIC (₹)</label>
@@ -107,7 +107,7 @@
         <div class="form-group col-span-2" style="margin-top:4px;">
           <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleDesigChange()">
             <input type="checkbox" id="i_chk_desig" style="width:16px;height:16px;cursor:pointer;accent-color:#0096dc;" onclick="event.stopPropagation();toggleDesigChange()">
-            <label for="i_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:#0096dc;">🏷️ Change Designation</label>
+            <label for="i_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:#0096dc;">Change Designation</label>
           </div>
         </div>
 
@@ -127,7 +127,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('incModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="applyIncrement()">✅ Apply Changes</button>
+      <button class="btn btn-primary" onclick="applyIncrement()">Apply Changes</button>
     </div>
   </div>
 </div>
@@ -174,14 +174,14 @@
         <td style="font-weight:600;color:#0096dc">{{ r.effective_date }}</td>
         <td style="font-size:12px;color:var(--muted)">{{ r.reason or '—' }}</td>
         <td style="display:flex;gap:6px;align-items:center;">
-          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm">📋 History</a>
+          <a href="/salary/history/{{ r.emp_code }}" class="btn btn-ghost btn-sm">History</a>
           {% if is_admin_page %}
           <button class="btn btn-ghost btn-sm" style="color:#f59e0b;"
             onclick="openEditModal({{ r.id }}, '{{ r.emp_code }}', '{{ r.emp_name }}',
               {{ r.old_basic }}, {{ r.new_basic }},
               '{{ r.effective_date }}', '{{ (r.reason or '') | replace("'","") }}',
               '{{ (r.old_designation or '') | replace("'","") }}',
-              '{{ (r.new_designation or '') | replace("'","") }}')">✏️ Edit</button>
+              '{{ (r.new_designation or '') | replace("'","") }}')">Edit</button>
           {% endif %}
         </td>
       </tr>
@@ -194,10 +194,10 @@
 </div>
 
 <div class="mini-card" style="margin-top:14px;">
-  <div class="mini-title">ℹ️ Important — How Historical Salary Works</div>
+  <div class="mini-title">ℹ Important — How Historical Salary Works</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
     <div style="background:rgba(16,185,129,.08);border-radius:10px;padding:14px;">
-      <div style="font-weight:700;color:var(--green);margin-bottom:8px;">✅ What is preserved</div>
+      <div style="font-weight:700;color:var(--green);margin-bottom:8px;">What is preserved</div>
       <div style="color:var(--muted);line-height:2;">
         • Each month's salary is saved permanently<br>
         • Old reports always show old salary amounts<br>
@@ -206,12 +206,12 @@
       </div>
     </div>
     <div style="background:rgba(0,82,204,.08);border-radius:10px;padding:14px;">
-      <div style="font-weight:700;color:#0096dc;margin-bottom:8px;">💡 How to update salary</div>
+      <div style="font-weight:700;color:#0096dc;margin-bottom:8px;">How to update salary</div>
       <div style="color:var(--muted);line-height:2;">
         • Go to Employees → Edit → Change Basic/HRA/Special<br>
         • Or use Salary History → Apply Increment button<br>
         • Recalculate salary for new month<br>
-        • Previous months remain unchanged ✅
+        • Previous months remain unchanged 
       </div>
     </div>
   </div>
@@ -223,20 +223,20 @@
 <div class="modal-overlay" id="editIncModal">
   <div class="modal" style="width:520px;">
     <div class="modal-header">
-      <span class="modal-title">✏️ Edit Increment Record</span>
-      <button class="modal-close" onclick="closeModal('editIncModal')">✕</button>
+      <span class="modal-title">Edit Increment Record</span>
+      <button class="modal-close" onclick="closeModal('editIncModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="edit_inc_id">
       <div style="background:var(--surface);border-radius:10px;padding:10px 14px;margin-bottom:14px;">
         <div id="edit_emp_label" style="font-weight:700;font-size:14px;"></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px;">⚠️ Editing will update the increment record. If this is the latest increment, employee's current basic will also be updated.</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Editing will update the increment record. If this is the latest increment, employee's current basic will also be updated.</div>
       </div>
       <div class="form-grid">
         <div class="form-group col-span-2">
           <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleEditSalarySection()">
             <input type="checkbox" id="edit_chk_salary" style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;" onclick="event.stopPropagation();toggleEditSalarySection()" checked>
-            <label for="edit_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">💰 Salary Increment</label>
+            <label for="edit_chk_salary" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;color:var(--green);">Salary Increment</label>
           </div>
         </div>
         <div id="edit_salary_section" style="display:contents;">
@@ -250,7 +250,7 @@
           </div>
           <div class="form-group col-span-2" style="margin-top:0;">
             <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px;">
-              <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:6px;">✏️ Adjust New Basic &amp; HRA</div>
+              <div style="font-size:11px;color:#f59e0b;font-weight:700;margin-bottom:6px;">Adjust New Basic &amp; HRA</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                 <div>
                   <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">NEW BASIC (₹)</label>
@@ -278,7 +278,7 @@
         <div class="form-group col-span-2" style="margin-top:4px;">
           <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;cursor:pointer;" onclick="toggleEditDesigSection()">
             <input type="checkbox" id="edit_chk_desig" style="width:16px;height:16px;cursor:pointer;accent-color:#0096dc;" onclick="event.stopPropagation();toggleEditDesigSection()">
-            <label for="edit_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;">🏷️ Change Designation</label>
+            <label for="edit_chk_desig" style="cursor:pointer;font-weight:600;font-size:13px;margin:0;">Change Designation</label>
           </div>
         </div>
         <div id="edit_desig_section" style="display:none;grid-column:span 2;">
@@ -301,7 +301,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('editIncModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#f59e0b;border-color:#f59e0b;" onclick="saveEditIncrement()">✏️ Save Changes</button>
+      <button class="btn btn-primary" style="background:#f59e0b;border-color:#f59e0b;" onclick="saveEditIncrement()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -339,15 +339,15 @@ function onEmpCodeChange(){
   const adjB = document.getElementById("i_adj_basic"); const adjH = document.getElementById("i_adj_hra");
   if(adjB) delete adjB.dataset.touched; if(adjH) delete adjH.dataset.touched;
   if(!emp) return;
-  _empCodeTimer = setTimeout(() => fetchEmpInfo(emp), 400);
+  _empCodeTimer = setTimeout(() =>fetchEmpInfo(emp), 400);
 }
 async function fetchEmpInfo(emp){
   try{
-    const r = await fetch(`/api/emp-info?emp_code=${emp}`).then(r => r.json());
-    if(!r.success){ document.getElementById("i_emp_err").textContent = "❌ Employee not found"; document.getElementById("i_emp_err").style.display = "block"; return; }
+    const r = await fetch(`/api/emp-info?emp_code=${emp}`).then(r =>r.json());
+    if(!r.success){ document.getElementById("i_emp_err").textContent = " Employee not found"; document.getElementById("i_emp_err").style.display = "block"; return; }
     _empInfoCache = r;
     document.getElementById("i_empav").textContent = r.emp_name.substring(0,2).toUpperCase();
-    document.getElementById("i_empname").textContent = "✅ " + r.emp_name;
+    document.getElementById("i_empname").textContent = " " + r.emp_name;
     document.getElementById("i_empdesc").textContent = (r.designation||"—") + " · " + (r.department||"—") + " · " + (r.category||"—");
     document.getElementById("i_empinfo").style.display = "block";
     if(document.getElementById("i_chk_desig").checked) document.getElementById("i_desig_hint").textContent = "Current: " + (r.designation||"—");
@@ -393,11 +393,11 @@ function onAdjBasicHra(){
   const b = parseFloat(adjB.value)||0; const h = parseFloat(adjH.value)||0;
   const errDiv = document.getElementById("i_adj_err"); const okDiv = document.getElementById("i_adj_ok");
   if(b+h > newGross+0.01){
-    errDiv.textContent = `❌ Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} exceeds Gross ₹${newGross.toFixed(0)}.`;
+    errDiv.textContent = ` Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} exceeds Gross ₹${newGross.toFixed(0)}.`;
     errDiv.style.display="block"; okDiv.style.display="none"; window._adjValid=false;
   } else {
     errDiv.style.display="none";
-    okDiv.textContent = `✅ Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} (Gross ₹${newGross.toFixed(0)})`;
+    okDiv.textContent = ` Basic ₹${b.toFixed(0)} + HRA ₹${h.toFixed(0)} = ₹${(b+h).toFixed(0)} (Gross ₹${newGross.toFixed(0)})`;
     okDiv.style.display="block"; window._adjValid=true;
   }
 }
@@ -424,20 +424,20 @@ async function applyIncrement(){
   if(adjB && adjH && adjB.dataset.touched){ data.override_basic = parseFloat(adjB.value)||null; data.override_hra = parseFloat(adjH.value)||null; }
   const r = await api("/salary/increment","POST",data);
   if(r.success){
-    let msg = `✅ Applied!`;
+    let msg = ` Applied!`;
     if(r.salary_changed) msg += `<br>Gross: ₹${r.new_gross?.toLocaleString()} | Basic: ₹${r.new_basic} | HRA: ₹${r.new_hra}`;
-    if(r.new_designation) msg += `<br>🏷️ ${r.old_designation} → <strong>${r.new_designation}</strong>`;
+    if(r.new_designation) msg += `<br> ${r.old_designation} → <strong>${r.new_designation}</strong>`;
     document.getElementById("i_result").innerHTML = `<div class="alert alert-success">${msg}</div>`;
     setTimeout(()=>{ closeModal("incModal"); location.reload(); },1800);
-  } else { document.getElementById("i_result").innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`; }
+  } else { document.getElementById("i_result").innerHTML = `<div class="alert alert-danger"> ${r.error}</div>`; }
 }
 async function bulkInc(input){
   const f=input.files[0]; if(!f) return;
   if(!confirm("Apply bulk increment to all employees in this file?")) return;
   const fd=new FormData(); fd.append("file",f);
   const r=await fetch("/salary/increment/bulk",{method:"POST",body:fd}).then(r=>r.json());
-  if(r.success){ showToast(`✅ ${r.done} employees updated`); setTimeout(()=>location.reload(),1500); }
-  else showToast(`❌ ${r.error}`,"error");
+  if(r.success){ showToast(` ${r.done} employees updated`); setTimeout(()=>location.reload(),1500); }
+  else showToast(` ${r.error}`,"error");
   input.value="";
 }
 // ── Edit Modal ────────────────────────────────────────
@@ -490,8 +490,8 @@ function onEditBasicChange(){
   const diff=newBasic-_editOldBasic;
   prevDiv.innerHTML=`Old Basic: <strong>₹${_editOldBasic.toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; Change: <strong style="color:${diff>=0?'var(--green)':'var(--red)'}">${diff>=0?'+':''}₹${diff.toLocaleString('en-IN')}</strong>`;
   if(gross>0&&newBasic>0&&newHra>0){
-    if(newBasic+newHra>gross+0.01){ errDiv.textContent=`❌ Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} exceeds Gross ₹${gross.toLocaleString('en-IN')}.`; errDiv.style.display="block"; okDiv.style.display="none"; window._editAdjValid=false; }
-    else { errDiv.style.display="none"; okDiv.textContent=`✅ Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} = ₹${(newBasic+newHra).toLocaleString('en-IN')} (Gross ₹${gross.toLocaleString('en-IN')})`; okDiv.style.display="block"; window._editAdjValid=true; }
+    if(newBasic+newHra>gross+0.01){ errDiv.textContent=` Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} exceeds Gross ₹${gross.toLocaleString('en-IN')}.`; errDiv.style.display="block"; okDiv.style.display="none"; window._editAdjValid=false; }
+    else { errDiv.style.display="none"; okDiv.textContent=` Basic ₹${newBasic.toLocaleString('en-IN')} + HRA ₹${newHra.toLocaleString('en-IN')} = ₹${(newBasic+newHra).toLocaleString('en-IN')} (Gross ₹${gross.toLocaleString('en-IN')})`; okDiv.style.display="block"; window._editAdjValid=true; }
   } else { errDiv.style.display="none"; okDiv.style.display="none"; window._editAdjValid=true; }
 }
 async function saveEditIncrement(){
@@ -508,8 +508,8 @@ async function saveEditIncrement(){
   if(doSalary&&(!newBasic||!effDate)){ document.getElementById("edit_result").innerHTML='<div class="alert alert-danger">New Basic and Effective Date required.</div>'; return; }
   const payload={ salary_change:doSalary, old_basic:parseFloat(document.getElementById("edit_old_basic").value), new_basic:doSalary?newBasic:null, override_hra:newHra, override_gross:newGross, effective_date:effDate, reason:reason, designation_change:doDesig, old_designation:document.getElementById("edit_old_desig").value, new_designation:doDesig?document.getElementById("edit_new_desig").value:"" };
   const r=await api(`/salary/increment/edit/${document.getElementById("edit_inc_id").value}`,"POST",payload);
-  if(r.success){ document.getElementById("edit_result").innerHTML='<div class="alert alert-success">✅ Updated successfully.</div>'; setTimeout(()=>{ closeModal("editIncModal"); location.reload(); },1200); }
-  else { document.getElementById("edit_result").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`; }
+  if(r.success){ document.getElementById("edit_result").innerHTML='<div class="alert alert-success">Updated successfully.</div>'; setTimeout(()=>{ closeModal("editIncModal"); location.reload(); },1200); }
+  else { document.getElementById("edit_result").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`; }
 }
 </script>
 {% endblock %}

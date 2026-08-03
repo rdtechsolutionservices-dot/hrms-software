@@ -5,7 +5,7 @@
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
   <div style="color:var(--muted);font-size:13px;">Define standard headcount — Dashboard will compare Actual vs Standard</div>
-  <button onclick="saveAll()" class="btn btn-primary">💾 Save All Changes</button>
+  <button onclick="saveAll()" class="btn btn-primary">Save All Changes</button>
 </div>
 
 <div class="table-card">
@@ -13,10 +13,10 @@
     <thead>
       <tr style="border-bottom:2px solid var(--border);">
         <th style="text-align:left;padding:10px 12px;cursor:pointer;" onclick="sortTable('mpTable',0)">Department ↕</th>
-        <th style="text-align:center;padding:10px 12px;color:#f59e0b;">🏭 Associate (Std)</th>
-        <th style="text-align:center;padding:10px 12px;color:#0096dc;">👔 Staff (Std)</th>
-        <th style="text-align:center;padding:10px 12px;color:#10b981;">🏭 Associate (Actual)</th>
-        <th style="text-align:center;padding:10px 12px;color:#0096dc;">👔 Staff (Actual)</th>
+        <th style="text-align:center;padding:10px 12px;color:#f59e0b;">Associate (Std)</th>
+        <th style="text-align:center;padding:10px 12px;color:#0096dc;">Staff (Std)</th>
+        <th style="text-align:center;padding:10px 12px;color:#10b981;">Associate (Actual)</th>
+        <th style="text-align:center;padding:10px 12px;color:#0096dc;">Staff (Actual)</th>
         <th style="text-align:center;padding:10px 12px;">Gap</th>
         <th style="text-align:center;padding:10px 12px;">Delete</th>
       </tr>
@@ -44,18 +44,18 @@
           {% set gap_s  = act_s  - (mp.std_staff  or 0) %}
           {% if (mp.std_nonstaff or 0) > 0 or (mp.std_staff or 0) > 0 %}
             {% if gap_ns < 0 or gap_s < 0 %}
-              <span style="color:#f43f5e;font-weight:600;">⚠️ Short: A {{ gap_ns }}, S {{ gap_s }}</span>
+              <span style="color:#f43f5e;font-weight:600;">Short: A {{ gap_ns }}, S {{ gap_s }}</span>
             {% elif gap_ns > 0 or gap_s > 0 %}
-              <span style="color:#f59e0b;font-weight:600;">📈 Extra: A +{{ gap_ns }}, S +{{ gap_s }}</span>
+              <span style="color:#f59e0b;font-weight:600;">Extra: A +{{ gap_ns }}, S +{{ gap_s }}</span>
             {% else %}
-              <span style="color:#10b981;font-weight:600;">✅ On Target</span>
+              <span style="color:#10b981;font-weight:600;">On Target</span>
             {% endif %}
           {% else %}
             <span style="color:var(--muted);font-size:12px;">— Not set</span>
           {% endif %}
         </td>
         <td style="padding:10px 12px;text-align:center;">
-          <button onclick="deleteDept('{{ dept }}')" class="btn btn-ghost btn-sm" style="color:#ef4444;font-size:11px;padding:3px 8px;">🗑️</button>
+          <button onclick="deleteDept('{{ dept }}')" class="btn btn-ghost btn-sm" style="color:#ef4444;font-size:11px;padding:3px 8px;"></button>
         </td>
       </tr>
       {% endfor %}
@@ -64,7 +64,7 @@
 </div>
 
 <div id="saveMsg" style="display:none;margin-top:12px;padding:10px 16px;background:rgba(16,185,129,.15);border:1px solid #10b981;border-radius:8px;color:#10b981;font-weight:600;">
-  ✅ Manpower master saved successfully!
+   Manpower master saved successfully!
 </div>
 
 <script>
@@ -99,7 +99,7 @@ async function deleteDept(dept) {
     const r = await resp.json();
     if(r.success){
       showToast('Department deleted!');
-      setTimeout(() => location.reload(), 800);
+      setTimeout(() =>location.reload(), 800);
     } else {
       showToast(r.error || 'Delete failed', 'error');
     }
@@ -122,7 +122,7 @@ function sortTable(tableId, col) {
     if(!isNaN(an) && !isNaN(bn)) return dir*(an-bn);
     return dir * av.localeCompare(bv);
   });
-  rows.forEach(r => tb.querySelector('tbody').appendChild(r));
+  rows.forEach(r =>tb.querySelector('tbody').appendChild(r));
 }
 </script>
 {% endblock %}

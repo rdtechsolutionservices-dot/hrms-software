@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Reports & Analytics{% endblock %}
-{% block page_title %}📊 Reports & Analytics{% endblock %}
+{% block page_title %} Reports & Analytics{% endblock %}
 {% block content %}
 
 <!-- Month/Year Selector -->
@@ -27,32 +27,32 @@
 
   <!-- ══ LEFT: ATTENDANCE REPORT ══ -->
   <div style="background:var(--card);border:1.5px solid rgba(0,82,204,.2);border-radius:14px;padding:18px;">
-    <div style="font-weight:800;font-size:14px;color:#0096dc;margin-bottom:14px;font-family:Syne,sans-serif;">📋 Attendance Report</div>
+    <div style="font-weight:800;font-size:14px;color:#0096dc;margin-bottom:14px;font-family:Syne,sans-serif;">Attendance Report</div>
 
     <!-- Report Type -->
     <div style="display:flex;gap:6px;margin-bottom:12px;">
       <label style="cursor:pointer;flex:1;background:var(--surface);border-radius:8px;padding:8px;border:2px solid #0052cc;text-align:center;">
         <input type="radio" name="att_type" id="att_detailed" checked>
-        <div style="font-size:11px;font-weight:700;color:#0096dc;">📊 Detailed</div>
+        <div style="font-size:11px;font-weight:700;color:#0096dc;">Detailed</div>
         <div style="font-size:9px;color:var(--muted);">Day-wise In/Out, OT, Late, Shift</div>
       </label>
       <label style="cursor:pointer;flex:1;background:var(--surface);border-radius:8px;padding:8px;border:1px solid var(--border);text-align:center;">
         <input type="radio" name="att_type" id="att_inout">
-        <div style="font-size:11px;font-weight:700;">⏰ In/Out</div>
+        <div style="font-size:11px;font-weight:700;">In/Out</div>
         <div style="font-size:9px;color:var(--muted);">Simple punch records</div>
       </label>
       <label style="cursor:pointer;flex:1;background:var(--surface);border-radius:8px;padding:8px;border:1px solid var(--border);text-align:center;">
         <input type="radio" name="att_type" id="att_summary">
-        <div style="font-size:11px;font-weight:700;">📈 Summary</div>
+        <div style="font-size:11px;font-weight:700;">Summary</div>
         <div style="font-size:9px;color:var(--muted);">Present/Absent/OT totals</div>
       </label>
     </div>
 
     <!-- Period -->
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_monthly" checked onchange="toggleAttPeriod()"> Monthly</label>
-      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_range" onchange="toggleAttPeriod()"> Date Range</label>
-      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_yearly" onchange="toggleAttPeriod()"> Full Year</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_monthly" checked onchange="toggleAttPeriod()">Monthly</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_range" onchange="toggleAttPeriod()">Date Range</label>
+      <label style="font-size:12px;cursor:pointer;"><input type="radio" name="att_period" id="att_yearly" onchange="toggleAttPeriod()">Full Year</label>
     </div>
 
     <!-- Month selector -->
@@ -86,25 +86,25 @@
     <!-- Format -->
     <div style="margin-bottom:10px;">
       <select class="form-select" id="att_format" style="font-size:11px;">
-        <option value="excel">📊 Excel (.xlsx)</option>
-        <option value="pdf">📄 PDF (coming soon)</option>
+        <option value="excel">Excel (.xlsx)</option>
+        <option value="pdf">PDF (coming soon)</option>
       </select>
     </div>
 
-    <button class="btn btn-primary" style="width:100%;font-size:13px;" onclick="generateAttReport(this)">📋 Generate Report</button>
+    <button class="btn btn-primary" style="width:100%;font-size:13px;" onclick="generateAttReport(this)">Generate Report</button>
 
     <!-- Preview after generate -->
     <div id="attReportPreview" style="display:none;margin-top:10px;">
       <div style="background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px;" id="attPreviewInfo"></div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-success btn-sm" style="flex:1;" onclick="downloadAttReport(this)">📊 Download Excel</button>
+        <button class="btn btn-success btn-sm" style="flex:1;" onclick="downloadAttReport(this)">Download Excel</button>
       </div>
     </div>
   </div>
 
   <!-- ══ RIGHT: OTHER REPORTS ══ -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;">
-    <div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:14px;font-family:Syne,sans-serif;">📁 Salary & Other Reports</div>
+    <div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:14px;font-family:Syne,sans-serif;">Salary & Other Reports</div>
 
     <!-- Filters for 6 reports -->
     <div style="background:var(--surface);border-radius:10px;padding:10px;margin-bottom:12px;">
@@ -137,14 +137,14 @@
     </div>
 
     <div style="display:flex;flex-direction:column;gap:7px;">
-      <button onclick="expF('salary')" class="btn btn-primary btn-sm">📊 Salary Register (.xlsx)</button>
-      <button onclick="expF('attendance')" class="btn btn-ghost btn-sm">📅 Attendance Summary (.xlsx)</button>
-      <button onclick="expF('attendance_detail_all')" class="btn btn-ghost btn-sm" style="background:rgba(245,158,11,.15);color:#f59e0b;">📋 Attendance Detail All — Single Sheet</button>
-      <a href="/reports/yearly-attendance?year={{ cur_year }}" class="btn btn-ghost btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;">📅 Yearly Attendance Count</a>
-      <button onclick="expF('ot')" class="btn btn-warning btn-sm">⏰ OT Report (.xlsx)</button>
-      <button onclick="expF('bank')" class="btn btn-success btn-sm">🏦 Bank Transfer (.xlsx)</button>
-      <button onclick="expF('pf')" class="btn btn-ghost btn-sm" style="background:rgba(139,92,246,.2);color:#a78bfa;">📋 PF & ESI (.xlsx)</button>
-      <button onclick="expYear()" class="btn btn-ghost btn-sm" style="background:rgba(244,63,94,.15);color:var(--red);">📅 Full Year (.xlsx)</button>
+      <button onclick="expF('salary')" class="btn btn-primary btn-sm">Salary Register (.xlsx)</button>
+      <button onclick="expF('attendance')" class="btn btn-ghost btn-sm">Attendance Summary (.xlsx)</button>
+      <button onclick="expF('attendance_detail_all')" class="btn btn-ghost btn-sm" style="background:rgba(245,158,11,.15);color:#f59e0b;">Attendance Detail All — Single Sheet</button>
+      <a href="/reports/yearly-attendance?year={{ cur_year }}" class="btn btn-ghost btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;">Yearly Attendance Count</a>
+      <button onclick="expF('ot')" class="btn btn-warning btn-sm">OT Report (.xlsx)</button>
+      <button onclick="expF('bank')" class="btn btn-success btn-sm">Bank Transfer (.xlsx)</button>
+      <button onclick="expF('pf')" class="btn btn-ghost btn-sm" style="background:rgba(139,92,246,.2);color:#a78bfa;">PF & ESI (.xlsx)</button>
+      <button onclick="expYear()" class="btn btn-ghost btn-sm" style="background:rgba(244,63,94,.15);color:var(--red);">Full Year (.xlsx)</button>
     </div>
   </div>
 </div>
@@ -152,26 +152,26 @@
 <!-- ══ ATTENDANCE TABLE ══ -->
 <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <div style="font-weight:800;font-size:13px;font-family:Syne,sans-serif;">📅 Attendance — {{ month_name }} {{ year }}</div>
+    <div style="font-weight:800;font-size:13px;font-family:Syne,sans-serif;">Attendance — {{ month_name }} {{ year }}</div>
     {% if session.role == 'admin' %}
     <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:5px 10px;">
       <input type="checkbox" id="recalcCheck" onchange="toggleRecalc()">
-      <span style="font-size:11px;font-weight:700;color:var(--yellow);">🔄 Recalculate</span>
+      <span style="font-size:11px;font-weight:700;color:var(--yellow);">Recalculate</span>
     </label>
     {% endif %}
   </div>
 
   <!-- Recalc panel -->
   <div id="recalcPanel" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px;margin-bottom:10px;">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">🔄 Reprocess: fix next-day OUT, reapply shift rules, recalculate OT</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Reprocess: fix next-day OUT, reapply shift rules, recalculate OT</div>
 
     <!-- Mode toggle -->
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <label style="cursor:pointer;display:flex;align-items:center;gap:5px;font-size:12px;">
-        <input type="radio" name="recalcMode" value="month" checked onchange="toggleRecalcMode()"> Month Mode
+        <input type="radio" name="recalcMode" value="month" checked onchange="toggleRecalcMode()">Month Mode
       </label>
       <label style="cursor:pointer;display:flex;align-items:center;gap:5px;font-size:12px;">
-        <input type="radio" name="recalcMode" value="range" onchange="toggleRecalcMode()"> Date Range Mode
+        <input type="radio" name="recalcMode" value="range" onchange="toggleRecalcMode()">Date Range Mode
       </label>
     </div>
 
@@ -187,7 +187,7 @@
       <label style="font-size:11px;">To:</label>
       <input type="date" id="recalcTo"   class="form-control" style="width:145px;font-size:12px;">
       <div style="font-size:10px;color:#f59e0b;margin-top:4px;width:100%;">
-        💡 For month-end Night Shift: From = last working day of month, To = 1st or 2nd of next month
+         For month-end Night Shift: From = last working day of month, To = 1st or 2nd of next month
       </div>
     </div>
 
@@ -196,14 +196,14 @@
         <option value="">All Employees</option>
         {% for e in employees %}<option value="{{ e.emp_code }}">{{ e.emp_code }} — {{ e.emp_name }}</option>{% endfor %}
       </select>
-      <button class="btn btn-warning btn-sm" onclick="runRecalc(this)">🔄 Run</button>
+      <button class="btn btn-warning btn-sm" onclick="runRecalc(this)">Run</button>
       <span id="recalcResult" style="font-size:11px;"></span>
     </div>
   </div>
 
   <!-- Filters -->
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
-    <input class="form-control" id="rpt_att_search" style="width:180px;" placeholder="🔍 Name or Code..." oninput="filterAttTable()">
+    <input class="form-control" id="rpt_att_search" style="width:180px;" placeholder=" Name or Code..." oninput="filterAttTable()">
     <select class="form-select" id="rpt_att_dept" style="width:160px;" onchange="fetchAttData()">
       <option value="">All Departments</option>
       {% for d in departments %}<option>{{ d }}</option>{% endfor %}
@@ -233,7 +233,7 @@
       <input class="form-control" type="date" id="rpt_from" style="width:135px;" onchange="fetchAttData()">
       <input class="form-control" type="date" id="rpt_to" style="width:135px;" onchange="fetchAttData()">
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="clearAttFilters()">✕ Clear</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearAttFilters()">Clear</button>
     <span id="attFilterInfo" style="font-size:11px;color:var(--muted);margin-left:auto;"></span>
   </div>
 
@@ -272,7 +272,7 @@
 <!-- Edit Attendance Modal -->
 <div class="modal-overlay" id="editAttModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">✏️ Edit Attendance</span><button class="modal-close" onclick="closeModal('editAttModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Edit Attendance</span><button class="modal-close" onclick="closeModal('editAttModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="edit_att_code">
       <div style="background:var(--surface);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;color:#0096dc;font-weight:600;" id="edit_att_info"></div>
@@ -293,7 +293,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('editAttModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAttEdit()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveAttEdit()">Save</button>
     </div>
   </div>
 </div>
@@ -334,12 +334,12 @@ function syncEmpCode(inp){
     document.getElementById("empSelStatus").style.color = "var(--muted)";
     return;
   }
-  let match = opts.find(o => o.value === val);
-  if(!match) match = opts.find(o => o.value && o.value === val.split(/[\s—]/)[0].trim());
-  if(!match) match = opts.find(o => o.text.toLowerCase().includes(val.toLowerCase()));
+  let match = opts.find(o =>o.value === val);
+  if(!match) match = opts.find(o =>o.value && o.value === val.split(/[\s—]/)[0].trim());
+  if(!match) match = opts.find(o =>o.text.toLowerCase().includes(val.toLowerCase()));
   if(match && match.value){
     document.getElementById("att_emp").value = match.value;
-    document.getElementById("empSelStatus").textContent = "✅ Selected: " + match.text;
+    document.getElementById("empSelStatus").textContent = " Selected: " + match.text;
     document.getElementById("empSelStatus").style.color = "var(--green)";
   } else {
     document.getElementById("att_emp").value = "";
@@ -351,7 +351,7 @@ function syncEmpCode(inp){
 // ── Generate Attendance Report ───────────────────────────
 let _attPayload = null;
 function generateAttReport(btn){
-  if(btn){ btn.textContent="⏳ Generating..."; btn.disabled=true; }
+  if(btn){ btn.textContent=" Generating..."; btn.disabled=true; }
 
   const isRange  = document.getElementById("att_range").checked;
   const isYearly = document.getElementById("att_yearly").checked;
@@ -373,7 +373,7 @@ function generateAttReport(btn){
     to_date:     isRange ? document.getElementById("att_to").value   : ""
   };
 
-  if(btn){ btn.textContent="📋 Generate Report"; btn.disabled=false; }
+  if(btn){ btn.textContent=" Generate Report"; btn.disabled=false; }
 
   if(isRange && (!_attPayload.from_date || !_attPayload.to_date)){
     showToast("Please select From and To date!","error"); return;
@@ -385,14 +385,14 @@ function generateAttReport(btn){
                  isYearly ? _attPayload.year : (monthName + " " + _attPayload.year);
 
   document.getElementById("attPreviewInfo").innerHTML =
-    "✅ Ready: <strong>" + rptType + "</strong> | <strong>" + empName + "</strong> | <strong>" + period + "</strong>";
+    " Ready: <strong>" + rptType + "</strong> | <strong>" + empName + "</strong> | <strong>" + period + "</strong>";
   document.getElementById("attReportPreview").style.display = "block";
   showToast("Report ready — click Download!");
 }
 
 async function downloadAttReport(btn){
   if(!_attPayload){ showToast("Click Generate first!","error"); return; }
-  if(btn){ btn.textContent="⏳ Downloading..."; btn.disabled=true; }
+  if(btn){ btn.textContent=" Downloading..."; btn.disabled=true; }
 
   const url = (_attPayload.rpt_type === "summary") ?
     "/reports/attendance-advanced" : "/reports/attendance-register";
@@ -405,21 +405,21 @@ async function downloadAttReport(btn){
   try{
     const resp = await fetch(url, {method:"POST",
       headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-    if(btn){ btn.textContent="📊 Download Excel"; btn.disabled=false; }
+    if(btn){ btn.textContent=" Download Excel"; btn.disabled=false; }
     if(resp.ok){
       const blob = await resp.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "Attendance_" + (_attPayload.rpt_type||"report") + "_" + (_attPayload.emp_code||"All") + ".xlsx";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showToast("✅ Downloaded!");
+      showToast(" Downloaded!");
     } else {
       const txt = await resp.text();
-      showToast("❌ Error: " + txt.substring(0,100), "error");
+      showToast(" Error: " + txt.substring(0,100), "error");
     }
   } catch(e){
-    if(btn){ btn.textContent="📊 Download Excel"; btn.disabled=false; }
-    showToast("❌ " + e.message, "error");
+    if(btn){ btn.textContent=" Download Excel"; btn.disabled=false; }
+    showToast(" " + e.message, "error");
   }
 }
 
@@ -500,7 +500,7 @@ async function fetchAttData(){
     if(dept) params.set("dept", dept);
     if(rptScheme) params.set("scheme", rptScheme);
 
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--muted);">⏳ Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--muted);">Loading...</td></tr>';
 
     try {
       const resp = await fetch("/reports/att-data?" + params.toString());
@@ -601,7 +601,7 @@ async function saveAttEdit(){
     fetchAttData();
   } else {
     document.getElementById("attEditResult").innerHTML =
-      '<div class="alert alert-danger">❌ ' + (r.error||"Error") + '</div>';
+      '<div class="alert alert-danger"> ' + (r.error||"Error") + '</div>';
   }
 }
 
@@ -617,7 +617,7 @@ function toggleRecalcMode(){
 }
 async function runRecalc(btn){
   if(!btn) btn = document.querySelector('[onclick*="runRecalc"]');
-  if(btn){ btn.textContent="⏳ Running..."; btn.disabled=true; }
+  if(btn){ btn.textContent=" Running..."; btn.disabled=true; }
   const modeEl = document.querySelector('input[name="recalcMode"]:checked');
   const mode   = modeEl ? modeEl.value : "month";
   const emp    = (document.getElementById("recalcEmp") || {}).value || "";
@@ -627,7 +627,7 @@ async function runRecalc(btn){
     const td = document.getElementById("recalcTo").value;
     if(!fd || !td){
       alert("Please select From and To dates");
-      if(btn){ btn.textContent="🔄 Run"; btn.disabled=false; }
+      if(btn){ btn.textContent=" Run"; btn.disabled=false; }
       return;
     }
     payload = {from_date:fd, to_date:td, emp_code:emp};
@@ -635,13 +635,13 @@ async function runRecalc(btn){
     payload = {month:parseInt(gRM()), year:parseInt(gRY()), emp_code:emp};
   }
   const r = await api("/attendance/recalculate","POST",payload);
-  if(btn){ btn.textContent="🔄 Run"; btn.disabled=false; }
+  if(btn){ btn.textContent=" Run"; btn.disabled=false; }
   const res = document.getElementById("recalcResult");
   if(r && r.success){
-    res.innerHTML = '<span style="color:var(--green)">✅ ' + (r.message||"Done") + '</span>';
-    setTimeout(() => location.reload(), 2000);
+    res.innerHTML = '<span style="color:var(--green)"> ' + (r.message||"Done") + '</span>';
+    setTimeout(() =>location.reload(), 2000);
   } else {
-    res.innerHTML = '<span style="color:var(--red)">❌ ' + ((r&&r.error)||"Error") + '</span>';
+    res.innerHTML = '<span style="color:var(--red)"> ' + ((r&&r.error)||"Error") + '</span>';
   }
 }
 
@@ -663,7 +663,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <!-- Attendance Edit Modal -->
 <div class="modal-overlay" id="attEditModal">
   <div class="modal" style="width:440px;">
-    <div class="modal-header"><span class="modal-title">✏️ Edit Attendance</span><button class="modal-close" onclick="closeModal('attEditModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Edit Attendance</span><button class="modal-close" onclick="closeModal('attEditModal')"></button></div>
     <div class="modal-body">
       <div id="attEditInfo" style="background:var(--surface);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;font-weight:600;"></div>
       <input type="hidden" id="ae_code">
@@ -695,7 +695,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('attEditModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAttEdit()">💾 Save Changes</button>
+      <button class="btn btn-primary" onclick="saveAttEdit()">Save Changes</button>
     </div>
   </div>
 </div>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Payroll Summary{% endblock %}
-{% block page_title %}💰 Payroll Summary{% endblock %}
+{% block page_title %} Payroll Summary{% endblock %}
 {% block content %}
 
 <!-- Month Selector -->
@@ -15,25 +15,25 @@
   {% if can_process %}
   <div style="display:flex;gap:6px;align-items:center;">
     <button class="btn btn-primary" onclick="processAll('salary')" title="Process Salary, Present Days, PF, ESIC, PT — can run multiple times">
-      ⚙️ Process Salary
+       Process Salary
     </button>
     <button class="btn" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;" onclick="processAll('deduction')" title="Apply Loan, Advance, Canteen, Fine, Uniform deductions — run only when finalized">
-      ➖ Process Deductions
+       Process Deductions
     </button>
   </div>
   {% endif %}
-  <button class="btn btn-ghost" onclick="previewOne()">👁️ Preview Employee</button>
-  {% if can_mark_paid %}<button class="btn btn-ghost" style="color:#10b981;" onclick="markAllPaid()">✅ Mark All Paid</button>{% endif %}
+  <button class="btn btn-ghost" onclick="previewOne()">Preview Employee</button>
+  {% if can_mark_paid %}<button class="btn btn-ghost" style="color:#10b981;" onclick="markAllPaid()">Mark All Paid</button>{% endif %}
   {% if can_mark_paid %}
   <button class="btn btn-ghost" id="lockBtn"
     style="color:#ef4444;border-color:rgba(239,68,68,.3);"
-    onclick="togglePayrollLock()">🔒 Lock Month</button>
+    onclick="togglePayrollLock()">Lock Month</button>
   {% endif %}
   {% set can_reports = session.role=='admin' or 'reports_salary' in session.get('permissions',[]) %}
   {% if can_reports %}
-  <a href="/payroll/bank-file/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#0096dc;">🏦 Bank File</a>
-  <a href="/payroll/reports/pf/{{ month }}/{{ year }}" class="btn btn-ghost">📄 PF Report</a>
-  <a href="/payroll/reports/esic/{{ month }}/{{ year }}" class="btn btn-ghost">📄 ESIC Report</a>
+  <a href="/payroll/bank-file/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#0096dc;">Bank File</a>
+  <a href="/payroll/reports/pf/{{ month }}/{{ year }}" class="btn btn-ghost">PF Report</a>
+  <a href="/payroll/reports/esic/{{ month }}/{{ year }}" class="btn btn-ghost">ESIC Report</a>
   {% endif %}
 </div>
 
@@ -104,10 +104,10 @@
 </div>
 {% endif %}
 
-<!-- ⚠️ Deduction Skipped Warning -->
+<!--  Deduction Skipped Warning -->
 {% if skipped_deduction_emps %}
 <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;">
-  <div style="font-weight:700;color:#f59e0b;margin-bottom:6px;">⚠️ {{ skipped_deduction_emps|length }} Employee(s) — Deductions Skipped (Earned Gross < Total Deductions)</div>
+  <div style="font-weight:700;color:#f59e0b;margin-bottom:6px;"> {{ skipped_deduction_emps|length }} Employee(s) — Deductions Skipped (Earned Gross < Total Deductions)</div>
   <div style="display:flex;flex-direction:column;gap:4px;max-height:100px;overflow-y:auto;">
     {% for s in skipped_deduction_emps %}
     <div style="font-size:11px;color:var(--muted);">
@@ -121,10 +121,10 @@
 <!-- Process Result -->
 <div id="processResult" style="margin-bottom:12px;"></div>
 
-<!-- ⚠️ Warning: Employees with basic salary = 0 -->
+<!--  Warning: Employees with basic salary = 0 -->
 {% if zero_basic_emps %}
 <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;">
-  <div style="font-weight:700;color:#ef4444;margin-bottom:6px;">⚠️ {{ zero_basic_emps|length }} Employee(s) have Basic Salary = ₹0 — Please update salary details before processing payroll!</div>
+  <div style="font-weight:700;color:#ef4444;margin-bottom:6px;"> {{ zero_basic_emps|length }} Employee(s) have Basic Salary = ₹0 — Please update salary details before processing payroll!</div>
   <div style="display:flex;flex-wrap:wrap;gap:6px;max-height:80px;overflow-y:auto;">
     {% for z in zero_basic_emps %}
     <span style="background:rgba(239,68,68,.15);color:#ef4444;border-radius:6px;padding:2px 8px;font-size:11px;">
@@ -132,13 +132,13 @@
     </span>
     {% endfor %}
   </div>
-  <div style="margin-top:6px;color:var(--muted);">Go to <a href="/employees" style="color:#0096dc;">Employees → Edit → Salary Details</a> and fill in Basic, HRA &amp; Special Allowance.</div>
+  <div style="margin-top:6px;color:var(--muted);">Go to <a href="/employees" style="color:#0096dc;">Employees → Edit → Salary Details</a>and fill in Basic, HRA &amp; Special Allowance.</div>
 </div>
 {% endif %}
 
 <!-- Filters -->
 <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-  <input class="form-control" id="srch" placeholder="🔍 Search employee..." oninput="filterTable()" style="width:180px;">
+  <input class="form-control" id="srch" placeholder=" Search employee..." oninput="filterTable()" style="width:180px;">
   <select class="form-select" id="dept_f" style="width:160px;" onchange="filterTable()">
     <option value="">All Departments</option>
     {% for d in dept_summary %}<option>{{ d.department or 'N/A' }}</option>{% endfor %}
@@ -156,7 +156,7 @@
     <option>Pending</option><option>Paid</option>
   </select>
   <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-    <input type="checkbox" id="show_net_zero" onchange="filterTable()"> Show Net Salary Zero
+    <input type="checkbox" id="show_net_zero" onchange="filterTable()">Show Net Salary Zero
   </label>
   <span id="countInfo" style="font-size:12px;color:var(--muted);align-self:center;margin-left:auto;"></span>
 </div>
@@ -220,14 +220,14 @@
         <td style="padding:6px 6px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.0f}".format(r.net_salary or 0) }}</td>
         <td style="padding:6px;text-align:center;">
           {% if r.payment_status == 'Paid' %}
-            <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">✅ Paid</span>
+            <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">Paid</span>
           {% else %}
-            <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">⏳ Pending</span>
+            <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">Pending</span>
           {% endif %}
         </td>
         <td style="padding:6px;text-align:center;">
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="viewPayslip('{{ r.emp_code }}',{{ month }},{{ year }})">🧾</button>
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="previewEmp('{{ r.emp_code }}')">👁️</button>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="viewPayslip('{{ r.emp_code }}',{{ month }},{{ year }})"></button>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="previewEmp('{{ r.emp_code }}')"></button>
         </td>
       </tr>
       {% endfor %}
@@ -243,7 +243,7 @@
 <!-- Mark Paid Modal -->
 <div class="modal-overlay" id="paidModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">✅ Mark as Paid</span><button class="modal-close" onclick="closeModal('paidModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Mark as Paid</span><button class="modal-close" onclick="closeModal('paidModal')"></button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Payment Date</label><input class="form-control" type="date" id="pay_date" value="{{ today_str if today_str else '' }}"></div>
       <div class="form-group"><label class="form-label">Payment Mode</label>
@@ -256,7 +256,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('paidModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmPaid()">✅ Confirm Payment</button>
+      <button class="btn btn-primary" onclick="confirmPaid()">Confirm Payment</button>
     </div>
   </div>
 </div>
@@ -264,7 +264,7 @@
 <!-- Preview Modal -->
 <div class="modal-overlay" id="previewModal">
   <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto;">
-    <div class="modal-header"><span class="modal-title">👁️ Salary Preview</span><button class="modal-close" onclick="closeModal('previewModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Salary Preview</span><button class="modal-close" onclick="closeModal('previewModal')"></button></div>
     <div class="modal-body" id="previewBody">Loading...</div>
   </div>
 </div>
@@ -279,7 +279,7 @@
         </div>
         <div><div style="font-family:Syne,sans-serif;font-weight:800;font-size:16px;color:white;">{{ company_name }}</div><div style="font-size:12px;color:rgba(255,255,255,.75)" id="psm_period">Salary Slip</div></div>
       </div>
-      <button class="modal-close" onclick="closeModal('psSumModal')" style="background:rgba(255,255,255,.2)">✕</button>
+      <button class="modal-close" onclick="closeModal('psSumModal')" style="background:rgba(255,255,255,.2)"></button>
     </div>
     <div class="modal-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px;background:var(--surface);padding:14px;border-radius:10px;font-size:13px;">
@@ -321,7 +321,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('psSumModal')">Close</button>
-      <button class="btn btn-primary" onclick="printSumPayslip()">🖨️ Print / Save PDF</button>
+      <button class="btn btn-primary" onclick="printSumPayslip()">Print / Save PDF</button>
     </div>
   </div>
 </div>
@@ -334,7 +334,7 @@
         <div style="font-weight:800;font-size:14px;color:#fff;" id="attPopupTitle">Attendance Details</div>
         <div style="font-size:11px;color:rgba(255,255,255,.75);" id="attPopupSub">—</div>
       </div>
-      <button class="modal-close" onclick="closeModal('attPopupModal')" style="background:rgba(255,255,255,.2)">✕</button>
+      <button class="modal-close" onclick="closeModal('attPopupModal')" style="background:rgba(255,255,255,.2)"></button>
     </div>
     <div class="modal-body" id="attPopupBody" style="padding:16px;">
       <div style="text-align:center;padding:30px;color:var(--muted);">Loading attendance...</div>
@@ -422,12 +422,12 @@ async function processAll(mode){
   else { if(dept) scopeParts.push(dept); if(cat) scopeParts.push(cat); if(scheme) scopeParts.push(`Scheme: ${scheme}`); }
   const scope = scopeParts.length ? scopeParts.join(" / ") : "ALL employees";
   const confirmMsg = mode === 'deduction'
-    ? `⚠️ Apply Deductions (Loan, Advance, Canteen, Fine, Uniform) for ${scope}?\n\nNote: Run this ONLY when deductions are finalized. Salary process is separate.`
+    ? ` Apply Deductions (Loan, Advance, Canteen, Fine, Uniform) for ${scope}?\n\nNote: Run this ONLY when deductions are finalized. Salary process is separate.`
     : `Process Salary (Present Days, Basic, PF, ESIC, PT) for ${scope}?\n\nYou can run this multiple times — deductions are NOT affected.`;
   if(!confirm(confirmMsg)) return;
   const div=document.getElementById("processResult");
   const label = mode === 'deduction' ? 'Applying deductions' : 'Processing salary';
-  div.innerHTML=`<div class="alert alert-warning">⏳ ${label}... please wait</div>`;
+  div.innerHTML=`<div class="alert alert-warning"> ${label}... please wait</div>`;
   const r=await api("/payroll/process-all","POST",{
     month:parseInt(document.getElementById("selM").value),
     year:parseInt(document.getElementById("selY").value),
@@ -438,7 +438,7 @@ async function processAll(mode){
     mode:mode
   });
   if(r.success){
-    let msg = `<div class="alert alert-${r.failed>0?'warning':'success'}">✅ ${r.message}`;
+    let msg = `<div class="alert alert-${r.failed>0?'warning':'success'}"> ${r.message}`;
     if(r.errors && r.errors.length){
       msg += `<div style="margin-top:8px;font-size:12px;"><strong>Failed:</strong><br>`;
       r.errors.forEach(e=>{
@@ -451,7 +451,7 @@ async function processAll(mode){
     msg += `</div>`;
     div.innerHTML=msg;
     if(r.processed>0) setTimeout(()=>location.reload(),3000);
-  } else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Error"}</div>`;
+  } else div.innerHTML=`<div class="alert alert-danger"> ${r.error||"Error"}</div>`;
 }
 
 let selectedCodes=[];
@@ -471,11 +471,11 @@ async function confirmPaid(){
     payment_ref:document.getElementById("pay_ref").value
   });
   if(r.success){showToast("Marked as Paid!");setTimeout(()=>{closeModal("paidModal");location.reload();},1000);}
-  else document.getElementById("paidResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  else document.getElementById("paidResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 async function previewEmp(ec){
-  document.getElementById("previewBody").innerHTML="⏳ Loading...";
+  document.getElementById("previewBody").innerHTML=" Loading...";
   openModal("previewModal");
   const r=await api("/payroll/preview","POST",{
     emp_code:ec,
@@ -489,7 +489,7 @@ async function previewEmp(ec){
         <div style="font-weight:800;font-size:16px;margin-bottom:12px;">${d.emp_name} (${ec})</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div style="background:var(--surface);border-radius:8px;padding:12px;">
-            <div style="font-weight:700;margin-bottom:8px;color:#0096dc;">📅 Attendance</div>
+            <div style="font-weight:700;margin-bottom:8px;color:#0096dc;">Attendance</div>
             <table style="width:100%;font-size:12px;">
               <tr><td>Working Days</td><td style="text-align:right;font-weight:600;">${d.working_days}</td></tr>
               <tr><td>Present</td><td style="text-align:right;font-weight:600;">${d.present_days}</td></tr>
@@ -502,7 +502,7 @@ async function previewEmp(ec){
             </table>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:12px;">
-            <div style="font-weight:700;margin-bottom:8px;color:#10b981;">💰 Earnings</div>
+            <div style="font-weight:700;margin-bottom:8px;color:#10b981;">Earnings</div>
             <table style="width:100%;font-size:12px;">
               <tr><td>Basic</td><td style="text-align:right;">₹${d.basic_earned?.toLocaleString()}</td></tr>
               <tr><td>HRA</td><td style="text-align:right;">₹${d.hra_earned?.toLocaleString()}</td></tr>
@@ -513,7 +513,7 @@ async function previewEmp(ec){
             </table>
           </div>
           <div style="background:var(--surface);border-radius:8px;padding:12px;">
-            <div style="font-weight:700;margin-bottom:8px;color:#ef4444;">➖ Deductions</div>
+            <div style="font-weight:700;margin-bottom:8px;color:#ef4444;">Deductions</div>
             <table style="width:100%;font-size:12px;">
               <tr><td>Employee PF</td><td style="text-align:right;">₹${(d.pf||0).toLocaleString()}</td></tr>
               <tr style="color:var(--muted);font-size:10px;"><td>&nbsp;&nbsp;Employer PF — Reference</td><td style="text-align:right;">₹${(d.employer_pf||0).toLocaleString()}</td></tr>
@@ -536,7 +536,7 @@ async function previewEmp(ec){
         </div>
       </div>`;
   } else {
-    document.getElementById("previewBody").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    document.getElementById("previewBody").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
   }
 }
 function previewOne(){
@@ -556,14 +556,14 @@ async function checkLockStatus(){
     const btn = document.getElementById('lockBtn');
     if(!btn) return;
     if(j.locked){
-      btn.textContent = '🔓 Unlock Month';
+      btn.textContent = ' Unlock Month';
       btn.style.color = '#f59e0b';
       btn.style.borderColor = 'rgba(245,158,11,.3)';
       // Show locked banner
       const banner = document.getElementById('lockBanner');
-      if(banner){ banner.style.display='flex'; banner.textContent = `🔒 Payroll Locked — locked by ${j.locked_by} on ${j.locked_at?.slice(0,16)||''}`; }
+      if(banner){ banner.style.display='flex'; banner.textContent = ` Payroll Locked — locked by ${j.locked_by} on ${j.locked_at?.slice(0,16)||''}`; }
     } else {
-      btn.textContent = '🔒 Lock Month';
+      btn.textContent = ' Lock Month';
       btn.style.color = '#ef4444';
       btn.style.borderColor = 'rgba(239,68,68,.3)';
       const banner = document.getElementById('lockBanner');
@@ -574,14 +574,14 @@ async function checkLockStatus(){
 
 async function togglePayrollLock(){
   if(_isLocked){
-    if(!confirm('⚠️ WARNING: Unlocking will allow salary to be re-processed for this month.\n\nAre you sure you want to UNLOCK {{ month_name }} {{ year }}?')) return;
+    if(!confirm(' WARNING: Unlocking will allow salary to be re-processed for this month.\n\nAre you sure you want to UNLOCK {{ month_name }} {{ year }}?')) return;
     const r = await api('/payroll/unlock','POST',{month:{{ month }},year:{{ year }}});
     if(r.success){ showToast('Month unlocked. Salary can be re-processed.','success'); checkLockStatus(); }
     else showToast(r.error||'Unlock failed','error');
   } else {
     if(!confirm('Lock payroll for {{ month_name }} {{ year }}?\n\nAfter locking, salary cannot be re-processed until unlocked.')) return;
     const r = await api('/payroll/lock','POST',{month:{{ month }},year:{{ year }}});
-    if(r.success){ showToast('Payroll locked! ✅','success'); checkLockStatus(); }
+    if(r.success){ showToast('Payroll locked! ','success'); checkLockStatus(); }
     else showToast(r.error||'Lock failed','error');
   }
 }
@@ -640,8 +640,8 @@ async function showAttPopup(empCode, empName, month, year){
         <td style="padding:6px;text-align:center;color:var(--muted);">${r.out_time||'—'}</td>
         <td style="padding:6px;text-align:center;">${r.duration||'—'}</td>
         <td style="padding:6px;text-align:center;">${
-          r.late_waived ? '<span style="color:#10b981;font-weight:600;font-size:10px;">✓ Waived</span>' :
-          r.late_waived ? '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-size:10px;">✓ Waived</span>' : r.late_min>0 ? '<span style="color:#f97316;">'+r.late_min+' min</span>' : '—'
+          r.late_waived ? '<span style="color:#10b981;font-weight:600;font-size:10px;">Waived</span>' :
+          r.late_waived ? '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-size:10px;">Waived</span>' : r.late_min>0 ? '<span style="color:#f97316;">'+r.late_min+' min</span>' : '—'
         }</td>
         <td style="padding:6px;text-align:center;color:#8b5cf6;font-weight:600;">${r.ot_hrs>0?r.ot_hrs+' hrs':'—'}</td>
       </tr>`;
@@ -665,7 +665,7 @@ async function viewPayslip(empId, month, year){
     return;
   }
   const fmt  = v => "₹" + parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
-  const fmtN = v => parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtN = v =>parseFloat(v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
   const setEl = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
   const showEl = (id,v) => { const e=document.getElementById(id); if(e) e.style.display=v?"":"none"; };
 

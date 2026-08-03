@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Payroll Trends{% endblock %}
-{% block page_title %}📈 Payroll Analytics Trends{% endblock %}
+{% block page_title %} Payroll Analytics Trends{% endblock %}
 {% block content %}
 
 <!-- Filters -->
@@ -9,15 +9,15 @@
     <div class="form-group" style="margin:0;">
       <label class="form-label" style="font-size:10px;">Metric</label>
       <select class="form-select" id="metric" onchange="loadChart()" style="width:160px;">
-        <option value="net_salary">💰 Net Salary (Payout)</option>
-        <option value="gross">📊 Gross Salary</option>
-        <option value="pf">🔒 PF Deduction</option>
-        <option value="esi">🏥 ESI Deduction</option>
-        <option value="present_days">📅 Present Days</option>
-        <option value="ot_hours">⏱️ OT Hours</option>
-        <option value="ot_amount">💵 OT Amount</option>
-        <option value="extra_working_hours">🕐 Extra Working Hours</option>
-        <option value="extra_working_amount">💷 Extra Working Amount</option>
+        <option value="net_salary">Net Salary (Payout)</option>
+        <option value="gross">Gross Salary</option>
+        <option value="pf">PF Deduction</option>
+        <option value="esi">ESI Deduction</option>
+        <option value="present_days">Present Days</option>
+        <option value="ot_hours">OT Hours</option>
+        <option value="ot_amount">OT Amount</option>
+        <option value="extra_working_hours">Extra Working Hours</option>
+        <option value="extra_working_amount">Extra Working Amount</option>
       </select>
     </div>
     <div class="form-group" style="margin:0;">
@@ -65,7 +65,7 @@
 <div class="table-card" style="padding:16px;margin-bottom:14px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <div>
-      <div style="font-weight:800;font-size:14px;" id="chartTitle">💰 Net Salary Trend</div>
+      <div style="font-weight:800;font-size:14px;" id="chartTitle">Net Salary Trend</div>
       <div style="font-size:11px;color:var(--muted);" id="chartSubtitle">Month-wise payout trend</div>
     </div>
     <div style="display:flex;gap:12px;font-size:12px;" id="chartStats"></div>
@@ -75,7 +75,7 @@
 
 <!-- Bar Chart for comparison -->
 <div class="table-card" style="padding:16px;">
-  <div style="font-weight:700;font-size:13px;margin-bottom:12px;">📊 Month Comparison (Bar)</div>
+  <div style="font-weight:700;font-size:13px;margin-bottom:12px;">Month Comparison (Bar)</div>
   <canvas id="barChart" height="50"></canvas>
 </div>
 
@@ -93,12 +93,12 @@ function setMonths(n){
 }
 
 const METRIC_LABELS = {
-  net_salary:'💰 Net Salary (Payout)', ot_hours:'⏱️ OT Hours', ot_amount:'💵 OT Amount',
-  gross:'📊 Gross Salary',
-  pf:'🔒 PF Deduction',
-  esi:'🏥 ESI Deduction',
-  present_days:'📅 Avg Present Days', ot_hours:'⏱️ Total OT Hours', ot_amount:'💵 Total OT Amount',
-  extra_working_hours:'🕐 Extra Working Hours', extra_working_amount:'💷 Extra Working Amount'
+  net_salary:' Net Salary (Payout)', ot_hours:' OT Hours', ot_amount:' OT Amount',
+  gross:' Gross Salary',
+  pf:' PF Deduction',
+  esi:' ESI Deduction',
+  present_days:' Avg Present Days', ot_hours:' Total OT Hours', ot_amount:' Total OT Amount',
+  extra_working_hours:' Extra Working Hours', extra_working_amount:' Extra Working Amount'
 };
 
 const METRIC_COLORS = {
@@ -128,7 +128,7 @@ async function loadChart(){
   if(vals.length){
     const max=Math.max(...vals), min=Math.min(...vals), avg=vals.reduce((a,b)=>a+b,0)/vals.length;
     const isMoney = metric!=='present_days' && metric!=='ot_hours' && metric!=='extra_working_hours';
-    const fmt = v => isMoney ? '₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0}) : (metric==='ot_hours'||metric==='extra_working_hours') ? v.toFixed(1)+' hrs' : v.toFixed(1);
+    const fmt = v =>isMoney ? '₹'+v.toLocaleString('en-IN',{maximumFractionDigits:0}) : (metric==='ot_hours'||metric==='extra_working_hours') ? v.toFixed(1)+' hrs' : v.toFixed(1);
     document.getElementById('chartStats').innerHTML=`
       <span style="color:#10b981;">▲ Max: <strong>${fmt(max)}</strong></span>
       <span style="color:#ef4444;">▼ Min: <strong>${fmt(min)}</strong></span>

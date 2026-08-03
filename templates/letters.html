@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Letters{% endblock %}
-{% block page_title %}📄 Letter Generator{% endblock %}
+{% block page_title %} Letter Generator{% endblock %}
 {% block content %}
 {% if can_admin %}
 <!-- Header/Footer/Signature Settings -->
 <div class="table-card" style="padding:14px;margin-bottom:14px;">
-  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">🖼️ Letter Header, Footer & Signatures</div>
+  <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Letter Header, Footer & Signatures</div>
 
   <!-- Header + Footer Upload Row -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
@@ -13,9 +13,9 @@
       <label class="form-label">Header Image (Company letterhead top)</label>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
-          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'header')" style="display:none;">
+           Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'header')" style="display:none;">
         </label>
-        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('header')">🗑️ Remove</button>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('header')">Remove</button>
         <span id="hdr_status" style="font-size:11px;color:var(--muted);">Not set</span>
       </div>
       <div id="hdr_preview" style="margin-top:6px;"></div>
@@ -24,9 +24,9 @@
       <label class="form-label">Footer Image (Company letterhead bottom)</label>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
-          📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'footer')" style="display:none;">
+           Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'footer')" style="display:none;">
         </label>
-        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('footer')">🗑️ Remove</button>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('footer')">Remove</button>
         <span id="ftr_status" style="font-size:11px;color:var(--muted);">Not set</span>
       </div>
       <div id="ftr_preview" style="margin-top:6px;"></div>
@@ -37,13 +37,13 @@
   <div style="border-top:1px solid var(--border);padding-top:14px;">
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;">
       <div>
-        <label class="form-label">🔏 Company Seal / Stamp</label>
+        <label class="form-label">Company Seal / Stamp</label>
         <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Insert the "Company Seal" field in a letter template wherever you want it to appear.</div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
           <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
-            📤 Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'seal')" style="display:none;">
+             Upload <input type="file" accept="image/*" onchange="uploadLetterImg(this,'seal')" style="display:none;">
           </label>
-          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('seal')">🗑️ Remove</button>
+          <button class="btn btn-ghost btn-sm" style="color:#ef4444;border-color:#ef4444;" onclick="removeLetterImg('seal')">Remove</button>
           <span id="seal_status" style="font-size:11px;color:var(--muted);">Not set</span>
         </div>
         <div id="seal_preview"></div>
@@ -55,7 +55,7 @@
 
 <!-- Named Signatures (used by Custom Letter Templates) -->
 <div class="table-card" id="sig-manager" style="padding:14px;margin-bottom:14px;">
-  <div style="font-weight:700;font-size:13px;margin-bottom:6px;">🖊️ Named Signatures (for Custom Letter Templates)</div>
+  <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Named Signatures (for Custom Letter Templates)</div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6;">
     Add one entry per signatory (e.g. "Director", "HR Department"). When you build a letter template, tick which of these
     should appear on that letter — the name you give here is exactly what prints under the signature.
@@ -71,13 +71,13 @@
         <label class="form-label">Signature Image</label>
         <input type="file" accept="image/*" id="new_sig_file" class="form-control" style="width:220px;">
       </div>
-      <button class="btn btn-ghost btn-sm" style="border-color:#10b981;color:#10b981;" onclick="toggleSigCanvas()">✍️ Draw Instead</button>
+      <button class="btn btn-ghost btn-sm" style="border-color:#10b981;color:#10b981;" onclick="toggleSigCanvas()">Draw Instead</button>
       <button class="btn btn-success btn-sm" onclick="addSignature()">+ Add Signature</button>
     </div>
     <div id="sig_canvas_wrap" style="display:none;background:#fff;border:2px solid #10b981;border-radius:8px;max-width:600px;">
       <canvas id="sigCanvas" width="580" height="160" style="display:block;cursor:crosshair;touch-action:none;"></canvas>
       <div style="display:flex;gap:6px;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">
-        <button onclick="clearSigCanvas()" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">🗑 Clear</button>
+        <button onclick="clearSigCanvas()" style="font-size:11px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff;">Clear</button>
         <input type="color" id="sigColor" value="#000000" style="width:28px;height:24px;border:none;cursor:pointer;padding:0;" title="Pen color">
         <input type="range" id="sigWidth" min="1" max="5" value="2" style="width:60px;" title="Pen width">
         <span style="font-size:10px;color:#888;margin-left:auto;align-self:center;">Draw, then click "+ Add Signature" above to save it.</span>
@@ -91,7 +91,7 @@
 <div class="table-card" style="padding:16px;margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
     <div>
-      <div style="font-weight:700;font-size:15px;">🧩 Letter Templates</div>
+      <div style="font-weight:700;font-size:15px;">Letter Templates</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px;">Every template you build shows up here, ready to fill in and submit for approval.</div>
     </div>
     {% if can_admin %}<a href="/letters/templates" class="btn btn-success" style="white-space:nowrap;">+ Add Templates</a>{% endif %}
@@ -101,15 +101,15 @@
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px;">
   {% for t in templates %}
   <div style="background:var(--card);border:1px solid rgba(0,150,220,.25);border-radius:16px;padding:22px;">
-    <div style="font-size:28px;margin-bottom:10px;">🧩</div>
+    <div style="font-size:28px;margin-bottom:10px;"></div>
     <div style="font-family:Syne,sans-serif;font-weight:800;font-size:16px;color:#0096dc;margin-bottom:4px;">{{ t.template_name }}</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">{{ t.letter_title or 'No title set' }}</div>
-    <a href="/letters/templates/generate/{{ t.id }}" class="btn btn-success" style="width:100%;text-align:center;display:block;">📄 Generate</a>
+    <a href="/letters/templates/generate/{{ t.id }}" class="btn btn-success" style="width:100%;text-align:center;display:block;">Generate</a>
   </div>
   {% endfor %}
   {% if not templates %}
   <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);background:var(--card);border:1px dashed var(--border);border-radius:16px;">
-    No letter templates yet. Click <b>+ Add Templates</b> above to build your first one.
+    No letter templates yet. Click <b>+ Add Templates</b>above to build your first one.
   </div>
   {% endif %}
 </div>
@@ -117,7 +117,7 @@
 <!-- Pending for Approval -->
 <div class="table-card" style="margin-bottom:16px;">
   <div class="table-header">
-    <span class="table-title">⏳ Pending for Approval</span>
+    <span class="table-title">Pending for Approval</span>
     <span style="font-size:12px;color:var(--muted);">{{ pending_docs|length }} pending</span>
   </div>
   <table>
@@ -142,15 +142,15 @@
         <td style="font-size:12px;color:var(--muted);">{{ d.generated_on }}</td>
         <td>
           <div style="display:flex;gap:6px;">
-            <a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">👁️ View</a>
-            <a href="/letters/documents/edit/{{ d.id }}" class="btn btn-ghost btn-sm" style="font-size:11px;">✏️ Edit</a>
+            <a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">View</a>
+            <a href="/letters/documents/edit/{{ d.id }}" class="btn btn-ghost btn-sm" style="font-size:11px;">Edit</a>
           </div>
         </td>
         {% if can_approve %}
         <td>
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-success btn-sm" style="font-size:11px;" onclick="approveDoc({{ d.id }})">✅ Approve</button>
-            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#ef4444;border-color:#ef4444;" onclick="rejectDoc({{ d.id }})">✖ Reject</button>
+            <button class="btn btn-success btn-sm" style="font-size:11px;" onclick="approveDoc({{ d.id }})">Approve</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#ef4444;border-color:#ef4444;" onclick="rejectDoc({{ d.id }})">Reject</button>
           </div>
         </td>
         {% endif %}
@@ -171,7 +171,7 @@
 <!-- Recently Approved -->
 <div class="table-card" style="margin-bottom:16px;">
   <div class="table-header">
-    <span class="table-title">✅ Recently Approved</span>
+    <span class="table-title">Recently Approved</span>
     <span style="font-size:12px;color:var(--muted);">{{ approved_docs|length }} shown</span>
   </div>
   <table>
@@ -195,7 +195,7 @@
         <td style="font-size:12px;">{{ d.emp_name or '—' }}</td>
         <td style="font-size:12px;color:var(--muted);">{{ d.approved_by }}</td>
         <td style="font-size:12px;color:var(--muted);">{{ d.approved_on }}</td>
-        <td><a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">🖨️ View / Print</a></td>
+        <td><a href="/letters/documents/view/{{ d.id }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;">View / Print</a></td>
       </tr>
       {% endfor %}
     </tbody>
@@ -269,7 +269,7 @@ async function checkLetterSettings(){
     const s=r.settings||{};
     const setItem=(statusId,previewId,filename,imgUrl,maxH)=>{
       const el=document.getElementById(statusId);
-      if(el){el.textContent="✅ "+filename;el.style.color="var(--green)";}
+      if(el){el.textContent=" "+filename;el.style.color="var(--green)";}
       const pe=document.getElementById(previewId);
       if(pe) pe.innerHTML=`<img src="${imgUrl}?t=${Date.now()}" style="max-height:${maxH}px;border:1px solid var(--border);border-radius:4px;">`;
     };
@@ -301,7 +301,7 @@ async function loadSignatures(){
     <div style="text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 14px;min-width:130px;">
       ${s.img_b64 ? `<img src="${s.img_b64}" style="max-height:44px;max-width:120px;display:block;margin:0 auto 6px;">` : `<div style="height:44px;"></div>`}
       <div style="font-size:12px;font-weight:700;">${s.sig_name}</div>
-      <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;border-color:#ef4444;margin-top:6px;" onclick="deleteSignature(${s.id})">🗑️ Remove</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:10px;color:#ef4444;border-color:#ef4444;margin-top:6px;" onclick="deleteSignature(${s.id})">Remove</button>
     </div>
   `).join("");
 }

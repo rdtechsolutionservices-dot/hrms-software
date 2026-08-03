@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}My Attendance{% endblock %}
-{% block page_title %}📅 My Attendance{% endblock %}
+{% block page_title %} My Attendance{% endblock %}
 {% block content %}
 
 {% if emp %}
@@ -17,7 +17,7 @@
 
 {% if can_self_punch %}
 <div class="table-card" style="padding:18px;margin-bottom:18px;background:linear-gradient(135deg,rgba(0,150,220,.08),rgba(124,58,237,.06));border:1px solid rgba(0,150,220,.25);">
-  <div style="font-weight:800;font-size:14px;color:#0096dc;">📍 Outside Attendance — Today</div>
+  <div style="font-weight:800;font-size:14px;color:#0096dc;">Outside Attendance — Today</div>
   <div style="font-size:11px;color:var(--muted);margin-top:3px;margin-bottom:12px;">
     Working from outside the office and need to mark IN/OUT? Send a request — it will count as attendance only after your Department Head approves it.
   </div>
@@ -33,12 +33,12 @@
     <button type="button" class="btn btn-sm" id="oaInBtn" onclick="submitOutsidePunch('IN')"
       style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
       {% if today_status.in_time or today_status.in_pending %}disabled{% endif %}>
-      {% if today_status.in_pending %}⏳ IN Pending{% elif today_status.in_time %}✅ IN: {{ today_status.in_time }}{% else %}🟢 Request IN{% endif %}
+      {% if today_status.in_pending %} IN Pending{% elif today_status.in_time %} IN: {{ today_status.in_time }}{% else %} Request IN{% endif %}
     </button>
     <button type="button" class="btn btn-sm" id="oaOutBtn" onclick="submitOutsidePunch('OUT')"
       style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
       {% if not today_status.in_time or today_status.out_time or today_status.out_pending %}disabled{% endif %}>
-      {% if today_status.out_pending %}⏳ OUT Pending{% elif today_status.out_time %}✅ OUT: {{ today_status.out_time }}{% else %}🔴 Request OUT{% endif %}
+      {% if today_status.out_pending %} OUT Pending{% elif today_status.out_time %} OUT: {{ today_status.out_time }}{% else %} Request OUT{% endif %}
     </button>
   </div>
   <div id="oaResult" style="margin-top:10px;font-size:12px;"></div>
@@ -53,12 +53,12 @@
         <span style="font-weight:700;">{{ r.request_type }}</span>
         <span style="color:var(--muted);">{{ r.request_date }} {{ r.request_time }}</span>
         {% if r.status == 'Pending' %}
-        <span style="color:#f59e0b;font-weight:700;">⏳ Pending</span>
+        <span style="color:#f59e0b;font-weight:700;">Pending</span>
         {% elif r.status == 'Approved' %}
-        <span style="color:#10b981;font-weight:700;">✅ Approved</span>
+        <span style="color:#10b981;font-weight:700;">Approved</span>
         <span style="color:var(--muted);font-size:11px;">by {{ r.reviewed_by }}</span>
         {% else %}
-        <span style="color:#ef4444;font-weight:700;">❌ Rejected</span>
+        <span style="color:#ef4444;font-weight:700;">Rejected</span>
         <span style="color:var(--muted);font-size:11px;">by {{ r.reviewed_by }}{% if r.review_remarks %} — {{ r.review_remarks }}{% endif %}</span>
         {% endif %}
       </div>
@@ -138,7 +138,7 @@
         </td>
         <td style="padding:7px;text-align:center;">
           {% if row.is_holiday %}
-            <span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🎉 Holiday</span>
+            <span style="background:rgba(139,92,246,.15);color:#8b5cf6;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Holiday</span>
           {% elif row.status == 'Present' %}
             {% if row.is_half_day %}
               {% if row.is_halfday_from_late %}
@@ -147,24 +147,24 @@
                 <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">◑ Half Day</span>
               {% endif %}
             {% else %}
-              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✅ Present</span>
+              <span style="background:rgba(16,185,129,.15);color:#10b981;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Present</span>
             {% endif %}
           {% elif row.status == 'Leave' %}
-            <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🌴 Leave</span>
+            <span style="background:rgba(0,150,220,.15);color:#0096dc;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Leave</span>
           {% elif row.status == 'Absent' %}
-            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">❌ Absent</span>
+            <span style="background:rgba(244,63,94,.15);color:#f43f5e;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Absent</span>
           {% elif row.status == 'Weekly Off' %}
-            <span style="background:rgba(100,116,139,.15);color:#64748b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">🔵 Week Off</span>
+            <span style="background:rgba(100,116,139,.15);color:#64748b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Week Off</span>
           {% else %}
             <span style="color:var(--muted);font-size:11px;">{{ row.status or '—' }}</span>
           {% endif %}
         </td>
         <td style="padding:7px;text-align:center;">
           {% if row.is_halfday_from_late %}
-            <span style="color:#ef4444;font-size:10px;font-weight:700;" title="IN after 12:30 PM — Half Day marked">🕐 Late IN</span>
+            <span style="color:#ef4444;font-size:10px;font-weight:700;" title="IN after 12:30 PM — Half Day marked">Late IN</span>
           {% elif row.late_minutes and row.late_minutes > 0 %}
             {% if row.late_is_deducted %}
-              <span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Salary deduction">{{ row.late_minutes }}m ⚠️</span>
+              <span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Salary deduction">{{ row.late_minutes }}m </span>
             {% else %}
               <span style="background:rgba(245,158,11,.12);color:#f59e0b;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Free (no deduction)">{{ row.late_minutes }}m</span>
             {% endif %}
@@ -187,7 +187,7 @@ function filterMonth(){
   const y = document.getElementById("sel_year").value;
   window.location = "/my-attendance?month="+m+"&year="+y;
 }
-const enumerate = (arr) => arr.map((v,i) => [i,v]);
+const enumerate = (arr) =>arr.map((v,i) => [i,v]);
 
 function submitOutsidePunch(type){
   const resultEl = document.getElementById("oaResult");
@@ -197,13 +197,13 @@ function submitOutsidePunch(type){
   const reason = reasonEl.value.trim();
 
   if (!reason){
-    resultEl.innerHTML = '<span style="color:#ef4444;">❌ Please enter a reason before sending the request.</span>';
+    resultEl.innerHTML = '<span style="color:#ef4444;">Please enter a reason before sending the request.</span>';
     reasonEl.focus();
     return;
   }
 
   if (!navigator.geolocation){
-    resultEl.innerHTML = '<span style="color:#ef4444;">❌ This browser does not support location access. Please use Chrome, Safari, Edge, Firefox, or Opera.</span>';
+    resultEl.innerHTML = '<span style="color:#ef4444;">This browser does not support location access. Please use Chrome, Safari, Edge, Firefox, or Opera.</span>';
     return;
   }
 
@@ -214,13 +214,13 @@ function submitOutsidePunch(type){
   const isLocalhost = ["localhost","127.0.0.1"].includes(location.hostname);
   if (window.isSecureContext === false && !isLocalhost){
     const httpsUrl = "https://" + location.hostname + ":5443" + location.pathname;
-    resultEl.innerHTML = '<span style="color:#ef4444;">🔒 Location requires a secure (https://) connection — this page is open over http://. '
-      + `Open <a href="${httpsUrl}" style="color:#0096dc;text-decoration:underline;">${httpsUrl}</a> instead `
+    resultEl.innerHTML = '<span style="color:#ef4444;">Location requires a secure (https://) connection — this page is open over http://. '
+      + `Open <a href="${httpsUrl}" style="color:#0096dc;text-decoration:underline;">${httpsUrl}</a>instead `
       + '(first visit shows a one-time "Not Secure" browser warning — tap Advanced → Proceed, this is expected on a local network), then try again.</span>';
     return;
   }
 
-  resultEl.innerHTML = '<span style="color:var(--muted);">📍 Getting your location…</span>';
+  resultEl.innerHTML = '<span style="color:var(--muted);">Getting your location…</span>';
   inBtn.disabled = true; outBtn.disabled = true;
 
   navigator.geolocation.getCurrentPosition(
@@ -232,18 +232,18 @@ function submitOutsidePunch(type){
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({type: type, reason: reason, lat: lat, lng: lng, accuracy: accuracy})
       })
-      .then(r => r.json())
+      .then(r =>r.json())
       .then(d => {
         if (d.success){
-          resultEl.innerHTML = `<span style="color:#10b981;">✅ ${d.message}</span>`;
-          setTimeout(() => location.reload(), 1200);
+          resultEl.innerHTML = `<span style="color:#10b981;"> ${d.message}</span>`;
+          setTimeout(() =>location.reload(), 1200);
         } else {
-          resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${d.error}</span>`;
+          resultEl.innerHTML = `<span style="color:#ef4444;"> ${d.error}</span>`;
           inBtn.disabled = false; outBtn.disabled = false;
         }
       })
       .catch(() => {
-        resultEl.innerHTML = '<span style="color:#ef4444;">❌ Request failed. Try again.</span>';
+        resultEl.innerHTML = '<span style="color:#ef4444;">Request failed. Try again.</span>';
         inBtn.disabled = false; outBtn.disabled = false;
       });
     },
@@ -256,7 +256,7 @@ function submitOutsidePunch(type){
       } else if (err.code === 3) {
         msg = "Location request timed out. Please try again.";
       }
-      resultEl.innerHTML = `<span style="color:#ef4444;">❌ ${msg}</span>`;
+      resultEl.innerHTML = `<span style="color:#ef4444;"> ${msg}</span>`;
       inBtn.disabled = false; outBtn.disabled = false;
     },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }

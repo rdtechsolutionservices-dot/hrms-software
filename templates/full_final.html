@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Full & Final Settlement{% endblock %}
-{% block page_title %}📋 Full & Final Settlement{% endblock %}
+{% block page_title %} Full & Final Settlement{% endblock %}
 {% block content %}
 <style>
 /* ── F&F Print Styles ── */
@@ -56,7 +56,7 @@
 
   <!-- F&F Calculation Card -->
   <div class="mini-card" style="margin-bottom:18px;">
-    <div class="mini-title">💰 F&F Settlement Calculation</div>
+    <div class="mini-title">F&F Settlement Calculation</div>
     <table id="tblFullFinal" style="width:100%">
       <thead><tr>
         <th style="cursor:pointer;" onclick="sortTable('tblFullFinal',0)" data-sort-col="0">Component<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
@@ -80,16 +80,16 @@
 
   <!-- Documents Card -->
   <div class="mini-card" style="margin-bottom:18px;">
-    <div class="mini-title">📄 Documents to Issue (Optional)</div>
+    <div class="mini-title">Documents to Issue (Optional)</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <a href="/letters/experience/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">📄 Experience Letter</a>
-      <a href="/letters/relieving/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">📋 Relieving Letter</a>
+      <a href="/letters/experience/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">Experience Letter</a>
+      <a href="/letters/relieving/{{ emp.emp_code }}" target="_blank" class="btn btn-ghost">Relieving Letter</a>
     </div>
   </div>
 
   <!-- Print Button -->
   <div style="text-align:center;margin-top:16px;">
-    <button onclick="printFF()" class="btn btn-primary">🖨️ Print F&F Settlement</button>
+    <button onclick="printFF()" class="btn btn-primary">Print F&F Settlement</button>
   </div>
 </div>
 {% endblock %}

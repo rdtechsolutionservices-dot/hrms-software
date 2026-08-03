@@ -27,28 +27,28 @@
     <option value="{{ s.id }}" {% if (s.id|string)==f_scheme %}selected{% endif %}>{{ s.scheme_name }}</option>
     {% endfor %}
   </select>
-  <input class="form-control" type="text" name="search" placeholder="🔍 Search emp code / name..." value="{{ f_search }}" style="width:220px;">
+  <input class="form-control" type="text" name="search" placeholder=" Search emp code / name..." value="{{ f_search }}" style="width:220px;">
   <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
 
   <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <button type="button" class="btn btn-ghost btn-sm" onclick="exportExtraWorking()">📤 Export</button>
-    <button type="button" class="btn btn-ghost btn-sm" id="ewSaveBtn" onclick="saveExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>💾 Save</button>
-    <button type="button" class="btn btn-ghost btn-sm" id="ewSyncBtn" onclick="syncExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>🔄 Sync</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="exportExtraWorking()">Export</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="ewSaveBtn" onclick="saveExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>Save</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="ewSyncBtn" onclick="syncExtraWorking()" {% if lock.is_locked %}disabled{% endif %}>Sync</button>
     <button type="button" class="btn btn-sm" id="ewLockBtn"
       style="background:{% if lock.is_locked %}rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3){% else %}rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3){% endif %};"
-      onclick="toggleExtraWorkingLock()">{% if lock.is_locked %}🔒 Locked — Unlock{% else %}🔓 Lock Month{% endif %}</button>
+      onclick="toggleExtraWorkingLock()">{% if lock.is_locked %} Locked — Unlock{% else %} Lock Month{% endif %}</button>
   </div>
 </form>
 
 {% if lock.is_locked %}
 <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:10px;padding:8px 14px;font-size:12px;margin-bottom:14px;">
-  🔒 {{ months[month-1] }} {{ year }} is locked by {{ lock.locked_by }} on {{ lock.locked_on }}. Values below are frozen and won't change even if attendance is edited. Total is included in Payroll Insights.
+   {{ months[month-1] }} {{ year }} is locked by {{ lock.locked_by }} on {{ lock.locked_on }}. Values below are frozen and won't change even if attendance is edited. Total is included in Payroll Insights.
 </div>
 {% endif %}
 
 <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">
   Extra Working Hours = actual worked hours beyond the shift's working hours (auto-calculated from Shift Master + Attendance IN/OUT — no approval condition applies). Amount = Extra Working Hrs × Per-Hr Rate (using the formula set in Settings).
-  <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="openModal('ewSettingsModal')">⚙️ Settings</button>
+  <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="openModal('ewSettingsModal')">Settings</button>
 </div>
 
 <!-- KPI Cards -->
@@ -67,16 +67,16 @@
   </div>
   <div style="background:linear-gradient(135deg,{% if lock.is_locked %}#ef4444,#dc2626{% else %}#10b981,#059669{% endif %});border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.85;">Status</div>
-    <div style="font-size:20px;font-weight:800;">{% if lock.is_locked %}🔒 Locked{% else %}🔓 Open{% endif %}</div>
+    <div style="font-size:20px;font-weight:800;">{% if lock.is_locked %} Locked{% else %} Open{% endif %}</div>
   </div>
 </div>
 
 <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:13px;">
   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-    <input type="checkbox" id="ewSelectAll" onchange="toggleSelectAllRows(this)"> Select All
+    <input type="checkbox" id="ewSelectAll" onchange="toggleSelectAllRows(this)">Select All
   </label>
   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-    <input type="checkbox" id="ewHideZero" onchange="filterZeroRows()"> Hide Zero Hours
+    <input type="checkbox" id="ewHideZero" onchange="filterZeroRows()">Hide Zero Hours
   </label>
   <span id="ewSelectedCount" style="color:var(--muted);">0 selected</span>
 </div>
@@ -129,7 +129,7 @@
   <div class="modal" style="width:640px;max-width:92vw;max-height:85vh;overflow:auto;">
     <div class="modal-header">
       <span class="modal-title" id="ewDetailTitle">Attendance Detail</span>
-      <button class="modal-close" onclick="closeModal('ewDetailModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('ewDetailModal')"></button>
     </div>
     <div class="modal-body">
       <div id="ewDetailSummary" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
@@ -157,8 +157,8 @@
 <div class="modal-overlay" id="ewSettingsModal">
   <div class="modal" style="width:420px;">
     <div class="modal-header">
-      <span class="modal-title">⚙️ Extra Working — Settings</span>
-      <button class="modal-close" onclick="closeModal('ewSettingsModal')">✕</button>
+      <span class="modal-title">Extra Working — Settings</span>
+      <button class="modal-close" onclick="closeModal('ewSettingsModal')"></button>
     </div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:12px;">
@@ -183,7 +183,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('ewSettingsModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveExtraWorkingSettings()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveExtraWorkingSettings()">Save</button>
     </div>
   </div>
 </div>
@@ -221,7 +221,7 @@ function showExtraDetail(empCode){
   openModal('ewDetailModal');
 
   fetch(`/extra-working/employee-detail/${empCode}/${EW_MONTH}/${EW_YEAR}`)
-    .then(r => r.json())
+    .then(r =>r.json())
     .then(d => {
       if (!d.success){
         document.getElementById('ewDetailBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:16px;color:#ef4444;">${d.error || 'Error loading data'}</td></tr>`;
@@ -257,20 +257,20 @@ function exportExtraWorking(){
 
 function syncExtraWorking(){
   const btn = document.getElementById('ewSyncBtn');
-  btn.disabled = true; btn.textContent = '🔄 Syncing...';
+  btn.disabled = true; btn.textContent = ' Syncing...';
   fetch('/extra-working/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR})})
-    .then(r => r.json())
-    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = '🔄 Sync'; location.reload(); })
-    .catch(() => { btn.disabled = false; btn.textContent = '🔄 Sync'; alert('Sync failed'); });
+    .then(r =>r.json())
+    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = ' Sync'; location.reload(); })
+    .catch(() => { btn.disabled = false; btn.textContent = ' Sync'; alert('Sync failed'); });
 }
 
 function saveExtraWorking(){
   const btn = document.getElementById('ewSaveBtn');
-  btn.disabled = true; btn.textContent = '💾 Saving...';
+  btn.disabled = true; btn.textContent = ' Saving...';
   fetch('/extra-working/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR})})
-    .then(r => r.json())
-    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = '💾 Save'; })
-    .catch(() => { btn.disabled = false; btn.textContent = '💾 Save'; alert('Save failed'); });
+    .then(r =>r.json())
+    .then(d => { alert(d.message || d.error); btn.disabled = false; btn.textContent = ' Save'; })
+    .catch(() => { btn.disabled = false; btn.textContent = ' Save'; alert('Save failed'); });
 }
 
 function toggleExtraWorkingLock(){
@@ -282,7 +282,7 @@ function toggleExtraWorkingLock(){
   const btn = document.getElementById('ewLockBtn');
   btn.disabled = true;
   fetch('/extra-working/lock', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({month:EW_MONTH, year:EW_YEAR, action:action})})
-    .then(r => r.json())
+    .then(r =>r.json())
     .then(d => { alert(d.message || d.error); location.reload(); })
     .catch(() => { btn.disabled = false; alert('Action failed'); });
 }
@@ -299,17 +299,17 @@ function saveExtraWorkingSettings(){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
   })
-  .then(r => r.json())
+  .then(r =>r.json())
   .then(d => {
     if (d.success){
-      document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#10b981;">✅ Saved</span>';
-      setTimeout(() => location.reload(), 500);
+      document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#10b981;">Saved</span>';
+      setTimeout(() =>location.reload(), 500);
     } else {
-      document.getElementById('ewSettingsResult').innerHTML = `<span style="color:#ef4444;">❌ ${d.error || 'Error saving settings'}</span>`;
+      document.getElementById('ewSettingsResult').innerHTML = `<span style="color:#ef4444;"> ${d.error || 'Error saving settings'}</span>`;
     }
   })
   .catch(() => {
-    document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#ef4444;">❌ Error saving settings</span>';
+    document.getElementById('ewSettingsResult').innerHTML = '<span style="color:#ef4444;">Error saving settings</span>';
   });
 }
 </script>

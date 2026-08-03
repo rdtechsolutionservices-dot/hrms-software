@@ -5,7 +5,7 @@
 <title>{{ doc.template_name }}{% if emp_name %} — {{ emp_name }}{% endif %}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
+  body { font-family: Verdana, 'Times New Roman', serif; background:#f0f0f0; font-size:13px; }
 
   {% set PAGE_DIMS = {'A4':(210,297), 'A5':(148,210), 'A3':(297,420), 'LEGAL':(215.9,355.6)} %}
   {% set _pg = (page_size or 'A4')|upper %}
@@ -23,7 +23,7 @@
   {% set _content_min_h = _ph - header_margin - footer_margin - _approx_head_h - _approx_foot_h %}
   {% if _content_min_h < 40 %}{% set _content_min_h = 40 %}{% endif %}
 
-  /* True page size + margins for print — the browser repeats <thead>/<tfoot> content at the
+  /* True page size + margins for print — the browser repeats <thead>/<tfoot>content at the
      top/bottom of EVERY printed page automatically. Header sits at header_margin from the top
      edge, footer at footer_margin from the bottom edge; body text keeps its own margin_top /
      margin_bottom via the gap padding below — exactly like Word's separate header/footer distance. */
@@ -75,16 +75,16 @@
 <body>
 <div class="no-print" style="background:#1a1a2e;padding:10px 24px;display:flex;gap:12px;align-items:center;">
   {% if can_print %}
-  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#0052cc;color:white;" onclick="window.print()">🖨️ Print Letter</button>
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#0052cc;color:white;" onclick="window.print()">Print Letter</button>
   {% else %}
-  <button disabled title="Printing and PDF export are available only after approval" style="padding:7px 18px;border-radius:8px;border:none;cursor:not-allowed;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);">🖨️ Print Letter</button>
+  <button disabled title="Printing and PDF export are available only after approval" style="padding:7px 18px;border-radius:8px;border:none;cursor:not-allowed;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);">Print Letter</button>
   {% endif %}
-  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:rgba(255,255,255,.1);color:white;" onclick="window.close()">✕ Close</button>
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:rgba(255,255,255,.1);color:white;" onclick="window.close()">Close</button>
   <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">{{ doc.template_name }}{% if emp_name %} — {{ emp_name }}{% endif %} · {{ _pg }}</span>
   {% if is_preview %}
-  <span style="margin-left:auto;background:rgba(0,150,220,.2);color:#4db8ff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">👁️ Live Preview — not submitted yet</span>
+  <span style="margin-left:auto;background:rgba(0,150,220,.2);color:#4db8ff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">Live Preview — not submitted yet</span>
   {% elif not can_print %}
-  <span style="margin-left:auto;background:rgba(245,158,11,.2);color:#fbbf24;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;">⏳ {{ doc_status or 'Pending' }} — printing &amp; PDF export unlock after approval</span>
+  <span style="margin-left:auto;background:rgba(245,158,11,.2);color:#fbbf24;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;"> {{ doc_status or 'Pending' }} — printing &amp; PDF export unlock after approval</span>
   {% endif %}
 </div>
 

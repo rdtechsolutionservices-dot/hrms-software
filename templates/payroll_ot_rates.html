@@ -5,7 +5,7 @@
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
   <div style="color:var(--muted);font-size:13px;">Define OT calculation rate per category</div>
-  <button class="btn btn-primary" onclick="openModal('otModal');resetOT()">➕ Add Rate</button>
+  <button class="btn btn-primary" onclick="openModal('otModal');resetOT()">Add Rate</button>
 </div>
 
 <div class="table-card">
@@ -23,10 +23,10 @@
       <tr style="border-bottom:1px solid var(--border);">
         <td style="padding:10px 12px;font-weight:700;">{{ r.category }}</td>
         <td style="padding:10px;">
-          {% if r.rate_type == 'formula' %}<span style="color:#10b981;">📐 Basic÷26÷Shift×OT</span>
-          {% elif r.rate_type == 'gross_ot' %}<span style="color:#0096dc;">📐 (Gross÷208)×1.3</span>
-          {% elif r.rate_type == 'gross_single_ot' %}<span style="color:#7c3aed;">📐 Gross÷208</span>
-          {% elif r.rate_type == 'multiplier' %}<span style="color:#f59e0b;">✕ Multiplier ×{{ r.multiplier }}</span>
+          {% if r.rate_type == 'formula' %}<span style="color:#10b981;">Basic÷26÷Shift×OT</span>
+          {% elif r.rate_type == 'gross_ot' %}<span style="color:#0096dc;"> (Gross÷208)×1.3</span>
+          {% elif r.rate_type == 'gross_single_ot' %}<span style="color:#7c3aed;">Gross÷208</span>
+          {% elif r.rate_type == 'multiplier' %}<span style="color:#f59e0b;">Multiplier ×{{ r.multiplier }}</span>
           {% elif r.rate_type == 'fixed' %}<span style="color:#10b981;">₹ Fixed/hr</span>
           {% elif r.rate_type == 'not_applicable' %}<span style="color:var(--muted);">— Not Applicable</span>
           {% else %}<span style="color:var(--muted);">{{ r.rate_type }}</span>{% endif %}
@@ -35,7 +35,7 @@
         <td style="text-align:center;padding:10px;">{{ '₹%.2f'|format(r.fixed_rate) if r.fixed_rate else '—' }}</td>
         <td style="padding:10px;font-size:12px;color:var(--muted);">{{ r.description or '—' }}</td>
         <td style="text-align:center;padding:10px;">
-          <button class="btn btn-ghost btn-sm" onclick="editOT({{ r|tojson|e }})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editOT({{ r|tojson|e }})"></button>
         </td>
       </tr>
       {% endfor %}
@@ -44,7 +44,7 @@
 </div>
 
 <div style="margin-top:16px;background:rgba(0,82,204,.08);border-radius:10px;padding:14px;font-size:12px;color:var(--muted);">
-  <strong style="color:#0096dc;">💡 Rate Types:</strong><br>
+  <strong style="color:#0096dc;">Rate Types:</strong><br>
   <b>Formula</b> — Basic ÷ 26 ÷ Shift Hours × OT Hours (eSSL standard)<br>
   <b>OT</b> — (Actual Gross ÷ 208) × 1.3 × OT Hours<br>
   <b>Single OT</b> — (Actual Gross ÷ 208) × OT Hours<br>
@@ -57,8 +57,8 @@
 <div class="modal-overlay" id="otModal">
   <div class="modal" style="width:460px;">
     <div class="modal-header">
-      <span class="modal-title" id="otModalTitle">➕ Add OT Rate</span>
-      <button class="modal-close" onclick="closeModal('otModal')">✕</button>
+      <span class="modal-title" id="otModalTitle">Add OT Rate</span>
+      <button class="modal-close" onclick="closeModal('otModal')"></button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="ot_id">
@@ -93,7 +93,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('otModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveOT()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveOT()">Save</button>
     </div>
   </div>
 </div>
@@ -108,7 +108,7 @@ function resetOT(){
   document.getElementById("ot_mult").value="1.0";
   document.getElementById("ot_fixed").value="0";
   document.getElementById("ot_desc").value="";
-  document.getElementById("otModalTitle").textContent="➕ Add OT Rate";
+  document.getElementById("otModalTitle").textContent=" Add OT Rate";
   showOTFields();
 }
 function editOT(r){
@@ -118,7 +118,7 @@ function editOT(r){
   document.getElementById("ot_mult").value=parseFloat(r.multiplier)||1.0;
   document.getElementById("ot_fixed").value=parseFloat(r.fixed_rate)||0;
   document.getElementById("ot_desc").value=r.description||"";
-  document.getElementById("otModalTitle").textContent="✏️ Edit OT Rate";
+  document.getElementById("otModalTitle").textContent=" Edit OT Rate";
   document.getElementById("otResult").innerHTML="";
   showOTFields();
   openModal("otModal");
@@ -144,7 +144,7 @@ async function saveOT(){
   if(!data.category){showToast("Category required!","error");return;}
   const r=await api("/payroll/ot-rates/save","POST",data);
   if(r.success){showToast("Saved!");setTimeout(()=>{closeModal("otModal");location.reload();},1000);}
-  else document.getElementById("otResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  else document.getElementById("otResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 </script>
 {% endblock %}

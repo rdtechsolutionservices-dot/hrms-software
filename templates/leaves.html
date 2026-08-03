@@ -3,7 +3,7 @@
 {% block page_title %}Leave Management{% endblock %}
 {% block content %}
 <div class="toolbar">
-  <button class="btn btn-primary" onclick="openModal('applyModal')">➕ Apply Leave (for Employee)</button>
+  <button class="btn btn-primary" onclick="openModal('applyModal')">Apply Leave (for Employee)</button>
   <div class="month-selector">
     <label>Year:</label>
     <select id="selYear" onchange="location.href='/leaves?year='+this.value+'&status={{ status_filter }}'">
@@ -11,7 +11,7 @@
     </select>
   </div>
   <div style="display:flex;gap:6px;">
-    {% for s,label,col in [('Pending','⏳ Pending','var(--yellow)'),('Approved','✅ Approved','var(--green)'),('Rejected','❌ Rejected','var(--red)'),('all','📋 All','')] %}
+    {% for s,label,col in [('Pending',' Pending','var(--yellow)'),('Approved',' Approved','var(--green)'),('Rejected',' Rejected','var(--red)'),('all',' All','')] %}
     <a href="/leaves?year={{ year }}&status={{ s }}" class="btn btn-sm {% if status_filter==s %}btn-primary{% else %}btn-ghost{% endif %}" style="{% if status_filter==s and col %}color:white{% endif %}">{{ label }}</a>
     {% endfor %}
   </div>
@@ -43,16 +43,16 @@
         <td style="font-size:12px;color:var(--muted);max-width:150px">{{ r.reason or '—' }}</td>
         <td style="font-size:11px;color:var(--muted)">{{ r.applied_on[:10] if r.applied_on else '—' }}</td>
         <td>
-          {% if r.status=='Pending' %}<span class="badge" style="background:rgba(245,158,11,.15);color:var(--yellow)">⏳ Pending</span>
-          {% elif r.status=='Approved' %}<span class="badge badge-active">✅ Approved</span>
-          {% else %}<span class="badge badge-inactive">❌ Rejected</span>{% endif %}
+          {% if r.status=='Pending' %}<span class="badge" style="background:rgba(245,158,11,.15);color:var(--yellow)">Pending</span>
+          {% elif r.status=='Approved' %}<span class="badge badge-active">Approved</span>
+          {% else %}<span class="badge badge-inactive">Rejected</span>{% endif %}
           {% if r.approved_by %}<div style="font-size:10px;color:var(--muted);margin-top:2px">by {{ r.approved_by }}</div>{% endif %}
         </td>
         <td>
           {% if r.status=='Pending' %}
           <div style="display:flex;gap:5px;">
-            <button class="btn btn-success btn-sm" onclick="approveLeave({{ r.id }})">✅</button>
-            <button class="btn btn-danger btn-sm" onclick="rejectLeave({{ r.id }})">❌</button>
+            <button class="btn btn-success btn-sm" onclick="approveLeave({{ r.id }})"></button>
+            <button class="btn btn-danger btn-sm" onclick="rejectLeave({{ r.id }})"></button>
           </div>
           {% else %}—{% endif %}
         </td>
@@ -65,26 +65,26 @@
 
 <!-- Year End Actions -->
 <div class="mini-card">
-  <div class="mini-title">📅 Year End Actions — EL Carry Forward / Encash</div>
+  <div class="mini-title">Year End Actions — EL Carry Forward / Encash</div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
     <div class="month-selector"><label>Process Year:</label>
       <select id="yearEnd">{% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
     </div>
-    <button class="btn btn-ghost" onclick="yearEnd('carry')" style="background:rgba(16,185,129,.15);color:var(--green);">🔄 Carry Forward Unused EL (All)</button>
-    <button class="btn btn-ghost" onclick="yearEnd('encash')" style="background:rgba(245,158,11,.15);color:var(--yellow);">💰 Encash Unused EL (All)</button>
+    <button class="btn btn-ghost" onclick="yearEnd('carry')" style="background:rgba(16,185,129,.15);color:var(--green);">Carry Forward Unused EL (All)</button>
+    <button class="btn btn-ghost" onclick="yearEnd('encash')" style="background:rgba(245,158,11,.15);color:var(--yellow);">Encash Unused EL (All)</button>
     <span id="yearEndRes" style="font-size:13px;"></span>
   </div>
 </div>
 
 <!-- Selective (Per-Employee) Year End -->
 <div class="mini-card">
-  <div class="mini-title">👥 Selective Year End — Choose Encash/Carry Forward Per Employee</div>
+  <div class="mini-title">Selective Year End — Choose Encash/Carry Forward Per Employee</div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
     <div class="month-selector"><label>Financial Year (starting):</label>
       <select id="selYearEndFY">{% for y in [2023,2024,2025,2026,2027] %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
     </div>
-    <button class="btn btn-ghost" onclick="loadYearEndSelective()">🔍 Load Employees</button>
-    <button class="btn btn-primary" onclick="submitYearEndSelective()">✅ Process Selected</button>
+    <button class="btn btn-ghost" onclick="loadYearEndSelective()">Load Employees</button>
+    <button class="btn btn-primary" onclick="submitYearEndSelective()">Process Selected</button>
     <span id="yearEndSelRes" style="font-size:13px;"></span>
   </div>
   <div style="max-height:360px;overflow:auto;">
@@ -98,7 +98,7 @@
 <!-- Apply Leave Modal (HR applying for employee) -->
 <div class="modal-overlay" id="applyModal">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">➕ Apply Leave</span><button class="modal-close" onclick="closeModal('applyModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Apply Leave</span><button class="modal-close" onclick="closeModal('applyModal')"></button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group col-span-2"><label class="form-label">Employee Code</label><input class="form-control" id="ap_code" placeholder="VPL001"></div>
@@ -119,19 +119,19 @@
       </div>
       <div id="apResult"></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button><button class="btn btn-primary" onclick="applyLeave()">📋 Apply Leave</button></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('applyModal')">Cancel</button><button class="btn btn-primary" onclick="applyLeave()">Apply Leave</button></div>
   </div>
 </div>
 
 <!-- Reject Reason Modal -->
 <div class="modal-overlay" id="rejectModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">❌ Reject Leave</span><button class="modal-close" onclick="closeModal('rejectModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Reject Leave</span><button class="modal-close" onclick="closeModal('rejectModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="rej_id">
       <div class="form-group"><label class="form-label">Reason for Rejection</label><input class="form-control" id="rej_reason" placeholder="Short staffing, Incorrect dates..."></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('rejectModal')">Cancel</button><button class="btn btn-danger" onclick="confirmReject()">❌ Reject</button></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('rejectModal')">Cancel</button><button class="btn btn-danger" onclick="confirmReject()">Reject</button></div>
   </div>
 </div>
 {% endblock %}
@@ -141,8 +141,8 @@ async function applyLeave(){
   const half=document.getElementById("ap_half").value=="1";
   const r=await api("/leaves/apply","POST",{emp_code:document.getElementById("ap_code").value,leave_type:document.getElementById("ap_type").value,from_date:document.getElementById("ap_from").value,to_date:half?document.getElementById("ap_from").value:document.getElementById("ap_to").value,is_half_day:half,reason:document.getElementById("ap_reason").value});
   const div=document.getElementById("apResult");
-  if(r.success){div.innerHTML=`<div class="alert alert-success">✅ Leave applied for ${r.days} day(s)!</div>`;setTimeout(()=>{closeModal("applyModal");location.reload();},1500);}
-  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  if(r.success){div.innerHTML=`<div class="alert alert-success">Leave applied for ${r.days} day(s)!</div>`;setTimeout(()=>{closeModal("applyModal");location.reload();},1500);}
+  else div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 async function approveLeave(id){
   if(!confirm("Approve this leave?"))return;
@@ -162,8 +162,8 @@ async function yearEnd(action){
   if(!confirm(`${action=='carry'?"Carry forward":"Encash"} unused EL for all employees for year ${yr}?`))return;
   const r=await api("/leaves/year-end","POST",{year:yr,action});
   const res=document.getElementById("yearEndRes");
-  if(r.success){res.textContent=`✅ Processed ${r.processed} employees!`;res.style.color="var(--green)";}
-  else{res.textContent="❌ "+r.error;res.style.color="var(--red)";}
+  if(r.success){res.textContent=` Processed ${r.processed} employees!`;res.style.color="var(--green)";}
+  else{res.textContent=" "+r.error;res.style.color="var(--red)";}
 }
 async function loadYearEndSelective(){
   const yr=document.getElementById("selYearEndFY").value;
@@ -176,14 +176,14 @@ async function loadYearEndSelective(){
   body.innerHTML=rows.map(e=>{
     if(e.processed){
       return `<tr data-code="${e.emp_code}"><td>${e.emp_code}</td><td>${e.emp_name}</td><td>${e.department||'—'}</td><td>${e.unused_el}</td>
-        <td style="color:var(--muted);font-size:12px;">✅ Already ${e.processed.action} (${e.processed.days} days)</td></tr>`;
+        <td style="color:var(--muted);font-size:12px;">Already ${e.processed.action} (${e.processed.days} days)</td></tr>`;
     }
     return `<tr data-code="${e.emp_code}"><td>${e.emp_code}</td><td>${e.emp_name}</td><td>${e.department||'—'}</td><td>${e.unused_el}</td>
       <td>
         <select class="form-select yeSelAction" style="width:150px;display:inline-block;">
           <option value="skip">— Skip —</option>
-          <option value="carry">🔄 Carry Forward</option>
-          <option value="encash">💰 Encash</option>
+          <option value="carry">Carry Forward</option>
+          <option value="encash">Encash</option>
         </select>
       </td></tr>`;
   }).join("");
@@ -200,6 +200,6 @@ async function submitYearEndSelective(){
   const r=await api("/leaves/year-end-selective","POST",{year:yr,items});
   const res=document.getElementById("yearEndSelRes");
   if(r.success){res.style.color="var(--green)";res.textContent=r.message;loadYearEndSelective();}
-  else{res.style.color="var(--red)";res.textContent="❌ "+r.error;}
+  else{res.style.color="var(--red)";res.textContent=" "+r.error;}
 }
 </script>{% endblock %}

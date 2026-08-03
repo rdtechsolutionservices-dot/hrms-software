@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Resignation Letter{% endblock %}
-{% block page_title %}📝 Resignation Letter{% endblock %}
+{% block page_title %} Resignation Letter{% endblock %}
 {% block content %}
 
 <div style="max-width:820px;margin:0 auto;">
@@ -9,7 +9,7 @@
     <!-- Left: Form -->
     <div>
       <div class="mini-card">
-        <div class="mini-title">📝 Resignation Details</div>
+        <div class="mini-title">Resignation Details</div>
 
         {% if session.role != 'employee' %}
         <div class="form-group">
@@ -74,8 +74,8 @@
           <input class="form-control" id="extra2" placeholder="e.g. I am grateful for the opportunities..." style="font-size:12px;">
         </div>
 
-        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="generateResignation()">👁️ Preview Letter</button>
-        <button class="btn btn-danger" style="width:100%;" onclick="submitResignation()">📤 Submit Resignation</button>
+        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;" onclick="generateResignation()">Preview Letter</button>
+        <button class="btn btn-danger" style="width:100%;" onclick="submitResignation()">Submit Resignation</button>
       </div>
       <div id="submitResult" style="margin-top:10px;"></div>
     </div>
@@ -88,7 +88,7 @@
         </div>
       </div>
       <div style="text-align:right;margin-top:12px;">
-        <button class="btn btn-ghost" onclick="printLetter()">🖨️ Print Resignation Letter</button>
+        <button class="btn btn-ghost" onclick="printLetter()">Print Resignation Letter</button>
       </div>
     </div>
 
@@ -228,10 +228,10 @@ async function submitResignation(){
   });
   const div = document.getElementById("submitResult");
   if(r.success){
-    div.innerHTML = '<div class="alert alert-success">✅ Resignation submitted successfully! Employee exit process updated.</div>';
+    div.innerHTML = '<div class="alert alert-success">Resignation submitted successfully! Employee exit process updated.</div>';
     showToast("Resignation submitted!");
   } else {
-    div.innerHTML = `<div class="alert alert-danger">❌ ${r.error}</div>`;
+    div.innerHTML = `<div class="alert alert-danger"> ${r.error}</div>`;
   }
 }
 

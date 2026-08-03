@@ -11,24 +11,24 @@
 {% if bdays_today or annis_today %}
 <div style="background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(251,191,36,.08));border:2px solid rgba(245,158,11,.5);border-radius:14px;padding:16px 20px;margin-bottom:14px;box-shadow:0 4px 24px rgba(245,158,11,.12);">
   <div style="font-weight:800;font-size:15px;color:#f59e0b;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-    🎉 <span>Today's Celebrations — {{ today }}</span>
+     <span>Today's Celebrations — {{ today }}</span>
   </div>
   <div style="display:flex;flex-wrap:wrap;gap:10px;">
     {% for b in bdays_today %}
     <div style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:26px;">🎂</span>
+      <span style="font-size:26px;"></span>
       <div>
         <div style="font-weight:800;font-size:13px;">{{ b.name }}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);">🎂 Birthday Today! &nbsp;·&nbsp; {{ b.dept or '' }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">Birthday Today! &nbsp;·&nbsp; {{ b.dept or '' }}</div>
       </div>
     </div>
     {% endfor %}
     {% for a in annis_today %}
     <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:10px;">
-      <span style="font-size:26px;">🎊</span>
+      <span style="font-size:26px;"></span>
       <div>
         <div style="font-weight:800;font-size:13px;">{{ a.name }}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);">🎊 {{ a.years }} Year Anniversary! &nbsp;·&nbsp; {{ a.dept or '' }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);"> {{ a.years }} Year Anniversary! &nbsp;·&nbsp; {{ a.dept or '' }}</div>
       </div>
     </div>
     {% endfor %}
@@ -41,13 +41,13 @@
 {% set annis_tom = cel.anniversaries_tomorrow if cel.anniversaries_tomorrow else [] %}
 {% if bdays_tom or annis_tom %}
 <div style="background:rgba(0,82,204,.1);border:1px solid rgba(0,82,204,.3);border-radius:12px;padding:12px 18px;margin-bottom:14px;">
-  <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:8px;">🔔 Tomorrow's Reminders</div>
+  <div style="font-size:13px;font-weight:700;color:#60a5fa;margin-bottom:8px;">Tomorrow's Reminders</div>
   <div style="display:flex;flex-wrap:wrap;gap:8px;">
     {% for b in bdays_tom %}
-    <span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#f59e0b;">🎂 {{ b.name }}'s Birthday Tomorrow</span>
+    <span style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#f59e0b;"> {{ b.name }}'s Birthday Tomorrow</span>
     {% endfor %}
     {% for a in annis_tom %}
-    <span style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#10b981;">🎊 {{ a.name }}'s {{ a.years }}yr Work Anniversary Tomorrow</span>
+    <span style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;color:#10b981;"> {{ a.name }}'s {{ a.years }}yr Work Anniversary Tomorrow</span>
     {% endfor %}
   </div>
 </div>
@@ -58,91 +58,71 @@
 
   <!-- Box 1: Active Employees -->
   <div class="kpi-box" onclick="showDrilldown('active')" style="cursor:pointer;background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">👥</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Active Employees</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ total }}</div>
-    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
-      <span>🏭 Associate: <b>{{ assoc }}</b></span>
-      <span>👔 Staff: <b>{{ staff }}</b></span>
-    </div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">👥</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
 
   <!-- Box 2: Present Today -->
   <div class="kpi-box" onclick="showDrilldown('present')" style="cursor:pointer;background:linear-gradient(135deg,#059669,#10b981);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">✅</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Present Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ present_staff + present_assoc }}</div>
-    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
-      <span>🏭 Associate: <b>{{ present_assoc }}</b></span>
-      <span>👔 Staff: <b>{{ present_staff }}</b></span>
-    </div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">✅</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
 
   <!-- Box 3: Absent Today -->
   <div class="kpi-box" onclick="showDrilldown('absent')" style="cursor:pointer;background:linear-gradient(135deg,#dc2626,#f43f5e);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">❌</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Absent Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ absent_staff + absent_assoc }}</div>
-    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
-      <span>🏭 Associate: <b>{{ absent_assoc }}</b></span>
-      <span>👔 Staff: <b>{{ absent_staff }}</b></span>
-    </div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">❌</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
 
   <!-- Box 3b: Yet to Arrive -->
   <div class="kpi-box" onclick="toggleYetToArrive()" style="cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">⏳</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Yet to Arrive</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ yet_to_arrive }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Shift assigned, not punched yet</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">⏳</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 3c: WOP Today -->
   <div class="kpi-box" onclick="toggleWOP()" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">📅</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WOP Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ wop_today }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off but Present</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">📅</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 3d: On Leave Today -->
   <div class="kpi-box" onclick="toggleLeave()" style="cursor:pointer;background:linear-gradient(135deg,#0891b2,#06b6d4);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">🏖️</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">On Leave Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ leave_today }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Approved leave for today</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">🏖️</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 4: OT This Month -->
   <div class="kpi-box" onclick="showDrilldown('ot')" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">⏱️</div>
-    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Associate OT ({{ month_name }})</div>
-    <div style="font-size:26px;font-weight:800;line-height:1;">{{ ot_assoc_hrs }} hrs</div>
-    <div style="margin-top:8px;font-size:12px;opacity:.9;display:flex;gap:12px;">
-      <span>Associate: <b>{{ ot_assoc_hrs }} hrs</b> this month</span>
-    </div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">⏱️</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">OT This Month ({{ month_name }})</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ (ot_staff_hrs + ot_assoc_hrs)|round(1) }} hrs</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
   <!-- Box 5: Week Off & Absent -->
   <div class="kpi-box" onclick="toggleWOAbsent()" style="cursor:pointer;background:linear-gradient(135deg,#374151,#6b7280);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;">📵</div>
+    <div style="font-size:28px;margin-bottom:4px;"></div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WO & Absent</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ wo_absent }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off day, did not come</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;">📵</div>
+    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 </div>
@@ -150,8 +130,8 @@
 <!-- ── WO & ABSENT PANEL ── -->
 <div id="woAbsentPanel" style="display:none;background:var(--card);border:1px solid rgba(107,114,128,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div style="font-weight:700;font-size:15px;color:#9ca3af;">📵 Week Off & Absent — Did Not Come on WO Day</div>
-    <button onclick="document.getElementById('woAbsentPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+    <div style="font-weight:700;font-size:15px;color:#9ca3af;">Week Off & Absent — Did Not Come on WO Day</div>
+    <button onclick="document.getElementById('woAbsentPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;"></button>
   </div>
   <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -191,7 +171,7 @@
     <div id="drillTitle" style="font-weight:700;font-size:15px;color:var(--text);"></div>
     <div style="display:flex;gap:8px;align-items:center;">
       
-      <button onclick="document.getElementById('drillPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+      <button onclick="document.getElementById('drillPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;"></button>
     </div>
   </div>
   <div id="drillBody"></div>
@@ -200,8 +180,8 @@
 <!-- ── WOP TODAY PANEL ── -->
 <div id="wopPanel" style="display:none;background:var(--card);border:1px solid rgba(217,119,6,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div style="font-weight:700;font-size:15px;color:#f59e0b;">📅 WOP Today — Week Off But Present</div>
-    <button onclick="document.getElementById('wopPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+    <div style="font-weight:700;font-size:15px;color:#f59e0b;">WOP Today — Week Off But Present</div>
+    <button onclick="document.getElementById('wopPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;"></button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="border-bottom:2px solid var(--border);">
@@ -232,8 +212,8 @@
 <!-- ── LEAVE TODAY PANEL ── -->
 <div id="leavePanel" style="display:none;background:var(--card);border:1px solid rgba(8,145,178,.4);border-radius:14px;padding:20px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div style="font-weight:700;font-size:15px;color:#06b6d4;">🏖️ On Leave Today — Approved Leave</div>
-    <button onclick="document.getElementById('leavePanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;">✕</button>
+    <div style="font-weight:700;font-size:15px;color:#06b6d4;">On Leave Today — Approved Leave</div>
+    <button onclick="document.getElementById('leavePanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;"></button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="border-bottom:2px solid var(--border);">
@@ -303,7 +283,7 @@
 {% if manpower %}
 <div class="table-card" style="padding:14px;margin-top:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <div style="font-weight:800;font-size:13px;">👥 Manpower — Required vs Actual</div>
+    <div style="font-weight:800;font-size:13px;">Manpower — Required vs Actual</div>
     
   </div>
   <div style="overflow-x:auto;">
@@ -329,8 +309,8 @@
           {% if gap_assoc > 0 %}+{{ gap_assoc }}{% elif gap_assoc == 0 %}0{% else %}{{ gap_assoc }}{% endif %}
         </td>
         <td style="padding:6px;text-align:center;">
-          {% if act_assoc >= req_assoc %}<span style="color:#10b981;font-size:11px;">✅ OK</span>
-          {% else %}<span style="color:#ef4444;font-size:11px;">⚠️ Short</span>{% endif %}
+          {% if act_assoc >= req_assoc %}<span style="color:#10b981;font-size:11px;">OK</span>
+          {% else %}<span style="color:#ef4444;font-size:11px;">Short</span>{% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -346,7 +326,7 @@
 <div class="table-card" style="padding:16px;margin-top:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
     <div>
-      <div style="font-weight:800;font-size:14px;">📊 Attendance Trend</div>
+      <div style="font-weight:800;font-size:14px;">Attendance Trend</div>
       <div style="font-size:11px;color:var(--muted);">Up to yesterday · Real-time</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -383,7 +363,7 @@
 <!-- ═══════════════════════════════════════════════════════ -->
 <div style="margin-top:14px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-    <div style="font-weight:800;font-size:14px;">⏱️ Dept OT Analytics (Associate)</div>
+    <div style="font-weight:800;font-size:14px;">Dept OT Analytics (Associate)</div>
     <div style="display:flex;gap:8px;align-items:center;">
       <select id="ot_m" class="form-select" style="width:110px;font-size:11px;" onchange="loadOTAlerts()">
         {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==current_month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
@@ -391,7 +371,7 @@
       <select id="ot_y" class="form-select" style="width:85px;font-size:11px;" onchange="loadOTAlerts()">
         {% for y in range(2024,2028) %}<option {% if y==current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
       </select>
-      <a href="/masters/dept-ot-limits" class="btn btn-ghost btn-sm" style="font-size:11px;">⚙️ Set Limits</a>
+      <a href="/masters/dept-ot-limits" class="btn btn-ghost btn-sm" style="font-size:11px;">Set Limits</a>
     </div>
   </div>
   <div id="otAlertGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
@@ -403,8 +383,8 @@
 <div class="modal-overlay" id="deptEmpModal">
   <div class="modal" style="width:600px;max-height:82vh;display:flex;flex-direction:column;">
     <div class="modal-header">
-      <span class="modal-title" id="deptEmpTitle">👥 Department Employees</span>
-      <button class="modal-close" onclick="closeModal('deptEmpModal')">✕</button>
+      <span class="modal-title" id="deptEmpTitle">Department Employees</span>
+      <button class="modal-close" onclick="closeModal('deptEmpModal')"></button>
     </div>
     <div class="modal-body" style="padding:0;overflow-y:auto;flex:1;">
       <div id="deptEmpBody" style="overflow-x:auto;"></div>
@@ -455,10 +435,10 @@ function showDrilldown(box){
   const panel = document.getElementById('drillPanel');
   const body  = document.getElementById('drillBody');
   const titles = {
-    active: '👥 Active Employees — Department Wise',
-    present:'✅ Present Today — Department Wise',
-    absent: '❌ Absent Today — Department Wise',
-    ot:     '⏱️ OT Hours This Month — Department Wise'
+    active: ' Active Employees — Department Wise',
+    present:' Present Today — Department Wise',
+    absent: ' Absent Today — Department Wise',
+    ot:     ' OT Hours This Month — Department Wise'
   };
   const titleEl = document.querySelector('#drillPanel .table-title');
   if(titleEl) titleEl.textContent = titles[box]||box;
@@ -471,17 +451,13 @@ function showDrilldown(box){
     const rows = _dept_active.map(d=>{
       const total = (d.staff_count||0)+(d.assoc_count||0);
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#0096dc;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="active" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
-        '<td style="padding:7px;text-align:center;color:#0096dc;font-weight:700;">'+(d.staff_count||0)+'</td>' +
-        '<td style="padding:7px;text-align:center;color:#10b981;font-weight:700;">'+(d.assoc_count||0)+'</td>' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#0096dc;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="active" onclick="handleDeptClick(this)">'+( d.department||'-')+'</span></td>' +
         '<td style="padding:7px;text-align:center;font-weight:800;">'+total+'</td>' +
         '</tr>';
     }).join('');
     body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
       '<thead><tr style="border-bottom:2px solid var(--border);">' +
       '<th style="text-align:left;padding:7px 12px;">Department</th>' +
-      '<th style="padding:7px;text-align:center;">Staff</th>' +
-      '<th style="padding:7px;text-align:center;">Associate</th>' +
       '<th style="padding:7px;text-align:center;">Total</th>' +
       '</tr></thead><tbody>'+rows+'</tbody></table>';
 
@@ -489,17 +465,13 @@ function showDrilldown(box){
     const rows = _dept_present.map(d=>{
       const total = (d.staff_p||0)+(d.assoc_p||0);
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#10b981;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="present" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
-        '<td style="padding:7px;text-align:center;color:#0096dc;">'+(d.staff_p||0)+'</td>' +
-        '<td style="padding:7px;text-align:center;color:#10b981;">'+(d.assoc_p||0)+'</td>' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#10b981;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="present" onclick="handleDeptClick(this)">'+( d.department||'-')+'</span></td>' +
         '<td style="padding:7px;text-align:center;font-weight:800;">'+total+'</td>' +
         '</tr>';
     }).join('');
     body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
       '<thead><tr style="border-bottom:2px solid var(--border);">' +
       '<th style="text-align:left;padding:7px 12px;">Department</th>' +
-      '<th style="padding:7px;text-align:center;">Staff Present</th>' +
-      '<th style="padding:7px;text-align:center;">Associate Present</th>' +
       '<th style="padding:7px;text-align:center;">Total Present</th>' +
       '</tr></thead><tbody>'+rows+'</tbody></table>';
 
@@ -536,17 +508,13 @@ function showDrilldown(box){
     const rows = _dept_ot.map(d=>{
       const totalOTMin = (d.staff_ot||0)+(d.assoc_ot||0);
       return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#f59e0b;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="ot" onclick="handleDeptClick(this)">'+( d.department||'—')+'</span></td>' +
-        '<td style="padding:7px;text-align:center;color:#0096dc;">'+(d.staff_ot ? (d.staff_ot/60).toFixed(1)+' hrs' : '—')+'</td>' +
-        '<td style="padding:7px;text-align:center;color:#f59e0b;font-weight:700;">'+(d.assoc_ot ? (d.assoc_ot/60).toFixed(1)+' hrs' : '—')+'</td>' +
+        '<td style="padding:7px 12px;font-weight:600;"><span style="color:#f59e0b;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="ot" onclick="handleDeptClick(this)">'+( d.department||'-')+'</span></td>' +
         '<td style="padding:7px;text-align:center;font-weight:800;">'+(totalOTMin/60).toFixed(1)+' hrs</td>' +
         '</tr>';
     }).join('');
     body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
       '<thead><tr style="border-bottom:2px solid var(--border);">' +
       '<th style="text-align:left;padding:7px 12px;">Department</th>' +
-      '<th style="padding:7px;text-align:center;">Staff OT</th>' +
-      '<th style="padding:7px;text-align:center;">Associate OT</th>' +
       '<th style="padding:7px;text-align:center;">Total OT</th>' +
       '</tr></thead><tbody>'+rows+'</tbody></table>';
   }
@@ -724,8 +692,8 @@ function handleDeptClick(el) {
     return;
   }
   // Close any other open expand rows in same table
-  tbody.querySelectorAll('tr.emp-expand').forEach(r => r.remove());
-  tbody.querySelectorAll('span[data-box]').forEach(s => s.style.fontWeight='600');
+  tbody.querySelectorAll('tr.emp-expand').forEach(r =>r.remove());
+  tbody.querySelectorAll('span[data-box]').forEach(s =>s.style.fontWeight='600');
 
   // Create expand row
   const expandTr = document.createElement('tr');
@@ -738,14 +706,14 @@ function handleDeptClick(el) {
   const td = document.createElement('td');
   td.setAttribute('colspan', colspan);
   td.style.cssText = 'padding:0;';
-  td.innerHTML = '<div style="padding:10px 14px;"><span style="color:var(--muted);font-size:12px;">⏳ Loading...</span></div>';
+  td.innerHTML = '<div style="padding:10px 14px;"><span style="color:var(--muted);font-size:12px;">Loading...</span></div>';
   expandTr.appendChild(td);
   tr.insertAdjacentElement('afterend', expandTr);
   el.style.fontWeight = '800';
 
   // Fetch employees
   fetch('/dashboard/dept-emps?dept=' + encodeURIComponent(dept) + '&box=' + box)
-    .then(r => r.json())
+    .then(r =>r.json())
     .then(j => {
       if(!j.success){ td.innerHTML='<div style="padding:10px;color:#ef4444;">Error loading</div>'; return; }
       const emps = j.employees;
@@ -785,7 +753,7 @@ function handleDeptClick(el) {
         html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Category</td></tr>';
         emps.forEach(e => {
           const ph = (box==='absent' && e.phone && e.phone.trim()) ? e.phone.trim() : '';
-          const phoneHtml = ph ? '<div><a href="tel:'+ph+'" style="color:#10b981;font-size:10px;font-weight:600;text-decoration:none;" onclick="event.stopPropagation()">📞 '+ph+'</a></div>' : '';
+          const phoneHtml = ph ? '<div><a href="tel:'+ph+'" style="color:#10b981;font-size:10px;font-weight:600;text-decoration:none;" onclick="event.stopPropagation()"> '+ph+'</a></div>' : '';
           html += '<tr style="border-top:1px solid rgba(255,255,255,.05);">' +
             '<td style="padding:3px 8px;color:#0096dc;font-weight:700;">'+e.emp_code+'</td>' +
             '<td style="padding:3px;"><div style="font-weight:600;">'+e.emp_name+'</div>'+phoneHtml+'</td>' +
@@ -826,7 +794,7 @@ async function showDeptEmps(dept, box) {
     rows = j.employees.map(e => {
       const ph = (e.phone && e.phone.trim()) ? e.phone.trim() : '';
       const phoneHtml = ph
-        ? '<div style="margin-top:2px;"><a href="tel:'+ph+'" style="color:#10b981;font-weight:600;font-size:11px;text-decoration:none;" onclick="event.stopPropagation()">📞 '+ph+'</a></div>'
+        ? '<div style="margin-top:2px;"><a href="tel:'+ph+'" style="color:#10b981;font-weight:600;font-size:11px;text-decoration:none;" onclick="event.stopPropagation()"> '+ph+'</a></div>'
         : '';
       return '<tr style="border-bottom:1px solid var(--border);">'
         + '<td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td>'
@@ -836,7 +804,7 @@ async function showDeptEmps(dept, box) {
         + '</tr>';
     }).join('');
   }
-  document.getElementById('deptEmpTitle').textContent = '👥 '+deptName+' — '+(labels[bx]||'Employees')+' ('+j.employees.length+')';
+  document.getElementById('deptEmpTitle').textContent = ' '+deptName+' — '+(labels[bx]||'Employees')+' ('+j.employees.length+')';
   const emptyMsg = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">No employees found</td></tr>';
   document.getElementById('deptEmpBody').innerHTML =
     '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +

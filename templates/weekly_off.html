@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Weekly Off Management{% endblock %}
-{% block page_title %}📆 Weekly Off Management{% endblock %}
+{% block page_title %} Weekly Off Management{% endblock %}
 {% block content %}
 
 <div style="background:rgba(0,82,204,.08);border:1px solid rgba(0,82,204,.2);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:13px;line-height:1.6;">
-  <strong style="color:#0096dc;">💡 How it works:</strong>
-  Every employee's default Weekly Off is <strong>Sunday</strong> until assigned here.
-  Assign a new Weekly Off to an employee with a From–To date range — only dates <strong>from the From Date onward</strong> change to the new day;
+  <strong style="color:#0096dc;">How it works:</strong>
+  Every employee's default Weekly Off is <strong>Sunday</strong>until assigned here.
+  Assign a new Weekly Off to an employee with a From–To date range — only dates <strong>from the From Date onward</strong>change to the new day;
   <strong>past dates keep the previous Weekly Off</strong>. If the range's To Date expires and no new assignment is made, the employee automatically
   reverts to <strong>Sunday</strong>.
 </div>
@@ -16,16 +16,16 @@
     <span class="table-title">Employees — Current Weekly Off (Today: {{ today }})</span>
     <div style="display:flex;gap:8px;">
       {% if can_bulk_upload %}
-      <a class="btn btn-ghost btn-sm" href="/weekly-off/download-template">📥 Download Template</a>
-      <button class="btn btn-ghost btn-sm" onclick="openModal('bulkUploadModal')">📤 Bulk Upload</button>
+      <a class="btn btn-ghost btn-sm" href="/weekly-off/download-template">Download Template</a>
+      <button class="btn btn-ghost btn-sm" onclick="openModal('bulkUploadModal')">Bulk Upload</button>
       {% endif %}
-      <button class="btn btn-primary btn-sm" onclick="openModal('assignWoModal')">➕ Assign Weekly Off</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('assignWoModal')">Assign Weekly Off</button>
     </div>
   </div>
 
   <!-- Filters -->
   <div style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);">
-    <input type="text" class="form-control" id="f_search" placeholder="🔍 Search by Employee Code or Name" style="flex:2;min-width:200px;" oninput="applyFilters()">
+    <input type="text" class="form-control" id="f_search" placeholder=" Search by Employee Code or Name" style="flex:2;min-width:200px;" oninput="applyFilters()">
     <select class="form-control" id="f_department" style="flex:1;min-width:150px;" onchange="applyFilters()">
       <option value="">All Departments</option>
       {% for dpt in departments %}
@@ -48,7 +48,7 @@
       <option value="Friday">Friday</option>
       <option value="Saturday">Saturday</option>
     </select>
-    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✖ Clear Filters</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear Filters</button>
   </div>
 
   <div style="overflow-x:auto;">
@@ -62,7 +62,7 @@
           <td>{{ e.department or '—' }}</td>
           <td>{{ e.category or '—' }}</td>
           <td><span style="background:{% if e.weekly_off=='Sunday' %}rgba(100,116,139,.15){% else %}rgba(0,150,220,.15){% endif %};color:{% if e.weekly_off=='Sunday' %}var(--muted){% else %}#0096dc{% endif %};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">{{ e.weekly_off }}</span></td>
-          <td><button class="btn btn-ghost btn-sm" onclick="quickAssign('{{ e.emp_code }}','{{ e.emp_name | replace("'", "\\'") }}')">📆 Assign</button></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="quickAssign('{{ e.emp_code }}','{{ e.emp_name | replace("'", "\\'") }}')">Assign</button></td>
         </tr>
         {% endfor %}
         {% if not employees %}
@@ -91,17 +91,17 @@
           <td>{{ a.to_date or 'Ongoing' }}</td>
           <td>
             {% if a.status == 'active' %}
-            <span style="background:rgba(16,185,129,.15);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🟢 Active</span>
+            <span style="background:rgba(16,185,129,.15);color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Active</span>
             {% elif a.status == 'upcoming' %}
-            <span style="background:rgba(245,158,11,.15);color:var(--yellow);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">🕒 Upcoming</span>
+            <span style="background:rgba(245,158,11,.15);color:var(--yellow);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Upcoming</span>
             {% else %}
-            <span style="background:rgba(100,116,139,.15);color:var(--muted);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">⚪ Expired</span>
+            <span style="background:rgba(100,116,139,.15);color:var(--muted);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">Expired</span>
             {% endif %}
           </td>
           <td style="color:var(--muted);font-size:12px;">{{ a.created_by or '—' }}</td>
           <td style="white-space:nowrap;">
-            <button class="btn btn-ghost btn-sm" title="Recalculate attendance based on this Weekly Off" onclick="recalcWo('{{ a.emp_code }}','{{ a.from_date }}',this)">🔄 Recalculate</button>
-            <button class="btn btn-danger btn-sm" onclick="delAssignment({{ a.id }})">🗑️</button>
+            <button class="btn btn-ghost btn-sm" title="Recalculate attendance based on this Weekly Off" onclick="recalcWo('{{ a.emp_code }}','{{ a.from_date }}',this)">Recalculate</button>
+            <button class="btn btn-danger btn-sm" onclick="delAssignment({{ a.id }})"></button>
           </td>
         </tr>
         {% endfor %}
@@ -116,7 +116,7 @@
 <!-- Assign Modal -->
 <div class="modal-overlay" id="assignWoModal">
   <div class="modal" style="width:460px;">
-    <div class="modal-header"><span class="modal-title">📆 Assign Weekly Off</span><button class="modal-close" onclick="closeModal('assignWoModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Assign Weekly Off</span><button class="modal-close" onclick="closeModal('assignWoModal')"></button></div>
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Employee *</label>
@@ -154,7 +154,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('assignWoModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveWoAssign()">💾 Assign</button>
+      <button class="btn btn-primary" onclick="saveWoAssign()">Assign</button>
     </div>
   </div>
 </div>
@@ -163,11 +163,11 @@
 <!-- Bulk Upload Modal -->
 <div class="modal-overlay" id="bulkUploadModal">
   <div class="modal" style="width:460px;">
-    <div class="modal-header"><span class="modal-title">📤 Bulk Upload Weekly Off</span><button class="modal-close" onclick="closeModal('bulkUploadModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Bulk Upload Weekly Off</span><button class="modal-close" onclick="closeModal('bulkUploadModal')"></button></div>
     <div class="modal-body">
       <div style="background:rgba(0,82,204,.08);border:1px solid rgba(0,82,204,.2);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;">
         Download the template first, fill in <strong>Employee Code, Day, From Date, To Date</strong> (To Date optional) and upload it back here.
-        <a href="/weekly-off/download-template" style="color:#0096dc;font-weight:600;">📥 Download Template</a>
+        <a href="/weekly-off/download-template" style="color:#0096dc;font-weight:600;">Download Template</a>
       </div>
       <div class="form-group">
         <label class="form-label">Excel File *</label>
@@ -177,7 +177,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('bulkUploadModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="uploadBulkWo()">📤 Upload</button>
+      <button class="btn btn-primary" onclick="uploadBulkWo()">Upload</button>
     </div>
   </div>
 </div>
@@ -248,9 +248,9 @@ async function delAssignment(id){
 }
 
 async function recalcWo(empCode, fromDate, btn){
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ Recalculating...'; }
+  if(btn){ btn.disabled = true; btn.textContent = ' Recalculating...'; }
   const r = await api('/weekly-off/recalculate','POST',{emp_code: empCode, from_date: fromDate});
-  if(btn){ btn.disabled = false; btn.textContent = '🔄 Recalculate'; }
+  if(btn){ btn.disabled = false; btn.textContent = ' Recalculate'; }
   if(r.success){
     showToast(r.message || 'Attendance recalculated');
   } else {

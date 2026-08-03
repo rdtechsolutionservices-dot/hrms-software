@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Project Experience Letter — {{ emp.emp_name }}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Calibri:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Verdana:wght@400;700&display=swap');
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Calibri, 'Times New Roman', serif; background:#f0f0f0; }
+  body { font-family: Verdana, 'Times New Roman', serif; background:#f0f0f0; }
 
   @media print { *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} 
     body { background: white; }
@@ -180,8 +180,8 @@
 <body>
 
 <div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨️ Print Letter</button>
-  <button class="btn-close" onclick="window.close()">✕ Close</button>
+  <button class="btn-print" onclick="window.print()">Print Letter</button>
+  <button class="btn-close" onclick="window.close()">Close</button>
   <span style="color:rgba(255,255,255,.6);font-size:13px;margin-left:8px;">Project Experience Letter — {{ emp.emp_name }}</span>
 </div>
 
@@ -239,9 +239,9 @@
     <!-- Opening Para -->
     <p class="para para-intro">
       This is to certify that <strong>{{ emp.emp_name }}</strong> (Employee Code: <strong>{{ emp.emp_code }}</strong>)
-      has been employed with <strong>{{ company_name }}</strong> as
-      <strong>{{ role_held or emp.designation or 'an employee' }}</strong> in the
-      <strong>{{ emp.department or 'Production' }}</strong> department since
+      has been employed with <strong>{{ company_name }}</strong>as
+      <strong>{{ role_held or emp.designation or 'an employee' }}</strong>in the
+      <strong>{{ emp.department or 'Production' }}</strong>department since
       <strong>{{ emp.date_of_joining or 'the date of joining' }}</strong>.
       During the course of employment, {{ emp.emp_name.split()[0] }} has demonstrated consistent
       professionalism, technical competence, and dedication to organizational goals.
@@ -269,7 +269,7 @@
 
     <!-- Closing Para -->
     <p class="para">
-      Throughout the tenure, <strong>{{ emp.emp_name.split()[0] }}</strong> has consistently
+      Throughout the tenure, <strong>{{ emp.emp_name.split()[0] }}</strong>has consistently
       met performance expectations and upheld the values of {{ company_name }}
       We acknowledge the significant contributions made to the department and the company.
     </p>

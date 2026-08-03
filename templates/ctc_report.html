@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}CTC Report{% endblock %}
-{% block page_title %}💼 CTC Report — Cost to Company{% endblock %}
+{% block page_title %} CTC Report — Cost to Company{% endblock %}
 {% block content %}
 <style>
-* { font-family: 'Calibri', sans-serif !important; }
+* { font-family: 'Verdana', sans-serif !important; }
 .ctc-table { width:100%; border-collapse:collapse; font-size:11px; }
 .ctc-table th, .ctc-table td { border:1px solid var(--border); padding:5px 8px; white-space:nowrap; }
 .ctc-table th { background:var(--surface); font-size:10px; text-transform:uppercase; letter-spacing:.3px; cursor:pointer; user-select:none; }
@@ -23,8 +23,8 @@
 <div style="display:flex;gap:8px;align-items:center;background:var(--card);border-radius:12px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;">
   <!-- CTC Type -->
   <div style="display:flex;gap:6px;align-items:center;background:var(--surface);border-radius:8px;padding:4px;">
-    <button class="type-btn {% if ctc_type=='earn' %}active{% endif %}" onclick="switchType('earn')">💰 Earn CTC</button>
-    <button class="type-btn {% if ctc_type=='actual' %}active{% endif %}" onclick="switchType('actual')">📋 Actual CTC</button>
+    <button class="type-btn {% if ctc_type=='earn' %}active{% endif %}" onclick="switchType('earn')">Earn CTC</button>
+    <button class="type-btn {% if ctc_type=='actual' %}active{% endif %}" onclick="switchType('actual')">Actual CTC</button>
   </div>
   <select id="selMonth" class="form-select" style="width:120px;" onchange="reload()">
     {% for mn in months %}<option value="{{ loop.index }}" {% if loop.index==month %}selected{% endif %}>{{ mn }}</option>{% endfor %}
@@ -41,9 +41,9 @@
     <option value="Staff" {% if selected_cat=='Staff' %}selected{% endif %}>Staff</option>
     <option value="Associate" {% if selected_cat=='Associate' %}selected{% endif %}>Associate</option>
   </select>
-  <input class="form-control" id="empSearch" placeholder="🔍 Name or Code..." value="{{ emp_search }}" oninput="reload()" style="width:160px;">
-  <a id="exportBtn" href="/export/ctc?month={{ month }}&year={{ year }}&dept={{ selected_dept }}&cat={{ selected_cat }}&emp={{ emp_search }}&ctc_type={{ ctc_type }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export</a>
-  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="syncCTC()" title="Sync latest payroll + OT data for this month">🔄 Sync</button>
+  <input class="form-control" id="empSearch" placeholder=" Name or Code..." value="{{ emp_search }}" oninput="reload()" style="width:160px;">
+  <a id="exportBtn" href="/export/ctc?month={{ month }}&year={{ year }}&dept={{ selected_dept }}&cat={{ selected_cat }}&emp={{ emp_search }}&ctc_type={{ ctc_type }}" class="btn btn-ghost btn-sm" style="color:#10b981;">Export</a>
+  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="syncCTC()" title="Sync latest payroll + OT data for this month">Sync</button>
   <div style="margin-left:auto;font-size:12px;color:var(--muted);">
     {{ rows|length }} emp &nbsp;|&nbsp;
     <strong style="color:#7c3aed;">Total CTC: ₹{{ "{:,.0f}".format(total_ctc_sum) }}</strong>
@@ -53,11 +53,11 @@
 
 {% if ctc_type == 'earn' %}
 <div style="background:rgba(0,150,220,.08);border:1px solid rgba(0,150,220,.2);border-radius:8px;padding:7px 14px;margin-bottom:10px;font-size:11px;color:#0096dc;">
-  💰 <strong>Earn CTC</strong> — Based on actual payroll processed salary for {{ month_name }} {{ year }}. Auto-updates when salary is processed or incremented.
+   <strong>Earn CTC</strong> — Based on actual payroll processed salary for {{ month_name }} {{ year }}. Auto-updates when salary is processed or incremented.
 </div>
 {% else %}
 <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:7px 14px;margin-bottom:10px;font-size:11px;color:#059669;">
-  📋 <strong>Actual CTC</strong> — Based on current master salary (Basic + HRA + Special) from employee records.
+   <strong>Actual CTC</strong> — Based on current master salary (Basic + HRA + Special) from employee records.
 </div>
 {% endif %}
 
@@ -72,12 +72,12 @@
         <th onclick="srt(2)" rowspan="2" style="min-width:95px;">Dept<span class="si">↕</span></th>
         <th onclick="srt(3)" rowspan="2" style="min-width:75px;">Cat<span class="si">↕</span></th>
         <th colspan="4" class="ctc-earn" style="text-align:center;border-bottom:none;">
-          💰 {% if ctc_type=='earn' %}Earned{% else %}Actual{% endif %} Salary
+           {% if ctc_type=='earn' %}Earned{% else %}Actual{% endif %} Salary
         </th>
-        <th colspan="5" class="ctc-ded" style="text-align:center;border-bottom:none;">🔻 Employee Deductions</th>
+        <th colspan="5" class="ctc-ded" style="text-align:center;border-bottom:none;">Employee Deductions</th>
         <th onclick="srt(9)" rowspan="2" style="text-align:right;min-width:85px;">Net Salary<span class="si">↕</span></th>
-        <th colspan="4" class="ctc-er" style="text-align:center;border-bottom:none;">🏢 Employer Contribution</th>
-        <th colspan="1" class="ctc-tot" style="text-align:center;border-bottom:none;">📊 CTC</th>
+        <th colspan="4" class="ctc-er" style="text-align:center;border-bottom:none;">Employer Contribution</th>
+        <th colspan="1" class="ctc-tot" style="text-align:center;border-bottom:none;">CTC</th>
       </tr>
       <tr style="position:sticky;top:32px;z-index:2;">
         <th onclick="srt(4)" class="ctc-earn" style="text-align:right;min-width:80px;">Basic<span class="si">↕</span></th>
@@ -149,7 +149,7 @@
 </div>
 {% else %}
 <div class="mini-card" style="text-align:center;padding:60px;color:var(--muted);">
-  <div style="font-size:40px;">💼</div>
+  <div style="font-size:40px;"></div>
   <div style="margin-top:12px;">No payroll data for {{ month_name }} {{ year }}</div>
 </div>
 {% endif %}
@@ -159,11 +159,11 @@ async function syncCTC(){
   const m = parseInt(document.getElementById("selM").value);
   const y = parseInt(document.getElementById("selY").value);
   const btn = event.target;
-  btn.textContent="⏳ Syncing..."; btn.disabled=true;
+  btn.textContent=" Syncing..."; btn.disabled=true;
   const r = await api("/payroll/ctc-sync","POST",{month:m,year:y});
-  btn.textContent="🔄 Sync"; btn.disabled=false;
+  btn.textContent=" Sync"; btn.disabled=false;
   if(r.success){
-    showToast("✅ "+r.message);
+    showToast(" "+r.message);
     setTimeout(()=>location.reload(), 800);
   } else {
     alert("Sync error: "+(r.error||"Failed"));

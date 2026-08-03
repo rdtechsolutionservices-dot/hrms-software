@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}OT Process{% endblock %}
-{% block page_title %}⏱️ OT Process{% endblock %}
+{% block page_title %} OT Process{% endblock %}
 {% block content %}
 
 <!-- Month Selector -->
@@ -11,7 +11,7 @@
   <select id="selY" class="form-select" style="width:100px;" onchange="reload()">
     {% for y in range(2023,2029) %}<option {% if y==year %}selected{% endif %}>{{ y }}</option>{% endfor %}
   </select>
-  <a href="/payroll/ot-export/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#10b981;">📥 Export Excel</a>
+  <a href="/payroll/ot-export/{{ month }}/{{ year }}" class="btn btn-ghost" style="color:#10b981;">Export Excel</a>
   <div style="margin-left:auto;font-size:12px;color:var(--muted);">
     OT Rate: {% if ot_rate %}(Gross ÷ 208) × 1.3{% else %}Not configured{% endif %}
   </div>
@@ -41,7 +41,7 @@
   <!-- Toolbar -->
   <div style="display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;">
-      <input type="checkbox" id="cbAll" onchange="filterRows()" checked> Select All
+      <input type="checkbox" id="cbAll" onchange="filterRows()" checked>Select All
     </label>
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
       <input type="checkbox" id="cbUnauth" onchange="filterRows()" checked>
@@ -56,9 +56,9 @@
       <span style="color:#f59e0b;font-weight:600;">Net OT = Zero</span>
     </label>
     <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
-      <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markPaid()">✅ Mark as Paid</button>
-      <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genBankFile()">🏦 Bank File</button>
-      <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="esicPreview()">📋 ESIC Preview</button>
+      <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markPaid()">Mark as Paid</button>
+      <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genBankFile()">Bank File</button>
+      <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="esicPreview()">ESIC Preview</button>
     </div>
   </div>
 
@@ -118,10 +118,10 @@
 </div>
 
 <div style="margin-top:14px;background:rgba(0,82,204,.08);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);">
-  <strong style="color:#0096dc;">💡 OT Formula:</strong>
+  <strong style="color:#0096dc;">OT Formula:</strong>
   (Actual Gross ÷ 208) × 1.3 × OT Hours<br>
-  <strong>ESIC:</strong> 0.75% deducted from OT if Actual Gross ≤ ₹21,000<br>
-  <strong>Break deductions:</strong> WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
+  <strong>ESIC:</strong>0.75% deducted from OT if Actual Gross ≤ ₹21,000<br>
+  <strong>Break deductions:</strong>WOP/HP = 30 min | Double shift (≥16 hrs) = 1 hr
 </div>
 
 {% endblock %}
@@ -204,7 +204,7 @@ async function markPaid(){
   const m = document.getElementById("selM").value;
   const y = document.getElementById("selY").value;
   const r = await api("/payroll/ot-mark-paid","POST",{emp_codes:codes,month:parseInt(m),year:parseInt(y)});
-  if(r.success){ showToast("✅ Marked as Paid"); }
+  if(r.success){ showToast(" Marked as Paid"); }
   else { alert("Error: "+(r.error||"Failed")); }
 }
 

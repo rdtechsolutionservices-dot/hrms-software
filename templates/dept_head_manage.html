@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Dept Head Setup{% endblock %}
-{% block page_title %}🏢 Department Head Setup{% endblock %}
+{% block page_title %} Department Head Setup{% endblock %}
 {% block content %}
 
 <div class="alert alert-info" style="margin-bottom:16px;font-size:12px;">
-  ℹ️ Assign users as Department Heads. Leave requests from employees in those departments will first go to the assigned Dept Head for approval, then to Director-level users.
+  ℹ Assign users as Department Heads. Leave requests from employees in those departments will first go to the assigned Dept Head for approval, then to Director-level users.
 </div>
 
 <!-- Current Assignments -->
 <div class="table-card" style="margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);">
-    <div style="font-weight:700;font-size:14px;">📋 Current Dept Head Assignments</div>
-    <button class="btn btn-primary" onclick="openModal('addAssignModal')">➕ Add Assignment</button>
+    <div style="font-weight:700;font-size:14px;">Current Dept Head Assignments</div>
+    <button class="btn btn-primary" onclick="openModal('addAssignModal')">Add Assignment</button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="border-bottom:1px solid var(--border);">
@@ -42,8 +42,8 @@
 <div class="modal-overlay" id="addAssignModal">
   <div class="modal" style="width:420px;">
     <div class="modal-header">
-      <span class="modal-title">➕ Add Dept Head Assignment</span>
-      <button class="modal-close" onclick="closeModal('addAssignModal')">✕</button>
+      <span class="modal-title">Add Dept Head Assignment</span>
+      <button class="modal-close" onclick="closeModal('addAssignModal')"></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -80,10 +80,10 @@ async function addAssignment(){
   const user_id = document.getElementById("sel_user").value;
   const dept    = document.getElementById("sel_dept").value;
   const div     = document.getElementById("addRes");
-  if(!user_id || !dept){ div.innerHTML='<div class="alert alert-danger">❌ Select user and department</div>'; return; }
+  if(!user_id || !dept){ div.innerHTML='<div class="alert alert-danger">Select user and department</div>'; return; }
   const r = await api("/dept-head/assign","POST",{user_id:parseInt(user_id), department:dept});
   if(r.success){ location.reload(); }
-  else { div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`; }
+  else { div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`; }
 }
 
 async function removeAssignment(user_id, dept){

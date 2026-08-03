@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Absent Report{% endblock %}
-{% block page_title %}📋 Absent Report{% endblock %}
+{% block page_title %} Absent Report{% endblock %}
 {% block content %}
 
 <!-- Filters -->
@@ -34,8 +34,8 @@
       </select>
     </div>
     <div style="display:flex;gap:6px;">
-      <button class="btn btn-primary" onclick="applyFilter()">🔍 Search</button>
-      <button class="btn btn-ghost" onclick="clearFilter()">✕</button>
+      <button class="btn btn-primary" onclick="applyFilter()">Search</button>
+      <button class="btn btn-ghost" onclick="clearFilter()"></button>
     </div>
   </div>
 </div>
@@ -47,15 +47,15 @@
     <span style="font-size:12px;color:var(--muted);">{{ from_date or 'All' }} → {{ to_date or 'All' }}</span>
   </div>
   <div style="display:flex;gap:8px;">
-    <button class="btn btn-ghost btn-sm" onclick="toggleView('detail')" id="btn_detail" style="color:#0096dc;">📋 Detail</button>
-    <button class="btn btn-ghost btn-sm" onclick="toggleView('summary')" id="btn_summary">👤 Employee Summary</button>
-    <a id="exportLink" href="/reports/absent-export?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&cat={{ cat }}&emp={{ emp_search }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export Excel</a>
+    <button class="btn btn-ghost btn-sm" onclick="toggleView('detail')" id="btn_detail" style="color:#0096dc;">Detail</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleView('summary')" id="btn_summary">Employee Summary</button>
+    <a id="exportLink" href="/reports/absent-export?from_date={{ from_date }}&to_date={{ to_date }}&dept={{ dept }}&cat={{ cat }}&emp={{ emp_search }}" class="btn btn-ghost btn-sm" style="color:#10b981;">Export Excel</a>
   </div>
 </div>
 
 <!-- Detail View -->
 <div id="view_detail" class="table-card" style="overflow-x:auto;">
-  <input class="form-control" id="tblSearch" placeholder="🔍 Filter table..." oninput="filterTable()" style="margin:10px;width:calc(100% - 20px);">
+  <input class="form-control" id="tblSearch" placeholder=" Filter table..." oninput="filterTable()" style="margin:10px;width:calc(100% - 20px);">
   <table id="tblAbsent" style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="border-bottom:2px solid var(--border);">
       <th style="text-align:left;padding:8px 12px;cursor:pointer;" onclick="sortTable('tblAbsent',0)" data-sort-col="0">Date<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>

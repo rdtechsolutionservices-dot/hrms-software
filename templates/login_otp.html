@@ -5,21 +5,21 @@
 <title>Verify OTP — {{ company_name }}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Calibri,sans-serif;background:#050810;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+body{font-family:Verdana,sans-serif;background:#050810;min-height:100vh;display:flex;align-items:center;justify-content:center;}
 .bg{position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(0,82,204,.15),transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(0,150,220,.1),transparent 50%);}
 .card{position:relative;z-index:10;background:rgba(14,20,34,.96);border:1px solid rgba(59,130,246,.2);border-radius:22px;padding:44px 40px;width:420px;box-shadow:0 40px 100px rgba(0,0,0,.6);text-align:center;}
 .icon{font-size:44px;margin-bottom:14px;}
-h2{font-family:Calibri,sans-serif;font-weight:700;font-size:20px;color:#e2e8f0;margin-bottom:6px;}
+h2{font-family:Verdana,sans-serif;font-weight:700;font-size:20px;color:#e2e8f0;margin-bottom:6px;}
 p{font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.5;}
 p b{color:#94a3b8;}
-.otp-input{width:100%;background:#0a0f1c;border:1px solid #1e2a40;border-radius:11px;padding:16px;color:#e2e8f0;font-size:26px;font-weight:800;letter-spacing:10px;text-align:center;outline:none;transition:border .2s;font-family:Calibri,sans-serif;}
+.otp-input{width:100%;background:#0a0f1c;border:1px solid #1e2a40;border-radius:11px;padding:16px;color:#e2e8f0;font-size:26px;font-weight:800;letter-spacing:10px;text-align:center;outline:none;transition:border .2s;font-family:Verdana,sans-serif;}
 .otp-input:focus{border-color:#0096dc;}
-.btn{width:100%;background:linear-gradient(135deg,#0052cc,#0096dc);color:white;border:none;border-radius:11px;padding:13px;font-family:Calibri,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;}
+.btn{width:100%;background:linear-gradient(135deg,#0052cc,#0096dc);color:white;border:none;border-radius:11px;padding:13px;font-family:Verdana,sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;}
 .btn:hover{opacity:.9;}
 .error{background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.3);border-radius:9px;padding:11px 14px;color:#f43f5e;font-size:13px;margin-bottom:16px;text-align:left;}
 .success{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);border-radius:9px;padding:11px 14px;color:#10b981;font-size:13px;margin-bottom:16px;text-align:left;}
 .resend{margin-top:16px;font-size:12px;}
-.resend button{background:none;border:none;color:#0096dc;font-size:12px;cursor:pointer;text-decoration:underline;font-family:Calibri,sans-serif;}
+.resend button{background:none;border:none;color:#0096dc;font-size:12px;cursor:pointer;text-decoration:underline;font-family:Verdana,sans-serif;}
 .back{margin-top:14px;font-size:12px;}
 .back a{color:#64748b;text-decoration:none;}
 .back a:hover{color:#94a3b8;}
@@ -28,11 +28,11 @@ p b{color:#94a3b8;}
 <body>
 <div class="bg"></div>
 <div class="card">
-  <div class="icon">🔐</div>
+  <div class="icon"></div>
   <h2>Verify Your Identity</h2>
   <p>We've sent a 6-digit code to <b>{{ masked_email }}</b>. Enter it below to complete your login.</p>
-  {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
-  {% if resent %}<div class="success">✅ A new OTP has been sent.</div>{% endif %}
+  {% if error %}<div class="error"> {{ error }}</div>{% endif %}
+  {% if resent %}<div class="success">A new OTP has been sent.</div>{% endif %}
   <form method="POST" action="/login/verify-otp">
     <input class="otp-input" type="text" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autofocus autocomplete="one-time-code">
     <button type="submit" class="btn">Verify & Sign In →</button>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Leave (Associate){% endblock %}
-{% block page_title %}💰 OT Payment — Associate OT Processing{% endblock %}
+{% block page_title %} OT Payment — Associate OT Processing{% endblock %}
 {% block content %}
 
 <!-- Filters -->
@@ -19,19 +19,19 @@
     <option value="">All Schemes</option>
     {% for s in (schemes or []) %}<option {% if s==selected_scheme %}selected{% endif %}>{{ s }}</option>{% endfor %}
   </select>
-  <input class="form-control" id="searchEmp" placeholder="🔍 Search..." oninput="filterTable()" style="width:160px;">
-  <a href="/payroll/leave-associate/export/{{ month }}/{{ year }}?dept={{ selected_dept }}&scheme={{ selected_scheme }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export</a>
-  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="saveSnapshot()" title="Save current approval state">💾 Save</button>
-  <button class="btn btn-ghost btn-sm" style="color:#f59e0b;" onclick="syncRecords()">🔄 Sync</button>
+  <input class="form-control" id="searchEmp" placeholder=" Search..." oninput="filterTable()" style="width:160px;">
+  <a href="/payroll/leave-associate/export/{{ month }}/{{ year }}?dept={{ selected_dept }}&scheme={{ selected_scheme }}" class="btn btn-ghost btn-sm" style="color:#10b981;">Export</a>
+  <button class="btn btn-ghost btn-sm" style="color:#7c3aed;" onclick="saveSnapshot()" title="Save current approval state">Save</button>
+  <button class="btn btn-ghost btn-sm" style="color:#f59e0b;" onclick="syncRecords()">Sync</button>
   {% if session.role=='admin' %}
   <button class="btn btn-ghost btn-sm" id="laLockBtn"
     style="color:{% if is_locked %}#ef4444{% else %}#6b7280{% endif %};"
-    onclick="toggleLALock()">{% if is_locked %}🔒 Locked{% else %}🔓 Lock Month{% endif %}</button>
+    onclick="toggleLALock()">{% if is_locked %} Locked{% else %} Lock Month{% endif %}</button>
   {% endif %}
   <div style="margin-left:auto;font-size:11px;color:var(--muted);">
-    Default: All OT = Unauthorized (single rate) &nbsp;|&nbsp; ✅ Approve → Authorized OT (1.3× rate)
+    Default: All OT = Unauthorized (single rate) &nbsp;|&nbsp;  Approve → Authorized OT (1.3× rate)
   </div>
-</div>{% if is_locked %}<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#ef4444;font-weight:600;">🔒 Month Locked — Approvals frozen</div>{% endif %}
+</div>{% if is_locked %}<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:#ef4444;font-weight:600;">Month Locked — Approvals frozen</div>{% endif %}
 
 <!-- KPI Cards -->
 <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px;">
@@ -63,7 +63,7 @@
 
 <!-- Bulk Actions Bar -->
 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;background:var(--card);border-radius:10px;padding:8px 12px;">
-  <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()" id="selAllBtn">☑️ Select All</button>
+  <button class="btn btn-ghost btn-sm" onclick="selectAllVisible()" id="selAllBtn">Select All</button>
   <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;">
     <input type="checkbox" id="cbUnauth" checked onchange="applyEmpFilter()">
     <span style="color:#ef4444;font-weight:600;">Unauthorised</span>
@@ -76,12 +76,12 @@
     <input type="checkbox" id="cbZeroNet" onchange="applyEmpFilter()">
     <span style="color:#f59e0b;font-weight:600;">Net OT = Zero</span>
   </label>
-  <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="bulkAction('Approved')">✅ Bulk Approve Selected</button>
+  <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="bulkAction('Approved')">Bulk Approve Selected</button>
   <span id="selCount" style="font-size:12px;color:var(--muted);">0 selected</span>
   <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
-    <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markOTPaid()">✅ Mark as Paid</button>
-    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genOTBankFile()">🏦 Bank File</button>
-    <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="openOTEsic()">📋 ESIC Preview</button>
+    <button class="btn btn-sm" style="background:rgba(0,82,204,.15);color:#0096dc;border:1px solid rgba(0,82,204,.3);font-size:11px;" onclick="markOTPaid()">Mark as Paid</button>
+    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="genOTBankFile()">Bank File</button>
+    <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);font-size:11px;" onclick="openOTEsic()">ESIC Preview</button>
   </div>
 </div>
 
@@ -101,9 +101,9 @@
     </div>
     <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;">
       <span>Total: <strong>{{ emp.total_absent }}</strong></span>
-      <span style="color:#10b981;">✅ {{ emp.approved }}</span>
-      <span style="color:#ef4444;">❌ {{ emp.rejected }}</span>
-      <span style="color:#f59e0b;">⏳ {{ emp.pending }}</span>
+      <span style="color:#10b981;"> {{ emp.approved }}</span>
+      <span style="color:#ef4444;"> {{ emp.rejected }}</span>
+      <span style="color:#f59e0b;"> {{ emp.pending }}</span>
     </div>
   </div>
   <!-- hidden data attrs for filter -->
@@ -120,7 +120,7 @@
         border-radius:8px;padding:4px 10px;" title="{{ d.approved_by }}{% if d.remarks %} — {{ d.remarks }}{% endif %}">
         <input type="checkbox" class="date-chk" data-emp="{{ emp.emp_code }}" value="{{ d.id }}" onchange="updateCount()">
         <span style="font-size:11px;font-weight:600;">{{ d.date }}</span>
-        <span style="font-size:10px;">{% if d.status=='Approved' %}✅{% elif d.status=='Rejected' %}❌{% else %}⏳{% endif %}</span>
+        <span style="font-size:10px;">{% if d.status=='Approved' %}{% elif d.status=='Rejected' %}{% else %}{% endif %}</span>
       </label>
       {% endfor %}
     </div>
@@ -168,14 +168,14 @@
 
   <!-- Per-employee Quick Actions -->
   <div style="padding:6px 14px;display:flex;gap:6px;border-top:1px solid var(--border);">
-    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="quickApprove('{{ emp.emp_code }}')">✅ Approve All Pending</button>
+    <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);font-size:11px;" onclick="quickApprove('{{ emp.emp_code }}')">Approve All Pending</button>
   </div>
 </div>
 {% endfor %}
 
 {% if not emp_list %}
 <div style="text-align:center;padding:60px;color:var(--muted);">
-  <div style="font-size:40px;">✅</div>
+  <div style="font-size:40px;"></div>
   <div>No absent records for {{ month_name }} {{ year }}{% if selected_dept %} in {{ selected_dept }}{% endif %}</div>
 </div>
 {% endif %}
@@ -185,7 +185,7 @@
   <div class="modal" style="width:420px;">
     <div class="modal-header">
       <span class="modal-title" id="actionTitle">Approve Leave</span>
-      <button class="modal-close" onclick="closeModal('actionModal')">✕</button>
+      <button class="modal-close" onclick="closeModal('actionModal')"></button>
     </div>
     <div class="modal-body">
       <div id="actionInfo" style="font-size:13px;margin-bottom:12px;padding:10px;background:var(--surface);border-radius:8px;"></div>
@@ -254,7 +254,7 @@ function quickApprove(ec){
   let cnt=0;
   document.querySelectorAll(`.date-chk[data-emp="${ec}"]`).forEach(cb=>{
     const lbl=cb.closest("label");
-    const isPending=lbl&&lbl.querySelector("span:last-child")?.textContent.includes("⏳");
+    const isPending=lbl&&lbl.querySelector("span:last-child")?.textContent.includes("");
     cb.checked=isPending;
     if(isPending) cnt++;
   });
@@ -268,13 +268,13 @@ function bulkAction(action){
   const ids=getSelectedIds();
   if(!ids.length){showToast("Select at least one date","error");return;}
   _action="Approved"; _ids=ids;
-  document.getElementById("actionTitle").textContent="✅ Approve Selected Dates";
+  document.getElementById("actionTitle").textContent=" Approve Selected Dates";
   document.getElementById("actionInfo").textContent=`${ids.length} date(s) will be marked Approved`;
   document.getElementById("actionRemarks").value="";
   document.getElementById("actionResult").innerHTML="";
   const btn=document.getElementById("confirmBtn");
   btn.style.background="#10b981";
-  btn.textContent="✅ Approve";
+  btn.textContent=" Approve";
   openModal("actionModal");
 }
 
@@ -287,7 +287,7 @@ async function confirmAction(){
     showToast(r.message);
     setTimeout(()=>{closeModal("actionModal");location.reload();},1000);
   } else
-    document.getElementById("actionResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+    document.getElementById("actionResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 async function syncRecords(){
@@ -357,7 +357,7 @@ async function markOTPaid(){
   const m = parseInt(document.getElementById("selM").value);
   const y = parseInt(document.getElementById("selY").value);
   const r = await api("/payroll/ot-mark-paid","POST",{emp_codes:codes,month:m,year:y});
-  if(r.success){ showToast("✅ Marked as Paid"); }
+  if(r.success){ showToast(" Marked as Paid"); }
   else { alert("Error: "+(r.error||"Failed")); }
 }
 

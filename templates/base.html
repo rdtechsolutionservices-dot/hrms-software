@@ -8,7 +8,7 @@
 <style>
 :root{--bg:#080c14;--surface:#0e1422;--card:#121929;--border:#1e2a40;--accent:#0052cc;--accent2:#0096dc;--green:#10b981;--red:#f43f5e;--yellow:#f59e0b;--purple:#8b5cf6;--text:#e2e8f0;--muted:#64748b;--sidebar:#060a14;--hover:#1a2438;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Calibri,'Calibri Light',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+body{font-family:Verdana,'Verdana Light',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 a{text-decoration:none;color:inherit;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
 .shell{display:flex;flex:1;height:100vh;}
@@ -16,8 +16,8 @@ a{text-decoration:none;color:inherit;}
 .logo{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 .logo-img{width:40px;height:40px;border-radius:10px;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;border:none;}
 .logo-img img{width:38px;height:38px;object-fit:contain;}
-.logo-img span{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:800;font-size:12px;color:#0052cc;}
-.logo-text .ln{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:800;font-size:12px;color:var(--text);line-height:1.3;}
+.logo-img span{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:800;font-size:12px;color:#0052cc;}
+.logo-text .ln{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:800;font-size:12px;color:var(--text);line-height:1.3;}
 .logo-text .ls{font-size:10px;color:var(--muted);margin-top:2px;}
 .nav{padding:10px 8px;flex:1;overflow-y:auto;}
 .nav-sec{font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;padding:8px 10px 4px;}
@@ -34,7 +34,7 @@ a{text-decoration:none;color:inherit;}
 .sfoot-logout:hover{color:var(--red);}
 .main{flex:1;display:flex;flex-direction:column;margin-left:240px;min-width:0;}
 .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
-.page-title{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:18px;}
+.page-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:18px;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
 .tbadge{padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
 .tbadge-blue{background:rgba(0,82,204,.15);color:var(--accent2);}
@@ -75,12 +75,12 @@ a{text-decoration:none;color:inherit;}
 .sc-yellow::before{background:linear-gradient(90deg,var(--yellow),#fbbf24);}
 .sc-purple::before{background:linear-gradient(90deg,var(--purple),#a78bfa);}
 .stat-icon{font-size:22px;margin-bottom:10px;}
-.stat-value{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-size:26px;font-weight:800;line-height:1;}
+.stat-value{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-size:26px;font-weight:800;line-height:1;}
 .stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
 .stat-sub{font-size:11px;margin-top:4px;color:var(--green);}
 .table-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:18px;}
 .table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.table-title{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:14px;}
+.table-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:14px;}
 table{width:100%;border-collapse:collapse;}
 thead th{padding:10px 14px;text-align:left;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;background:var(--surface);border-bottom:1px solid var(--border);}
 tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
@@ -97,8 +97,8 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
 .badge-staff{background:rgba(0,82,204,.15);color:var(--accent2);}
 .badge-associate{background:rgba(245,158,11,.15);color:var(--yellow);}
 .badge-director{background:rgba(139,92,246,.15);color:#a78bfa;}
-.sal-text{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:700;}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:9px;font-family:Calibri,sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.sal-text{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:700;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:9px;font-family:Verdana,sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
 .btn-primary{background:var(--accent);color:white;}.btn-primary:hover{background:#003d99;}
 .btn-success{background:var(--green);color:white;}
 .btn-danger{background:var(--red);color:white;}
@@ -107,20 +107,20 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
 .btn-sm{padding:5px 11px;font-size:12px;}
 .form-group{margin-bottom:14px;}
 .form-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
-.form-control{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;transition:border .15s;font-family:Calibri,sans-serif;}
+.form-control{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;transition:border .15s;font-family:Verdana,sans-serif;}
 .form-control:focus{border-color:var(--accent);}
-.form-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:Calibri,sans-serif;}
+.form-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-size:13px;outline:none;cursor:pointer;font-family:Verdana,sans-serif;}
 .form-check{display:flex;align-items:center;gap:8px;font-size:13px;}
 .form-check input{width:15px;height:15px;accent-color:var(--accent);}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 13px;}
-.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:200px;font-family:Calibri,sans-serif;}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;width:200px;font-family:Verdana,sans-serif;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;}
 .modal-overlay.show{opacity:1;pointer-events:all;}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.6);transform:translateY(20px);transition:transform .2s;}
 .modal-overlay.show .modal{transform:translateY(0);}
 .modal-lg{width:820px;}
 .modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:16px;}
+.modal-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:16px;}
 .modal-close{width:28px;height:28px;border-radius:50%;background:var(--hover);border:none;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .modal-body{padding:20px;}
 .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
@@ -136,7 +136,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
 .month-selector select{background:transparent;border:none;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;outline:none;}
 .two-col{display:grid;grid-template-columns:1fr 340px;gap:16px;}
 .mini-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;}
-.mini-title{font-family:Calibri,'Calibri Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:13px;margin-bottom:12px;}
+.mini-title{font-family:Verdana,'Verdana Light',Arial,sans-serif;font-weight:700;font-weight:700;font-size:13px;margin-bottom:12px;}
 #toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:300px;}
 #toast.show{transform:translateY(0);opacity:1;}
 #toast.toast-success{border-color:rgba(16,185,129,.4);color:var(--green);}
@@ -203,106 +203,106 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     {% endif %}
 
     {% if is_admin or 'dashboard' in perms %}
-    <a href="/dashboard" class="nav-item {% if request.path=='/dashboard' %}active{% endif %}"><span class="ni">🏠</span> Dashboard</a>
+    <a href="/dashboard" class="nav-item {% if request.path=='/dashboard' %}active{% endif %}"><span class="ni"></span>Dashboard</a>
     {% endif %}
 
     {% if is_admin or 'emp_view' in perms or 'emp_add_edit' in perms %}
-    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni">👥</span> Employee Profiles</a>
+    <a href="/employees" class="nav-item {% if '/employees' in request.path %}active{% endif %}"><span class="ni"></span>Employee Profiles</a>
     {% endif %}
 
     {% if is_admin or 'masters' in perms %}
-    <a href="/masters" class="nav-item {% if request.path=='/masters' %}active{% endif %}"><span class="ni">⚙️</span> Masters</a>
+    <a href="/masters" class="nav-item {% if request.path=='/masters' %}active{% endif %}"><span class="ni"></span>Masters</a>
     {% endif %}
 
     {% if is_admin or 'att_register' in perms or 'manual_entry' in perms %}
-    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni">📅</span> Time & Attendance</a>
-    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" >📝 Attendance Corrections</a>{% endif %}
+    <a href="/attendance" class="nav-item {% if request.path=="/attendance" %}active{% endif %}"><span class="ni"></span>Time & Attendance</a>
+    {% if is_admin or 'manual_entry' in perms %}<a href="/attendance/manual-add" class="nav-item {% if '/manual-add' in request.path %}active{% endif %}" > Attendance Corrections</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'machines' in perms %}
-    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" >🖥️ Device Integration</a>
+    <a href="/attendance/machines" class="nav-item {% if '/machines' in request.path %}active{% endif %}" > Device Integration</a>
     {% endif %}
-    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" >📋 Shift Roster</a>{% endif %}
-    {% if is_admin or 'weekly_off' in perms %}<a href="/weekly-off" class="nav-item {% if '/weekly-off' in request.path %}active{% endif %}" >📆 Weekly Off Management</a>{% endif %}
-    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" >⚠️ Missed Punch Alerts</a>{% endif %}
-    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" >🎉 Holiday Calendar</a>{% endif %}
-    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" >❌ Absence Management</a>{% endif %}
-    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" >⏰ Late Arrival Report</a>{% endif %}
+    {% if is_admin or 'shift_roster' in perms %}<a href="/shift-roster" class="nav-item {% if '/shift-roster' in request.path %}active{% endif %}" > Shift Roster</a>{% endif %}
+    {% if is_admin or 'weekly_off' in perms %}<a href="/weekly-off" class="nav-item {% if '/weekly-off' in request.path %}active{% endif %}" > Weekly Off Management</a>{% endif %}
+    {% if is_admin or 'punch_alerts' in perms %}<a href="/punch-alerts" class="nav-item {% if '/punch-alerts' in request.path %}active{% endif %}" > Missed Punch Alerts</a>{% endif %}
+    {% if is_admin or 'holidays' in perms %}<a href="/holidays" class="nav-item {% if '/holidays' in request.path %}active{% endif %}" > Holiday Calendar</a>{% endif %}
+    {% if is_admin or 'absent_report' in perms %}<a href="/reports/absent-report" class="nav-item {% if 'absent-report' in request.path %}active{% endif %}" > Absence Management</a>{% endif %}
+    {% if is_admin or 'late_report' in perms %}<a href="/attendance/late-report" class="nav-item {% if 'late-report' in request.path %}active{% endif %}" > Late Arrival Report</a>{% endif %}
 
     {% if is_admin or 'manpower' in perms %}
-    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni">📊</span> Workforce Planning</a>
+    <a href="/manpower" class="nav-item {% if '/manpower' in request.path %}active{% endif %}"><span class="ni"></span>Workforce Planning</a>
     {% endif %}
-    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" >🚪 Separation Management</a>{% endif %}
+    {% if is_admin or 'exit_mgmt' in perms %}<a href="/exit" class="nav-item {% if '/exit' in request.path %}active{% endif %}" > Separation Management</a>{% endif %}
 
     {% if is_admin or 'payroll_view' in perms or 'payroll_process' in perms %}
     <div class="nav-sec">{% if is_admin %}Payroll{% endif %}</div>
-    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni">💰</span> Payroll Processing</a>
+    <a href="/payroll/summary" class="nav-item {% if '/payroll/summary' in request.path or request.path=='/salary' %}active{% endif %}"><span class="ni"></span>Payroll Processing</a>
     {% endif %}
-    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" >🧾 Payslip Center</a>{% endif %}
-    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni">📈</span> Payroll Insights</a>{% endif %}
+    {% if is_admin or 'payslip' in perms %}<a href="/payslip" class="nav-item {% if request.path=='/payslip' %}active{% endif %}" > Payslip Center</a>{% endif %}
+    {% if is_admin or 'payroll_trends' in perms %}<a href="/payroll/trends" class="nav-item {% if '/payroll/trends' in request.path %}active{% endif %}"><span class="ni"></span>Payroll Insights</a>{% endif %}
 
-    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" >⚙️ Payroll Configuration</a>{% endif %}
-    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path and '/career' not in request.path %}active{% endif %}" >📊 Compensation Management</a>{% endif %}
-    {% if is_admin or 'career_overview' in perms or 'salary_revision' in perms %}<a href="/salary/career-overview" class="nav-item {% if '/salary/career-overview' in request.path %}active{% endif %}">📈 Career & Growth Overview</a>{% endif %}
+    {% if is_admin or 'payroll_settings' in perms %}<a href="/payroll/settings" class="nav-item {% if '/payroll/settings' in request.path %}active{% endif %}" > Payroll Configuration</a>{% endif %}
+    {% if is_admin or 'salary_revision' in perms %}<a href="/salary/revision-report" class="nav-item {% if '/salary/revision' in request.path and '/career' not in request.path %}active{% endif %}" > Compensation Management</a>{% endif %}
+    {% if is_admin or 'career_overview' in perms or 'salary_revision' in perms %}<a href="/salary/career-overview" class="nav-item {% if '/salary/career-overview' in request.path %}active{% endif %}">Career & Growth Overview</a>{% endif %}
     {# Working Days module removed — now auto-calculated from employee weekly_off #}
 
     {% if is_admin or 'extra_working' in perms %}
-    <a href="/extra-working" class="nav-item {% if '/extra-working' in request.path %}active{% endif %}"><span class="ni">🕐</span> Extra Working</a>
+    <a href="/extra-working" class="nav-item {% if '/extra-working' in request.path %}active{% endif %}"><span class="ni"></span>Extra Working</a>
     {% endif %}
 
     {% if is_admin or 'leave_approve' in perms or 'leave_balance' in perms or 'leave_master' in perms %}
     <div class="nav-sec">{% if is_admin %}Leave{% endif %}</div>
-    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni">📋</span> Leave Configuration</a>{% endif %}
-    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni">🌴</span> Leave Requests{% if leave_mgmt_pending_count and leave_mgmt_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ leave_mgmt_pending_count }}</span>{% endif %}</a>{% endif %}
-    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni">💼</span> Leave Ledger</a>{% endif %}
+    {% if is_admin or 'leave_master' in perms %}<a href="/leave-master" class="nav-item {% if '/leave-master' in request.path %}active{% endif %}"><span class="ni"></span>Leave Configuration</a>{% endif %}
+    {% if is_admin or 'leave_approve' in perms %}<a href="/leaves/manage" class="nav-item {% if '/leaves/manage' in request.path %}active{% endif %}"><span class="ni"></span>Leave Requests{% if leave_mgmt_pending_count and leave_mgmt_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ leave_mgmt_pending_count }}</span>{% endif %}</a>{% endif %}
+    {% if is_admin or 'leave_balance' in perms %}<a href="/leaves/balance" class="nav-item {% if '/leaves/balance' in request.path %}active{% endif %}"><span class="ni"></span>Leave Ledger</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'deductions_view' in perms or 'deductions_add' in perms %}
-    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni">💳</span> Recovery Management</a>
+    <a href="/deductions" class="nav-item {% if '/deductions' in request.path %}active{% endif %}"><span class="ni"></span>Recovery Management</a>
     {% endif %}
 
     {% if is_admin or 'reports_att' in perms or 'reports_salary' in perms or 'reports_payroll' in perms %}
-    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni">📊</span> Reports Center</a>
-    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" >📅 Yearly Attendance</a>{% endif %}
+    <a href="/reports" class="nav-item {% if request.path=='/reports' %}active{% endif %}"><span class="ni"></span>Reports Center</a>
+    {% if is_admin or 'reports_att' in perms %}<a href="/reports/yearly-attendance" class="nav-item {% if 'yearly-attendance' in request.path %}active{% endif %}" > Yearly Attendance</a>{% endif %}
     {% endif %}
 
     {% if is_admin or 'letters_view' in perms %}
-    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni">📄</span> HR Documents</a>
+    <a href="/letters" class="nav-item {% if request.path=='/letters' %}active{% endif %}"><span class="ni"></span>HR Documents</a>
     {% endif %}
     {% if is_admin or 'document_log' in perms %}
-    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni">🗂️</span> Document Repository</a>
+    <a href="/documents/log" class="nav-item {% if '/documents/log' in request.path %}active{% endif %}"><span class="ni"></span>Document Repository</a>
     {% endif %}
 
     {% if is_admin or 'users' in perms %}
     <div class="nav-sec">{% if is_admin %}Admin{% endif %}</div>
-    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni">🔐</span> User Administration</a>
-    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni">🖼️</span> Branding Settings</a>
-    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni">📧</span> Communication Center</a>
+    <a href="/users" class="nav-item {% if request.path=='/users' %}active{% endif %}"><span class="ni"></span>User Administration</a>
+    <a href="/admin/settings" class="nav-item {% if '/admin/settings' in request.path %}active{% endif %}"><span class="ni"></span>Branding Settings</a>
+    <a href="/email-settings" class="nav-item {% if '/email' in request.path %}active{% endif %}"><span class="ni"></span>Communication Center</a>
     {% endif %}
 
     {% if role == 'employee' %}
     <div class="nav-sec">My Account</div>
     {% endif %}
     {% if role == 'employee' or 'my_payslip' in perms %}
-    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni">🧾</span> Payslip Portal</a>
+    <a href="/my-payslip" class="nav-item {% if '/my-payslip' in request.path %}active{% endif %}"><span class="ni"></span>Payslip Portal</a>
     {% endif %}
     {% if role == 'employee' or 'my_career' in perms %}
-    <a href="/my/career" class="nav-item {% if '/my/career' in request.path %}active{% endif %}"><span class="ni">🚀</span> My Career Journey</a>
+    <a href="/my/career" class="nav-item {% if '/my/career' in request.path %}active{% endif %}"><span class="ni"></span>My Career Journey</a>
     {% endif %}
     {% if role == 'employee' or 'my_leaves' in perms %}
-    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni">🌴</span> Leave Portal</a>
+    <a href="/my-leaves" class="nav-item {% if '/my-leaves' in request.path %}active{% endif %}"><span class="ni"></span>Leave Portal</a>
     {% endif %}
     {% if role == 'employee' or 'my_attendance' in perms %}
-    <a href="/my-attendance" class="nav-item {% if '/my-attendance' in request.path %}active{% endif %}"><span class="ni">📅</span> Attendance Portal</a>
+    <a href="/my-attendance" class="nav-item {% if '/my-attendance' in request.path %}active{% endif %}"><span class="ni"></span>Attendance Portal</a>
     {% endif %}
     {% if 'dept_head_approve' in perms %}
-    <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni">✅</span> Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
+    <a href="/dept-head/pending" class="nav-item {% if '/dept-head/' in request.path %}active{% endif %}"><span class="ni"></span>Approval Center{% if dept_head_pending_count and dept_head_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ dept_head_pending_count }}</span>{% endif %}</a>
     {% endif %}
     {% if role == 'admin' or 'outside_att_approve' in perms or 'dept_head_approve' in perms %}
-    <a href="/dept-head/attendance-requests" class="nav-item {% if '/attendance-requests' in request.path %}active{% endif %}"><span class="ni">📍</span> Outside Attendance Requests{% if outside_att_pending_count and outside_att_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ outside_att_pending_count }}</span>{% endif %}</a>
+    <a href="/dept-head/attendance-requests" class="nav-item {% if '/attendance-requests' in request.path %}active{% endif %}"><span class="ni"></span>Outside Attendance Requests{% if outside_att_pending_count and outside_att_pending_count > 0 %}<span style="margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;min-width:18px;text-align:center;">{{ outside_att_pending_count }}</span>{% endif %}</a>
     {% endif %}
     {% if 'users' in perms %}
-    <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni">🏢</span> Department Heads</a>
+    <a href="/dept-head/manage" class="nav-item {% if '/dept-head/manage' in request.path %}active{% endif %}"><span class="ni"></span>Department Heads</a>
     {% endif %}
 
 </nav>
@@ -310,7 +310,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     <div class="sfoot">
       <div class="avatar">{{ (session.name or 'HR')[:2].upper() }}</div>
       <div><div class="sfoot-name">{{ session.name or 'User' }}</div><div class="sfoot-role">{{ (session.role or '')|capitalize }}</div></div>
-      <span class="sfoot-logout" title="Change Password" onclick="openModal('changePwModal')" style="font-size:14px;margin-right:4px;">🔑</span>
+      <span class="sfoot-logout" title="Change Password" onclick="openModal('changePwModal')" style="font-size:14px;margin-right:4px;"></span>
       <a href="/logout" class="sfoot-logout" title="Logout">⏻</a>
     </div>
   </div>
@@ -319,14 +319,14 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
 <div class="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;gap:10px;">
-      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Menu"></button>
       <div class="page-title">{% block page_title %}{% endblock %}</div>
     </div>
     <div class="topbar-right">
-      <span id="todayDate" class="tbadge tbadge-blue">📅 Loading...</span>
-      <span id="liveClock" class="tbadge tbadge-blue" style="font-variant-numeric:tabular-nums;">🕐 --:--:--</span>
-      <span class="tbadge tbadge-green">🟢 LAN Active</span>
-      {% if session.role=='admin' %}<span class="tbadge tbadge-yellow">👑 Admin</span>{% endif %}
+      <span id="todayDate" class="tbadge tbadge-blue">Loading...</span>
+      <span id="liveClock" class="tbadge tbadge-blue" style="font-variant-numeric:tabular-nums;"> --:--:--</span>
+      <span class="tbadge tbadge-green">LAN Active</span>
+      {% if session.role=='admin' %}<span class="tbadge tbadge-yellow">Admin</span>{% endif %}
     </div>
   </div>
   <div class="content">{% block content %}{% endblock %}</div>
@@ -340,12 +340,12 @@ function updateISTClock(){
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Kolkata"});
   const timeStr = now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true,timeZone:"Asia/Kolkata"});
-  document.getElementById("todayDate").textContent = "📅 " + dateStr;
-  document.getElementById("liveClock").textContent = "🕐 " + timeStr + " IST";
+  document.getElementById("todayDate").textContent = " " + dateStr;
+  document.getElementById("liveClock").textContent = " " + timeStr + " IST";
 }
 updateISTClock();
 setInterval(updateISTClock, 1000);
-function showToast(msg,type="success"){const t=document.getElementById("toast");t.textContent=(type==="success"?"✅ ":"❌ ")+msg;t.className="show toast-"+type;setTimeout(()=>t.className="",3500);}
+function showToast(msg,type="success"){const t=document.getElementById("toast");t.textContent=(type==="success"?" ":" ")+msg;t.className="show toast-"+type;setTimeout(()=>t.className="",3500);}
 async function api(url,method="GET",body=null){const opts={method,headers:{"Content-Type":"application/json"}};if(body)opts.body=JSON.stringify(body);const r=await fetch(url,opts);return r.json();}
 function openModal(id){document.getElementById(id).classList.add("show");}
 function closeModal(id){document.getElementById(id).classList.remove("show");}
@@ -368,7 +368,7 @@ document.addEventListener("click",e=>{if(e.target.classList.contains("modal-over
 
 <script>
 // ── Universal Searchable Select ─────────────────────────────────────
-// Usage: makeSearchable("selectId")  — wraps any <select> with a search input
+// Usage: makeSearchable("selectId")  — wraps any <select>with a search input
 function makeSearchable(selectId, placeholder){
   const sel = document.getElementById(selectId);
   if(!sel || sel._searchable) return;
@@ -429,8 +429,8 @@ function sortTbl(tblId, col){
 <div class="modal-overlay" id="changePwModal">
   <div class="modal" style="width:380px;">
     <div class="modal-header">
-      <span class="modal-title">🔑 Change Password</span>
-      <button class="modal-close" onclick="closeModal('changePwModal')">✕</button>
+      <span class="modal-title">Change Password</span>
+      <button class="modal-close" onclick="closeModal('changePwModal')"></button>
     </div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:12px;">
@@ -449,7 +449,7 @@ function sortTbl(tblId, col){
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('changePwModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitChangePw()">🔑 Change Password</button>
+      <button class="btn btn-primary" onclick="submitChangePw()">Change Password</button>
     </div>
   </div>
 </div>
@@ -469,13 +469,13 @@ async function submitChangePw(){
   }
   const r = await api('/my/change-password','POST',{old_password:old_pw, new_password:new_pw});
   if(r.success){
-    res.innerHTML='<div style="background:rgba(16,185,129,.1);border:1px solid #10b981;color:#10b981;padding:8px 12px;border-radius:6px;font-size:12px;">✅ '+r.message+'</div>';
+    res.innerHTML='<div style="background:rgba(16,185,129,.1);border:1px solid #10b981;color:#10b981;padding:8px 12px;border-radius:6px;font-size:12px;"> '+r.message+'</div>';
     document.getElementById('cp_old').value='';
     document.getElementById('cp_new').value='';
     document.getElementById('cp_confirm').value='';
     setTimeout(()=>closeModal('changePwModal'),1500);
   } else {
-    res.innerHTML='<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:8px 12px;border-radius:6px;font-size:12px;">❌ '+r.error+'</div>';
+    res.innerHTML='<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:8px 12px;border-radius:6px;font-size:12px;"> '+r.error+'</div>';
   }
 }
 </script>
@@ -493,7 +493,7 @@ async function submitChangePw(){
       w.id = '_sessionWarn';
       w.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;';
       w.innerHTML = '<div style="background:#1a2035;border:1px solid #ef4444;border-radius:16px;padding:32px;text-align:center;max-width:360px;">'
-        + '<div style="font-size:36px;margin-bottom:12px;">⏰</div>'
+        + '<div style="font-size:36px;margin-bottom:12px;"></div>'
         + '<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;">Session Expired</div>'
         + '<div style="color:#94a3b8;margin-bottom:20px;font-size:13px;">You have been logged out due to 5 minutes of inactivity.</div>'
         + '<a href="/logout" style="background:#ef4444;color:#fff;padding:10px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Login Again</a>'

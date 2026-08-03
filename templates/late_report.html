@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Late Report{% endblock %}
-{% block page_title %}⏰ Late Coming Report{% endblock %}
+{% block page_title %} Late Coming Report{% endblock %}
 {% block content %}
 
 <!-- Filters -->
@@ -22,13 +22,13 @@
   </select>
   <!-- Pending / Approved / All filter -->
   <select id="selStatus" class="form-select" style="width:140px;" onchange="reload()">
-    <option value="pending"  {% if status_filter=='pending'  %}selected{% endif %}>⏳ Pending</option>
-    <option value="approved" {% if status_filter=='approved' %}selected{% endif %}>✅ Approved</option>
-    <option value="all"      {% if status_filter=='all'      %}selected{% endif %}>📋 All</option>
+    <option value="pending"  {% if status_filter=='pending'  %}selected{% endif %}>Pending</option>
+    <option value="approved" {% if status_filter=='approved' %}selected{% endif %}>Approved</option>
+    <option value="all"      {% if status_filter=='all'      %}selected{% endif %}>All</option>
   </select>
   {% if status_filter != 'approved' %}
-  <button class="btn btn-ghost btn-sm" onclick="selectAll()">☑️ Select All</button>
-  <button class="btn btn-warning btn-sm" onclick="openBulkWaive()">✅ Bulk Waive Selected</button>
+  <button class="btn btn-ghost btn-sm" onclick="selectAll()">Select All</button>
+  <button class="btn btn-warning btn-sm" onclick="openBulkWaive()">Bulk Waive Selected</button>
   {% endif %}
   <span style="font-size:12px;color:var(--muted);margin-left:auto;">
     {{ by_emp|length }} employees with pending late marks
@@ -40,7 +40,7 @@
 
 {% if not by_emp %}
 <div style="text-align:center;padding:60px;color:var(--muted);">
-  <div style="font-size:40px;margin-bottom:12px;">✅</div>
+  <div style="font-size:40px;margin-bottom:12px;"></div>
   <div style="font-size:16px;font-weight:700;">No records for {{ month_name }} {{ year }}</div>
 </div>
 {% else %}
@@ -66,18 +66,18 @@
         {{ emp_data.chargeable_late }} chargeable → -{{ (emp_data.chargeable_late * 0.5)|round(1) }} day(s)
       </span>
       {% endif %}
-      <button class="btn btn-ghost btn-sm" onclick="toggleDetails('det_{{ emp_code }}')">📋 Details</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleDetails('det_{{ emp_code }}')">Details</button>
     </div>
   </div>
 
   <div id="det_{{ emp_code }}" style="display:none;">
     <div style="font-size:11px;color:var(--muted);padding:8px 12px;background:var(--surface);border-radius:6px;margin-bottom:8px;">
-      First <strong>{{ late_free }}</strong> late(s) are free (no deduction). Late #{{ late_free + 1 }} onwards = 0.5 day deducted each.
+      First <strong>{{ late_free }}</strong>late(s) are free (no deduction). Late #{{ late_free + 1 }} onwards = 0.5 day deducted each.
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
       <thead><tr style="border-bottom:1px solid var(--border);background:var(--surface);">
         {% if status_filter != 'approved' %}
-        <th style="padding:8px 12px;"><input type="checkbox" onchange="toggleDayRecords('{{ emp_code }}',this.checked)"> Select</th>
+        <th style="padding:8px 12px;"><input type="checkbox" onchange="toggleDayRecords('{{ emp_code }}',this.checked)">Select</th>
         {% endif %}
         <th style="padding:8px;">#</th>
         <th style="padding:8px;">Date</th>
@@ -111,9 +111,9 @@
           </td>
           <td style="padding:6px 8px;">
             {% if r.late_waived %}
-              <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">✅ Approved</span>
+              <span style="background:rgba(16,185,129,.15);color:#10b981;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">Approved</span>
             {% else %}
-              <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">⏳ Pending</span>
+              <span style="background:rgba(245,158,11,.15);color:#f59e0b;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">Pending</span>
             {% endif %}
           </td>
           <td style="padding:6px 8px;font-size:11px;color:var(--muted);">{{ r.remarks or '—' }}</td>
@@ -122,13 +122,13 @@
               <!-- Approved — show Revert button -->
               <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#f59e0b;padding:2px 8px;"
                 onclick="revertLate('{{ emp_code }}','{{ r.att_date }}')">
-                ↩️ Revert to Pending
+                ↩ Revert to Pending
               </button>
             {% else %}
               <!-- Pending — show Waive button -->
               <button class="btn btn-ghost btn-sm" style="font-size:11px;color:#10b981;padding:2px 8px;"
                 onclick="waiveLate('{{ emp_code }}','{{ r.att_date }}','{{ r.in_time }}',{{ r.late_minutes }})">
-                ✅ Waive
+                 Waive
               </button>
             {% endif %}
           </td>
@@ -144,7 +144,7 @@
 <!-- Waive Modal -->
 <div class="modal-overlay" id="waiveModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">✅ Waive Late Mark</span><button class="modal-close" onclick="closeModal('waiveModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Waive Late Mark</span><button class="modal-close" onclick="closeModal('waiveModal')"></button></div>
     <div class="modal-body">
       <div id="waiveInfo" style="background:var(--surface);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;"></div>
       <div class="form-group">
@@ -166,7 +166,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('waiveModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmWaive()">✅ Confirm Waive</button>
+      <button class="btn btn-primary" onclick="confirmWaive()">Confirm Waive</button>
     </div>
   </div>
 </div>
@@ -174,7 +174,7 @@
 <!-- Bulk Waive Modal -->
 <div class="modal-overlay" id="bulkWaiveModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">✅ Bulk Waive Late Marks</span><button class="modal-close" onclick="closeModal('bulkWaiveModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Bulk Waive Late Marks</span><button class="modal-close" onclick="closeModal('bulkWaiveModal')"></button></div>
     <div class="modal-body">
       <div id="bulkCount" style="font-size:13px;margin-bottom:12px;"></div>
       <div class="form-group">
@@ -191,7 +191,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('bulkWaiveModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmBulkWaive()">✅ Waive All Selected</button>
+      <button class="btn btn-primary" onclick="confirmBulkWaive()">Waive All Selected</button>
     </div>
   </div>
 </div>
@@ -242,7 +242,7 @@ async function confirmWaive(){
     const row=document.getElementById(`row_${waiveTarget.emp_code}_${waiveTarget.att_date}`);
     if(row) row.style.opacity="0.4";
     setTimeout(()=>{closeModal("waiveModal");location.reload();},800);
-  } else document.getElementById("waiveResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  } else document.getElementById("waiveResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 // ── Revert to Pending ──
@@ -259,7 +259,7 @@ async function revertLate(code,attDate){
 function openBulkWaive(){
   const selected=[...document.querySelectorAll(".rec-cb:checked")].map(cb=>({emp_code:cb.dataset.code,att_date:cb.dataset.date}));
   if(!selected.length){showToast("Select at least one record","error");return;}
-  document.getElementById("bulkCount").innerHTML=`<span style="font-weight:700;color:#0096dc;">${selected.length} records</span> selected for waive`;
+  document.getElementById("bulkCount").innerHTML=`<span style="font-weight:700;color:#0096dc;">${selected.length} records</span>selected for waive`;
   document.getElementById("bulkResult").innerHTML="";
   openModal("bulkWaiveModal");
 }
@@ -269,7 +269,7 @@ async function confirmBulkWaive(){
   if(r.success){
     showToast(`${r.waived} late marks waived!`);
     setTimeout(()=>{closeModal("bulkWaiveModal");location.reload();},1500);
-  } else document.getElementById("bulkResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  } else document.getElementById("bulkResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 </script>
 {% endblock %}

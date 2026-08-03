@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Activity Log{% endblock %}
-{% block page_title %}📋 User Activity Log{% endblock %}
+{% block page_title %} User Activity Log{% endblock %}
 {% block content %}
 
 <div class="table-card" style="padding:14px;margin-bottom:14px;">
@@ -28,8 +28,8 @@
       <label class="form-label">To Date</label>
       <input class="form-control" type="date" id="f_to" value="{{ to_d }}" style="width:140px;">
     </div>
-    <button class="btn btn-primary btn-sm" onclick="applyFilter()">🔍 Search</button>
-    <a href="/users/activity-log" class="btn btn-ghost btn-sm">✕ Clear</a>
+    <button class="btn btn-primary btn-sm" onclick="applyFilter()">Search</button>
+    <a href="/users/activity-log" class="btn btn-ghost btn-sm">Clear</a>
     <span style="margin-left:auto;font-size:12px;color:var(--muted);">{{ logs|length }} records (latest 500)</span>
   </div>
 </div>

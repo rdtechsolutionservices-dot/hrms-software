@@ -1651,10 +1651,10 @@ def find_emp_by_machine_id(conn, machine_uid):
     Active/Inactive filtering is done at display/report level only.
     
     Handles all format variations:
-      Machine: "35"    Software: "0035" ✅
-      Machine: "0035"  Software: "35"   ✅  
-      Machine: "1001"  Software: "1001" ✅
-      Machine: "5"     Software: "0005" ✅
+      Machine: "35"    Software: "0035" 
+      Machine: "0035"  Software: "35"     
+      Machine: "1001"  Software: "1001" 
+      Machine: "5"     Software: "0005" 
     Returns (emp_row, matched_code) or (None, None)
     """
     uid = str(machine_uid).strip()
@@ -1836,7 +1836,7 @@ def _get_shift_windows(shift):
         # OUT window: next day 00:00 - shift_end + 4hrs (Super OT)
         #   → e.g. 03:30 end → OUT window 00:00 to 07:30
         #   → 08:08 next day → OUTSIDE OUT window → correctly ignored
-        #   → 03:28 next day → inside OUT window ✅
+        #   → 03:28 next day → inside OUT window 
         #
         # This prevents morning punches (08:00+) from being mistaken as
         # cross-midnight OUT punches for night shift employees.
@@ -1846,7 +1846,7 @@ def _get_shift_windows(shift):
 
         out_win_s = 1440 + 0             # next day 00:00
         out_win_e = 1440 + et + 240      # next day shift_end + 4hrs Super OT
-        # e.g. 03:30 + 4hrs = 07:30 → 08:08 is outside → ✅ not mistaken as OUT
+        # e.g. 03:30 + 4hrs = 07:30 → 08:08 is outside →  not mistaken as OUT
 
     else:
         # ── Day / Evening Shift ───────────────────────────────────
@@ -3511,7 +3511,7 @@ def amgr(f):
 .icon{font-size:48px;margin-bottom:16px;}h2{margin:0 0 10px;}p{color:#94a3b8;margin:10px 0 20px;}
 a{background:#0052cc;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;}</style>
 </head><body><div class="box">
-<div class="icon">🔒</div>
+<div class="icon"></div>
 <h2>Access Restricted</h2>
 <p>You do not have permission to access this page.<br>Contact your administrator to request access.</p>
 <a href="{{ back }}">← Go Back</a>
@@ -5811,7 +5811,7 @@ def reimport_employee_from_machine():
         conn.close()
 
         return jsonify({"success":True,
-            "message":f"✅ Fresh re-import complete for {emp['emp_name']} — {MONTHS[month-1]} {year}. "
+            "message":f" Fresh re-import complete for {emp['emp_name']} — {MONTHS[month-1]} {year}. "
                       f"{len(all_punches)} raw punches processed, {updated} days updated.",
             "punches": len(all_punches), "updated": updated})
 
@@ -6426,7 +6426,7 @@ def _run_zk_import(month, year, all_months, ip, port, password):
         # Final status update — visible on frontend via /attendance/import-progress
         import_progress.update({
             "status":                "done",
-            "stage":                 f"✅ Import complete — {imported:,} records saved.",
+            "stage":                 f" Import complete — {imported:,} records saved.",
             "percent":               100,
             "success":               True,
             "imported":              imported,
@@ -6553,7 +6553,7 @@ def test_db_connection():
                 connected_cs = cs.split(";")[0]  # just driver name
                 return jsonify({
                     "success": True,
-                    "message": f"✅ Connected! {count:,} records found in dbo.Atten table.",
+                    "message": f"Connected! {count:,} records found in dbo.Atten table.",
                     "driver": connected_cs,
                     "record_count": count
                 })
@@ -7260,7 +7260,7 @@ def extra_working_save():
         saved = _snapshot_extra_working(conn, m, y, by)
         conn.close()
         return jsonify({"success": True, "saved": saved,
-            "message": f"✅ Saved draft for {MONTHS[m-1]} {y} — {saved} employees"})
+            "message": f"Saved draft for {MONTHS[m-1]} {y} — {saved} employees"})
     except Exception as e:
         conn.close()
         return jsonify({"success": False, "error": str(e)})
@@ -7286,7 +7286,7 @@ def extra_working_lock_toggle():
             conn.commit()
             conn.close()
             return jsonify({"success": True, "is_locked": False,
-                "message": f"🔓 {MONTHS[m-1]} {y} unlocked. Data will now recompute live again."})
+                "message": f"{MONTHS[m-1]} {y} unlocked. Data will now recompute live again."})
         else:
             saved = _snapshot_extra_working(conn, m, y, by)
             conn.execute("""INSERT INTO extra_working_lock (month, year, is_locked, locked_by, locked_on)
@@ -7296,7 +7296,7 @@ def extra_working_lock_toggle():
             conn.commit()
             conn.close()
             return jsonify({"success": True, "is_locked": True, "saved": saved,
-                "message": f"🔒 {MONTHS[m-1]} {y} locked — {saved} employees saved. Total now reflects in Payroll Insights."})
+                "message": f"{MONTHS[m-1]} {y} locked — {saved} employees saved. Total now reflects in Payroll Insights."})
     except Exception as e:
         conn.close()
         return jsonify({"success": False, "error": str(e)})
@@ -7846,7 +7846,7 @@ def ot_esic_preview(m, y):
     <p style="margin-top:16px;font-size:11px;color:#64748b;">
       Only employees with Gross ≤ ₹21,000 are shown (ESIC applicable)
     </p>
-    <button onclick="window.print()" style="margin-top:10px;padding:8px 20px;background:#0052cc;color:#fff;border:none;border-radius:6px;cursor:pointer;">🖨️ Print</button>
+    <button onclick="window.print()" style="margin-top:10px;padding:8px 20px;background:#0052cc;color:#fff;border:none;border-radius:6px;cursor:pointer;"> Print</button>
     </body></html>"""
     from flask import Response
     return Response(html, content_type="text/html")
@@ -8280,7 +8280,7 @@ def leave_associate_save():
         conn.commit()
         conn.close()
         return jsonify({"success":True, "saved":saved,
-                       "message":f"✅ Saved OT snapshot for {MONTHS[m-1]} {y} — {saved} employees"})
+                       "message":f" Saved OT snapshot for {MONTHS[m-1]} {y} — {saved} employees"})
     except Exception as e:
         conn.close()
         return jsonify({"success":False,"error":str(e)})
@@ -8729,7 +8729,7 @@ def payroll_process_all():
         conn.commit(); conn.close()
         return jsonify({"success":True, "processed":processed, "failed":failed,
             "errors":errors[:10],
-            "message":f"✅ Deductions applied for {processed} employees — {MONTHS[month-1]} {year}. {failed} failed."})
+            "message":f" Deductions applied for {processed} employees — {MONTHS[month-1]} {year}. {failed} failed."})
 
     conn.close()
     processed=0; failed=0; errors=[]
@@ -8750,7 +8750,7 @@ def payroll_process_all():
 
     return jsonify({"success":True,"processed":processed,"failed":failed,
                    "errors":errors[:10],
-                   "message":f"✅ {processed} processed, {failed} failed for {MONTHS[month-1]} {year}"})
+                   "message":f" {processed} processed, {failed} failed for {MONTHS[month-1]} {year}"})
 
 
 # ════════════════════════════════════════════════════════════
@@ -10725,10 +10725,10 @@ def admin_settings():
             is_image = mimetype.startswith("image/")
             max_size = 25*1024*1024 if is_video else 5*1024*1024
             if not (is_video or is_image):
-                flash_msg = (flash_msg + " " if flash_msg else "") + "❌ Login background must be an image or video file."
+                flash_msg = (flash_msg + " " if flash_msg else "") + " Login background must be an image or video file."
             elif len(bg_data) > max_size:
                 limit_mb = 25 if is_video else 5
-                flash_msg = (flash_msg + " " if flash_msg else "") + f"❌ Login background too large (max {limit_mb}MB)."
+                flash_msg = (flash_msg + " " if flash_msg else "") + f" Login background too large (max {limit_mb}MB)."
             else:
                 conn.execute("""UPDATE company_settings SET
                     login_bg=?, login_bg_filename=?, login_bg_mimetype=?, login_bg_type=?, updated_on=datetime('now')
@@ -12320,7 +12320,7 @@ def leave_earn_log_edit():
             (delta, log["emp_code"], log["year"]))
         conn.commit()
         conn.close()
-        msg = f"✅ {leave_type} for {MONTHS[log['month']-1]} {log['year']} rewritten: {old_value} → {final_value} days."
+        msg = f" {leave_type} for {MONTHS[log['month']-1]} {log['year']} rewritten: {old_value} → {final_value} days."
         if final_value < new_value:
             msg += f" (Capped at yearly limit of {cap} days — could not set full {new_value}.)"
         return jsonify({"success": True, "message": msg, "old_value": old_value, "new_value": final_value})
@@ -12397,14 +12397,14 @@ def leave_earn_monthly():
                     (ec, year, month, eff_el, 0, remarks))
             credited += 1
         conn.commit()
-        cap_note = f" | ⚠️ {capped} employee(s) already at yearly cap (EL {el_cap}/CL {cl_cap}) — skipped." if capped else ""
+        cap_note = f" |  {capped} employee(s) already at yearly cap (EL {el_cap}/CL {cl_cap}) — skipped." if capped else ""
         if skipped:
             return jsonify({"success": True, "credited": credited, "skipped": skipped,
-                "warning": f"⚠️ {skipped} employee(s) already credited for {MONTHS[month-1]} {year} — skipped (no double credit).{cap_note}",
-                "message": f"✅ Leave Earn completed successfully.\nMonth: {MONTHS[month-1]} {year}\n"
+                "warning": f" {skipped} employee(s) already credited for {MONTHS[month-1]} {year} — skipped (no double credit).{cap_note}",
+                "message": f"Leave Earn completed successfully.\nMonth: {MONTHS[month-1]} {year}\n"
                            f"Employees Updated: {credited}\nEL Added: {el_input} | CL Added: {cl_input}"})
         return jsonify({"success": True, "credited": credited,
-            "message": f"✅ Leave Earn completed successfully.\nMonth: {MONTHS[month-1]} {year}\n"
+            "message": f"Leave Earn completed successfully.\nMonth: {MONTHS[month-1]} {year}\n"
                        f"Employees Updated: {credited}\nEL Added: {el_input} | CL Added: {cl_input}{cap_note}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -12447,7 +12447,7 @@ def leave_encash():
              session.get("name","HR"), f"Encashment: ₹{amount:,.2f} for {days} days. {remarks}"))
         conn.commit()
         return jsonify({"success":True,"amount":amount,"days":days,
-            "message":f"✅ {days} EL days encashed = ₹{amount:,.2f} for {emp['emp_name']}"})
+            "message":f" {days} EL days encashed = ₹{amount:,.2f} for {emp['emp_name']}"})
     except Exception as e:
         return jsonify({"success":False,"error":str(e)})
     finally: conn.close()
@@ -12697,9 +12697,9 @@ def year_end_selective():
                     (ec, year, days, amount, session.get("name", "HR")))
                 processed.append({"emp_code": ec, "action": "encash", "days": days, "amount": amount})
         conn.commit()
-        msg = f"✅ Processed {len(processed)} employee(s) for FY {year}."
+        msg = f" Processed {len(processed)} employee(s) for FY {year}."
         if errors:
-            msg += f" ⚠️ {len(errors)} skipped."
+            msg += f"  {len(errors)} skipped."
         return jsonify({"success": True, "processed": processed, "errors": errors, "message": msg})
     except Exception as e:
         conn.rollback()
@@ -12779,9 +12779,9 @@ def verify_document(doc_code):
         return jsonify({"verified":True,"doc_code":doc_code,
             "doc_type":doc["doc_type"],"emp_name":doc["emp_name"],
             "emp_code":doc["emp_code"],"generated_on":doc["generated_on"],
-            "message":f"✅ This is a genuine document issued by {get_company_name().upper()}"})
+            "message":f" This is a genuine document issued by {get_company_name().upper()}"})
     return jsonify({"verified":False,"doc_code":doc_code,
-        "message":"❌ Document not found in records. May be forged."})
+        "message":"Document not found in records. May be forged."})
 
 @app.route("/documents/log/export")
 @amgr
@@ -12877,19 +12877,19 @@ def send_birthday_wishes():
     results = []
     
     if wish_type == "birthday":
-        subject = f"🎂 Happy Birthday {name}!"
-        msg_text = f"🎂 *Happy Birthday {name}!* 🎉\n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— {get_company_name()} Family"
+        subject = f" Happy Birthday {name}!"
+        msg_text = f" *Happy Birthday {name}!* \n\nWishing you a wonderful birthday filled with joy and happiness!\n\n— {get_company_name()} Family"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
-            <div style="font-size:48px;">🎂</div>
+            <div style="font-size:48px;"></div>
             <h2 style="color:#0052cc;">Happy Birthday, {name}!</h2>
             <p>Wishing you a wonderful birthday filled with joy and happiness!</p>
             <p style="color:#64748b;font-size:12px;">— {get_company_name()} Family</p>
         </div>{make_email_footer()}"""
     else:
-        subject = f"🎊 Happy Work Anniversary {name}!"
-        msg_text = f"🎊 *Happy Work Anniversary {name}!* 🌟\n\nThank you for your valuable contributions!\n\n— {get_company_name()}"
+        subject = f" Happy Work Anniversary {name}!"
+        msg_text = f" *Happy Work Anniversary {name}!* \n\nThank you for your valuable contributions!\n\n— {get_company_name()}"
         html = f"""{make_email_header()}<div style="padding:24px;font-family:Arial;background:white;text-align:center;">
-            <div style="font-size:48px;">🎊</div>
+            <div style="font-size:48px;"></div>
             <h2 style="color:#0052cc;">Happy Work Anniversary, {name}!</h2>
             <p>Thank you for your valuable contributions to our company!</p>
         </div>{make_email_footer()}"""
@@ -12897,12 +12897,12 @@ def send_birthday_wishes():
     # Send email
     if emp.get("email"):
         ok, msg = send_email(emp["email"], subject, html, wish_type)
-        results.append(f"Email: {'✅' if ok else '❌'} {msg}")
+        results.append(f"Email: {'' if ok else ''} {msg}")
     
     # Send WhatsApp
     if emp.get("phone"):
         ok2, msg2 = send_whatsapp(emp["phone"], msg_text)
-        results.append(f"WhatsApp: {'✅' if ok2 else '❌'} {msg2}")
+        results.append(f"WhatsApp: {'' if ok2 else ''} {msg2}")
     
     return jsonify({"success":True,"results":results})
 
@@ -12977,7 +12977,7 @@ def dashboard_ot_alert():
             "emp_count":    total_emp,
             "days_elapsed": days_elapsed,
             "alert":        alert,
-            "status": "🔴 Over Limit" if pct>=100 else ("🟡 Near Limit" if alert else "🟢 Normal")
+            "status": "Over Limit" if pct>=100 else ("Near Limit" if alert else "Normal")
         })
 
     result.sort(key=lambda x: x["usage_pct"], reverse=True)
@@ -14346,7 +14346,7 @@ def save_whatsapp_settings():
 def test_whatsapp():
     d = request.json
     phone = d.get("phone","")
-    ok, msg = send_whatsapp(phone, f"🎉 Test message from {get_company_name()} PayRoll System!")
+    ok, msg = send_whatsapp(phone, f" Test message from {get_company_name()} PayRoll System!")
     return jsonify({"success":ok,"message":msg})
 
 @app.route("/email-settings/test", methods=["POST"])
@@ -14357,7 +14357,7 @@ def test_email():
     ok, msg = send_email(to, f"Test Email — {get_company_name()}",
         f"""{make_email_header()}
         <div style="padding:24px;font-family:Arial,sans-serif;background:white;">
-            <h3 style="color:#0052cc;">✅ Email Configuration Successful!</h3>
+            <h3 style="color:#0052cc;"> Email Configuration Successful!</h3>
             <p>Your email settings are working correctly.</p>
             <p style="color:#64748b;font-size:12px;">Sent from {get_company_name()} PayRoll System</p>
         </div>{make_email_footer()}""", "test")
@@ -14405,17 +14405,17 @@ def wa_send_payslip():
 
         lines = [
             f"━━━━━━━━━━━━━━━━━━━━━━",
-            f"💼 *VPL Salary Slip — {mn} {year}*",
+            f" *VPL Salary Slip — {mn} {year}*",
             f"━━━━━━━━━━━━━━━━━━━━━━",
             f"Employee Code : {r['emp_code']}",
             f"Employee Name : {r['emp_name']}",
             f"Gross Salary  : ₹{r['gross']:,.0f}",
             f"",
-            f"📅 *Attendance*",
+            f" *Attendance*",
             f"Present Days  : {r['present_days']} / {r['working_days']}",
             f"Earn Salary   : ₹{r['actual_gross'] or r['gross']:,.0f}",
             f"",
-            f"📉 *Deductions*",
+            f" *Deductions*",
         ]
         if pf   > 0: lines.append(f"PF            : ₹{pf:,.0f}")
         if esi  > 0: lines.append(f"ESIC          : ₹{esi:,.0f}")
@@ -14427,7 +14427,7 @@ def wa_send_payslip():
         lines += [
             f"Total Deduction: ₹{tot_ded:,.0f}",
             f"",
-            f"✅ *Net Pay : ₹{r['net_salary']:,.0f}*",
+            f" *Net Pay : ₹{r['net_salary']:,.0f}*",
             f"━━━━━━━━━━━━━━━━━━━━━━",
             f"{get_company_name()}",
         ]
@@ -14627,12 +14627,12 @@ def send_birthday_wishes_bulk():
     for e in emps:
         if not e["email"]: no_email+=1; continue
         html = f"""{make_email_header()}<div style="padding:32px;font-family:Arial;background:white;text-align:center;">
-            <div style="font-size:48px;">🎂</div>
+            <div style="font-size:48px;"></div>
             <h2 style="color:#0052cc;">Happy Birthday, {e["emp_name"]}!</h2>
             <p>Wishing you a wonderful birthday filled with joy!</p>
             <p style="color:#64748b;font-size:12px;">— {get_company_name()} Family</p>
         </div>{make_email_footer()}"""
-        ok,_ = send_email(e["email"], f"Happy Birthday {e['emp_name']}! 🎂", html, "birthday")
+        ok,_ = send_email(e["email"], f"Happy Birthday {e['emp_name']}! ", html, "birthday")
         if ok: sent+=1
         else: no_email+=1
     return jsonify({"success":True,"sent":sent,"no_email":no_email,"total":len(emps)})
@@ -14655,7 +14655,7 @@ def send_anniversary():
         except: years = 0
         html = f"""{make_email_header()}
         <div style="padding:32px;font-family:Arial,sans-serif;background:white;text-align:center;">
-            <div style="font-size:48px;margin-bottom:16px;">🎊</div>
+            <div style="font-size:48px;margin-bottom:16px;"></div>
             <h2 style="color:#10b981;font-size:24px;">Happy Work Anniversary, {e["emp_name"]}!</h2>
             <div style="background:#f0fdf4;border-radius:12px;padding:20px;margin:20px 0;">
                 <p style="font-size:32px;font-weight:800;color:#10b981;margin:0;">{years} Year{"s" if years>1 else ""}</p>
@@ -14664,7 +14664,7 @@ def send_anniversary():
             <p style="font-size:14px;color:#1a202c;">Thank you for your dedication and hard work. Your contribution to {get_company_name()} is truly valued!</p>
             <p style="font-size:13px;color:#64748b;">Here's to many more years of success together!</p>
         </div>{make_email_footer()}"""
-        ok,_ = send_email(e["email"], f"Happy Work Anniversary {e['emp_name']}! 🎊 {years} Year(s)", html, "anniversary")
+        ok,_ = send_email(e["email"], f"Happy Work Anniversary {e['emp_name']}!  {years} Year(s)", html, "anniversary")
         if ok: sent+=1
         else: no_email+=1
     return jsonify({"success":True,"sent":sent,"no_email":no_email,"total":len(emps)})
@@ -14753,7 +14753,7 @@ def notify_leave_email():
     if not emp or not emp["email"]:
         return jsonify({"success":False,"error":"Employee email not found"})
     color = "#10b981" if action=="approved" else "#dc2626"
-    icon  = "✅" if action=="approved" else "❌"
+    icon  = "" if action=="approved" else ""
     html  = f"""{make_email_header()}
     <div style="padding:24px;font-family:Arial,sans-serif;background:white;">
         <p>Dear <strong>{emp["emp_name"]}</strong>,</p>
@@ -16028,7 +16028,7 @@ def encash_gratuity():
             (session.get("name","HR"), remarks, rec_id))
         conn.commit()
         return jsonify({"success":True,
-            "message":f"✅ Gratuity of ₹{rec['gratuity_amount']:,.2f} marked as paid for {rec['emp_name']}"})
+            "message":f" Gratuity of ₹{rec['gratuity_amount']:,.2f} marked as paid for {rec['emp_name']}"})
     except Exception as e:
         return jsonify({"success":False,"error":str(e)})
     finally: conn.close()
@@ -16256,7 +16256,7 @@ def calculate_bonus():
             processed += 1
         conn.commit()
         return jsonify({"success":True,"processed":processed,"skipped":skipped,
-            "message":f"✅ Bonus calculated for {processed} employees @ {rate}% for {year}. {skipped} skipped (above ₹{wage_ceil:,.0f} wage ceiling)."})
+            "message":f" Bonus calculated for {processed} employees @ {rate}% for {year}. {skipped} skipped (above ₹{wage_ceil:,.0f} wage ceiling)."})
     except Exception as e:
         return jsonify({"success":False,"error":str(e)})
     finally: conn.close()
@@ -19074,7 +19074,7 @@ def recalculate_attendance():
 
     conn.commit(); conn.close()
     return jsonify({"success": True, "updated": updated,
-                   "message": f"✅ {updated} records recalculated for {label}"})
+                   "message": f"{updated} records recalculated for {label}"})
 
 
 @app.route("/shift-roster")
@@ -21197,7 +21197,7 @@ def run_auto_leave_earn():
 
 if __name__ == "__main__":
     init_db()
-    # ✅ Start background thread AFTER init_db() — prevents "database is locked"
+    #  Start background thread AFTER init_db() — prevents "database is locked"
     _auto_thread = threading.Thread(target=run_auto_import, daemon=True)
     _auto_thread.start()
     # Auto-recalculate attendance every 2 minutes
@@ -21222,7 +21222,7 @@ if __name__ == "__main__":
                 app.run(host="0.0.0.0", port=5443, ssl_context="adhoc",
                         debug=False, use_reloader=False)
             except Exception as _e:
-                print(f"  ⚠️  HTTPS server (port 5443) could not start: {_e}")
+                print(f"    HTTPS server (port 5443) could not start: {_e}")
         threading.Thread(target=_run_https, daemon=True).start()
         _https_started = True
     except ImportError:
@@ -21236,11 +21236,11 @@ if __name__ == "__main__":
     print("  ADMS    : http://192.168.0.3:5000  (Port 89 → 5000)")
     if _https_started:
         print("  Mobile (location features) : https://192.168.0.39:5443")
-        print("     ⚠️  First visit: browser will warn 'Not Secure' (self-signed")
+        print("       First visit: browser will warn 'Not Secure' (self-signed")
         print("        certificate) — tap Advanced → Proceed. This is expected")
         print("        and safe on your own local network.")
     else:
-        print("  ⚠️  HTTPS server not started — install pyopenssl for mobile")
+        print("    HTTPS server not started — install pyopenssl for mobile")
         print("     location features to work: pip install pyopenssl")
     print("  Login   : admin / Admin@123")
     print("="*55 + "\n")

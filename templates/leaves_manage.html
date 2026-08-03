@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Leave Management{% endblock %}
-{% block page_title %}🌴 Leave Management{% endblock %}
+{% block page_title %} Leave Management{% endblock %}
 {% block content %}
 
 <!-- Summary KPIs -->
@@ -32,14 +32,14 @@
      was never updated to 'Leave', which had been causing wrong late/short-time deductions -->
 <div style="margin-bottom:16px;">
   <button class="btn btn-ghost btn-sm" style="color:#f59e0b;" onclick="repairHalfDayLeaves()">
-    🛠️ Repair Half-Day Leave Records (one-time fix for past data)
+     Repair Half-Day Leave Records (one-time fix for past data)
   </button>
   <span id="repairMsg" style="font-size:12px;color:var(--muted);margin-left:10px;"></span>
 </div>
 
 <!-- Tabs -->
 <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--card);border-radius:10px;padding:4px;width:fit-content;">
-  {% for t,label in [('requests','📋 Requests'),('assign','➕ Assign Leave')] %}
+  {% for t,label in [('requests',' Requests'),('assign',' Assign Leave')] %}
   <button onclick="switchTab('{{ t }}')" id="tab_{{ t }}"
     style="padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;
     background:{% if tab==t %}var(--primary){% else %}transparent{% endif %};
@@ -53,7 +53,7 @@
 <div id="pane_requests" class="tab-pane" {% if tab!='requests' %}style="display:none"{% endif %}>
   {% if pending %}
   <div style="margin-bottom:16px;">
-    <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:#f59e0b;">⏳ Pending Approval ({{ pending|length }})</div>
+    <div style="font-weight:800;font-size:14px;margin-bottom:10px;color:#f59e0b;">Pending Approval ({{ pending|length }})</div>
     {% for r in pending %}
     <div style="background:var(--card);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 18px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;" id="req_{{ r.id }}">
       <div>
@@ -67,12 +67,12 @@
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">{{ r.reason or '—' }}</div>
         <div style="font-size:10px;color:var(--muted);">Applied: {{ r.applied_on[:10] if r.applied_on else '—' }}</div>
         {% if r.dept_head_approved_by %}
-        <div style="font-size:10px;margin-top:3px;"><span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-weight:700;">✅ Dept Head: {{ r.dept_head_approved_by }}</span> on {{ r.dept_head_approved_on[:10] if r.dept_head_approved_on else '' }}</div>
+        <div style="font-size:10px;margin-top:3px;"><span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-weight:700;">Dept Head: {{ r.dept_head_approved_by }}</span>on {{ r.dept_head_approved_on[:10] if r.dept_head_approved_on else '' }}</div>
         {% endif %}
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="approveLeave({{ r.id }})">✅ Approve</button>
-        <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="rejectLeave({{ r.id }})">❌ Reject</button>
+        <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);" onclick="approveLeave({{ r.id }})">Approve</button>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);" onclick="rejectLeave({{ r.id }})">Reject</button>
       </div>
     </div>
     {% endfor %}
@@ -81,7 +81,7 @@
 
   <!-- All Requests — Filter Section -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;">
-    <div style="font-weight:700;font-size:13px;margin-bottom:12px;">🔍 Search Leave History</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;">Search Leave History</div>
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
       <div>
         <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Employee Name / Code</label>
@@ -108,8 +108,8 @@
         </select>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" onclick="applyFilter()" style="font-size:12px;white-space:nowrap;">🔍 Search</button>
-        {% if filter_applied %}<button class="btn btn-ghost" onclick="clearFilter()" style="font-size:12px;">✕</button>{% endif %}
+        <button class="btn btn-primary" onclick="applyFilter()" style="font-size:12px;white-space:nowrap;">Search</button>
+        {% if filter_applied %}<button class="btn btn-ghost" onclick="clearFilter()" style="font-size:12px;"></button>{% endif %}
       </div>
     </div>
   </div>
@@ -117,7 +117,7 @@
   {% if filter_applied %}
     <!-- Results Table -->
     <div style="font-weight:700;font-size:13px;margin-bottom:10px;">
-      📋 Results ({{ all_req|length }} found)
+       Results ({{ all_req|length }} found)
     </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -141,21 +141,21 @@
             <td style="padding:7px;text-align:center;">{{ r.to_date }}</td>
             <td style="padding:7px;text-align:center;font-weight:700;">{{ r.days }}</td>
             <td style="padding:7px;text-align:center;">
-              {% if r.status=='Approved' %}<span style="color:#10b981;font-weight:700;font-size:11px;">✅ Approved</span>
+              {% if r.status=='Approved' %}<span style="color:#10b981;font-weight:700;font-size:11px;">Approved</span>
               {% elif r.status=='Pending' %}
                 {% if r.dept_head_status=='Approved' %}
-                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">⏳ Dir. Pending</span>
-                  <div style="font-size:9px;color:#10b981;">✅ DH: {{ r.dept_head_approved_by or '' }}</div>
+                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">Dir. Pending</span>
+                  <div style="font-size:9px;color:#10b981;">DH: {{ r.dept_head_approved_by or '' }}</div>
                 {% elif r.dept_head_status=='Rejected' %}
-                  <span style="color:#ef4444;font-weight:700;font-size:11px;">❌ DH Rejected</span>
+                  <span style="color:#ef4444;font-weight:700;font-size:11px;">DH Rejected</span>
                 {% else %}
-                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">⏳ DH Pending</span>
+                  <span style="color:#f59e0b;font-weight:700;font-size:11px;">DH Pending</span>
                 {% endif %}
-              {% elif r.status=='Rejected' %}<span style="color:#ef4444;font-weight:700;font-size:11px;">❌ Rejected</span>
-              {% elif r.status=='Cancelled' %}<span style="color:var(--muted);font-size:11px;">🚫 Cancelled</span>
+              {% elif r.status=='Rejected' %}<span style="color:#ef4444;font-weight:700;font-size:11px;">Rejected</span>
+              {% elif r.status=='Cancelled' %}<span style="color:var(--muted);font-size:11px;">Cancelled</span>
               {% else %}<span style="color:var(--muted);font-size:11px;">{{ r.status }}</span>{% endif %}
             </td>
-            <td style="padding:7px;text-align:center;font-size:10px;color:var(--muted);">{{ '👤 Employee' if r.source=='employee' else '🔑 Admin' }}</td>
+            <td style="padding:7px;text-align:center;font-size:10px;color:var(--muted);">{{ ' Employee' if r.source=='employee' else ' Admin' }}</td>
             <td style="padding:7px;text-align:center;font-size:11px;">
               {% if r.approved_by %}
                 <span style="color:{% if r.status=='Approved' %}#10b981{% elif r.status=='Rejected' %}#ef4444{% else %}var(--muted){% endif %};">{{ r.approved_by }}</span>
@@ -164,10 +164,10 @@
             </td>
             <td style="padding:7px;text-align:center;">
               {% if r.status=='Pending' and r.dept_head_status=='Approved' %}
-              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#10b981;" onclick="approveLeave({{ r.id }})">✅</button>
-              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#ef4444;" onclick="rejectLeave({{ r.id }})">❌</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#10b981;" onclick="approveLeave({{ r.id }})"></button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:#ef4444;" onclick="rejectLeave({{ r.id }})"></button>
               {% elif r.status=='Approved' %}
-              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:var(--muted);" onclick="cancelLeave({{ r.id }})">🚫 Cancel</button>
+              <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;color:var(--muted);" onclick="cancelLeave({{ r.id }})">Cancel</button>
               {% endif %}
             </td>
           </tr>
@@ -178,7 +178,7 @@
     </div>
   {% else %}
     <div style="text-align:center;padding:40px;color:var(--muted);background:var(--card);border-radius:12px;border:1px dashed var(--border);">
-      <div style="font-size:32px;margin-bottom:10px;">🔍</div>
+      <div style="font-size:32px;margin-bottom:10px;"></div>
       <div style="font-weight:700;font-size:14px;">Use filters above to search leave history</div>
       <div style="font-size:12px;margin-top:4px;">Filter by employee, department, month and year</div>
     </div>
@@ -188,7 +188,7 @@
 <div id="pane_assign" class="tab-pane" {% if tab!='assign' %}style="display:none"{% endif %}>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
     <div class="table-card" style="padding:20px;">
-      <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">➕ Assign Leave to Employee</div>
+      <div style="font-weight:800;font-size:15px;margin-bottom:16px;font-family:Syne,sans-serif;">Assign Leave to Employee</div>
       <div style="font-size:12px;color:var(--muted);background:rgba(0,150,220,.08);border-radius:8px;padding:10px;margin-bottom:14px;">
         HR direct assignment — auto approved, attendance marked as Leave, balance deducted. <strong>Back-date allowed.</strong>
       </div>
@@ -196,7 +196,7 @@
       <!-- Employee search + select -->
       <div class="form-group">
         <label class="form-label">Employee *</label>
-        <input class="form-control" id="al_emp_search" placeholder="🔍 Type name or code to filter..." oninput="filterAlEmp(this.value)" autocomplete="off" style="margin-bottom:6px;">
+        <input class="form-control" id="al_emp_search" placeholder=" Type name or code to filter..." oninput="filterAlEmp(this.value)" autocomplete="off" style="margin-bottom:6px;">
         <select class="form-select" id="al_emp_select" size="5" onchange="onAlEmpSelect(this.value)" style="height:auto;min-height:90px;">
           {% for e in all_emps %}
           <option value="{{ e.emp_code }}" data-name="{{ e.emp_name }}" data-dept="{{ e.department or '' }}" data-cat="{{ e.category or '' }}">{{ e.emp_code }} — {{ e.emp_name }} ({{ e.department or '—' }})</option>
@@ -256,16 +256,16 @@
       </div>
       <div class="form-group">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
-          <input type="checkbox" id="al_deduct" checked> Deduct from leave balance
+          <input type="checkbox" id="al_deduct" checked>Deduct from leave balance
         </label>
       </div>
-      <button class="btn btn-primary" style="width:100%;font-size:15px;padding:12px;" onclick="assignLeave()">✅ Assign Leave</button>
+      <button class="btn btn-primary" style="width:100%;font-size:15px;padding:12px;" onclick="assignLeave()">Assign Leave</button>
       <div id="alResult" style="margin-top:12px;"></div>
     </div>
 
     <!-- Bulk assign -->
     <div class="table-card" style="padding:20px;">
-      <div style="font-weight:800;font-size:15px;margin-bottom:8px;font-family:Syne,sans-serif;">📅 Initialize Leave Balance</div>
+      <div style="font-weight:800;font-size:15px;margin-bottom:8px;font-family:Syne,sans-serif;">Initialize Leave Balance</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
         Set annual EL/CL for all Staff employees. Run once at start of each year.
       </div>
@@ -281,7 +281,7 @@
         SL = 6 days/year<br>
         <span style="color:var(--muted);">Configure in Payroll Settings</span>
       </div>
-      <button class="btn btn-primary" style="width:100%;" onclick="initBalance()">🔄 Initialize All Staff Balances</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="initBalance()">Initialize All Staff Balances</button>
       <div id="initResult" style="margin-top:10px;"></div>
     </div>
   </div>
@@ -292,11 +292,11 @@
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <div style="font-size:12px;color:var(--muted);">Leave balance for Staff employees — {{ year }}</div>
     <div style="display:flex;gap:8px;align-items:center;">
-      <input class="form-control" id="balSearch" placeholder="🔍 Search..." oninput="filterBalance()" style="width:160px;">
+      <input class="form-control" id="balSearch" placeholder=" Search..." oninput="filterBalance()" style="width:160px;">
       {% if not earn_auto_credit %}
-      <a href="/leave-master" class="btn btn-primary btn-sm" style="background:#7c3aed;font-size:11px;">➕ Earn Monthly Credit</a>
+      <a href="/leave-master" class="btn btn-primary btn-sm" style="background:#7c3aed;font-size:11px;">Earn Monthly Credit</a>
       {% endif %}
-      <a href="/export/leave-balance?year={{ year }}" class="btn btn-ghost btn-sm" style="font-size:11px;">📥 Export</a>
+      <a href="/export/leave-balance?year={{ year }}" class="btn btn-ghost btn-sm" style="font-size:11px;">Export</a>
     </div>
   </div>
   <div style="overflow-x:auto;">
@@ -338,7 +338,7 @@
           <td style="text-align:center;padding:7px;color:#f59e0b;">{{ ((b.sl_allotted or 0)-(b.sl_used or 0))|round(1) }}</td>
           {% endif %}
           <td style="text-align:center;padding:7px;">
-            <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="editBalance('{{ emp.emp_code }}','{{ emp.emp_name }}',{{ b.cl_allotted or 0 }},{{ b.cl_used or 0 }},{{ b.el_allotted or 0 }},{{ b.el_used or 0 }},{{ b.sl_allotted or 0 }},{{ b.sl_used or 0 }})">✏️</button>
+            <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="editBalance('{{ emp.emp_code }}','{{ emp.emp_name }}',{{ b.cl_allotted or 0 }},{{ b.cl_used or 0 }},{{ b.el_allotted or 0 }},{{ b.el_used or 0 }},{{ b.sl_allotted or 0 }},{{ b.sl_used or 0 }})"></button>
           </td>
         </tr>
         {% endfor %}
@@ -350,7 +350,7 @@
 <!-- TAB: Leave Types -->
 <div id="pane_types" class="tab-pane" {% if tab!='types' %}style="display:none"{% endif %}>
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-    <button class="btn btn-primary btn-sm" onclick="openModal('typeModal');resetType()">➕ Add Leave Type</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal('typeModal');resetType()">Add Leave Type</button>
   </div>
   <table style="width:100%;border-collapse:collapse;font-size:13px;">
     <thead><tr style="border-bottom:2px solid var(--border);">
@@ -367,12 +367,12 @@
       <tr style="border-bottom:1px solid var(--border);">
         <td style="padding:7px 12px;font-weight:800;color:#0096dc;">{{ lt.code }}</td>
         <td style="padding:7px;">{{ lt.name }}</td>
-        <td style="text-align:center;padding:7px;">{{ '✅ Paid' if lt.is_paid else '❌ Unpaid' }}</td>
+        <td style="text-align:center;padding:7px;">{{ ' Paid' if lt.is_paid else ' Unpaid' }}</td>
         <td style="text-align:center;padding:7px;">{{ lt.annual_quota or '—' }}</td>
         <td style="text-align:center;padding:7px;">{{ lt.applicable_to }}</td>
-        <td style="text-align:center;padding:7px;">{{ '✅' if lt.carry_forward else '—' }}</td>
+        <td style="text-align:center;padding:7px;">{{ '' if lt.carry_forward else '—' }}</td>
         <td style="text-align:center;padding:7px;">
-          <button class="btn btn-ghost btn-sm" onclick="editType({{ lt|tojson|e }})">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editType({{ lt|tojson|e }})"></button>
         </td>
       </tr>
       {% endfor %}
@@ -383,7 +383,7 @@
 <!-- Reject Modal -->
 <div class="modal-overlay" id="rejectModal">
   <div class="modal" style="width:380px;">
-    <div class="modal-header"><span class="modal-title">❌ Reject Leave</span><button class="modal-close" onclick="closeModal('rejectModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Reject Leave</span><button class="modal-close" onclick="closeModal('rejectModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="rej_id">
       <div class="form-group"><label class="form-label">Rejection Reason</label>
@@ -399,7 +399,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('rejectModal')">Cancel</button>
-      <button class="btn btn-primary" style="background:#ef4444;" onclick="confirmReject()">❌ Confirm Reject</button>
+      <button class="btn btn-primary" style="background:#ef4444;" onclick="confirmReject()">Confirm Reject</button>
     </div>
   </div>
 </div>
@@ -407,7 +407,7 @@
 <!-- Edit Balance Modal -->
 <div class="modal-overlay" id="editBalModal">
   <div class="modal" style="width:420px;">
-    <div class="modal-header"><span class="modal-title">✏️ Edit Leave Balance</span><button class="modal-close" onclick="closeModal('editBalModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title">Edit Leave Balance</span><button class="modal-close" onclick="closeModal('editBalModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="eb_code">
       <div id="eb_name" style="font-weight:700;margin-bottom:12px;"></div>
@@ -424,7 +424,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('editBalModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveBalance()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveBalance()">Save</button>
     </div>
   </div>
 </div>
@@ -432,7 +432,7 @@
 <!-- Leave Type Modal -->
 <div class="modal-overlay" id="typeModal">
   <div class="modal" style="width:400px;">
-    <div class="modal-header"><span class="modal-title" id="typeModalTitle">➕ Add Leave Type</span><button class="modal-close" onclick="closeModal('typeModal')">✕</button></div>
+    <div class="modal-header"><span class="modal-title" id="typeModalTitle">Add Leave Type</span><button class="modal-close" onclick="closeModal('typeModal')"></button></div>
     <div class="modal-body">
       <input type="hidden" id="lt_id">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -442,13 +442,13 @@
         <div class="form-group"><label class="form-label">Applicable To</label>
           <select class="form-select" id="lt_appl"><option>Staff</option><option value="Associate">Associate</option><option>All</option></select>
         </div>
-        <div class="form-group"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="lt_paid" checked> Paid Leave</label></div>
-        <div class="form-group"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="lt_carry"> Carry Forward</label></div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="lt_paid" checked>Paid Leave</label></div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" id="lt_carry">Carry Forward</label></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('typeModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveType()">💾 Save</button>
+      <button class="btn btn-primary" onclick="saveType()">Save</button>
     </div>
   </div>
 </div>
@@ -466,14 +466,14 @@ async function repairHalfDayLeaves(){
     const r = await api("/leaves/repair-halfday-status","POST",{});
     if(r.success){
       msg.style.color = "var(--green)";
-      msg.textContent = `✅ Done. ${r.fixed_records} record(s) corrected.`;
+      msg.textContent = ` Done. ${r.fixed_records} record(s) corrected.`;
     } else {
       msg.style.color = "var(--red)";
-      msg.textContent = "❌ " + (r.error || "Failed");
+      msg.textContent = " " + (r.error || "Failed");
     }
   } catch(e){
     msg.style.color = "var(--red)";
-    msg.textContent = "❌ Error running repair";
+    msg.textContent = " Error running repair";
   }
 }
 
@@ -521,7 +521,7 @@ async function confirmReject(){
   const id=document.getElementById("rej_id").value;
   const r=await api(`/leaves/reject/${id}`,"POST",{reason:document.getElementById("rej_reason").value});
   if(r.success){showToast("Rejected!");setTimeout(()=>{closeModal("rejectModal");location.reload();},1000);}
-  else document.getElementById("rejResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  else document.getElementById("rejResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 // Cancel
@@ -552,7 +552,7 @@ function onAlEmpSelect(code){
   const opt=document.getElementById("al_emp_select").querySelector(`option[value="${code}"]`);
   if(opt){
     const name=opt.dataset.name||""; const dept=opt.dataset.dept||""; const cat=opt.dataset.cat||"";
-    document.getElementById("al_emp_label").textContent=`✓ ${name}${dept?" · "+dept:""} ${cat?"("+cat+")":""}`;
+    document.getElementById("al_emp_label").textContent=` ${name}${dept?" · "+dept:""} ${cat?"("+cat+")":""}`;
   }
   loadBalance();
 }
@@ -579,9 +579,9 @@ async function assignLeave(){
   const ec=document.getElementById("al_emp").value;
   const from=document.getElementById("al_from").value;
   const div=document.getElementById("alResult");
-  if(!ec){div.innerHTML='<div class="alert alert-danger">❌ Please select an employee</div>';return;}
-  if(!from){div.innerHTML='<div class="alert alert-danger">❌ Please select From Date</div>';return;}
-  div.innerHTML='<div class="alert alert-info">⏳ Assigning leave...</div>';
+  if(!ec){div.innerHTML='<div class="alert alert-danger">Please select an employee</div>';return;}
+  if(!from){div.innerHTML='<div class="alert alert-danger">Please select From Date</div>';return;}
+  div.innerHTML='<div class="alert alert-info">Assigning leave...</div>';
   const data={
     emp_code:ec,
     leave_type:document.getElementById("al_type").value,
@@ -594,7 +594,7 @@ async function assignLeave(){
   try{
     const r=await api("/leaves/admin-assign","POST",data);
     if(r.success){
-      div.innerHTML=`<div class="alert alert-success" style="font-weight:700;font-size:14px;">✅ ${r.message}</div>`;
+      div.innerHTML=`<div class="alert alert-success" style="font-weight:700;font-size:14px;"> ${r.message}</div>`;
       loadBalance();
       // Reset form
       document.getElementById("al_emp").value=""; document.getElementById("al_emp_label").textContent="";
@@ -603,10 +603,10 @@ async function assignLeave(){
       document.getElementById("al_reason").value="Leave assigned by HR";
       document.getElementById("al_half").value="0"; updateDateRange();
     } else {
-      div.innerHTML=`<div class="alert alert-danger">❌ ${r.error||"Unknown error"}</div>`;
+      div.innerHTML=`<div class="alert alert-danger"> ${r.error||"Unknown error"}</div>`;
     }
   }catch(e){
-    div.innerHTML=`<div class="alert alert-danger">❌ Request failed: ${e.message}</div>`;
+    div.innerHTML=`<div class="alert alert-danger">Request failed: ${e.message}</div>`;
   }
 }
 
@@ -615,8 +615,8 @@ async function initBalance(){
   if(!confirm(`Initialize leave balance for all Staff employees for ${year}?`)) return;
   const r=await api("/leaves/balance/init","POST",{year:parseInt(year)});
   const div=document.getElementById("initResult");
-  if(r.success) div.innerHTML=`<div class="alert alert-success">✅ ${r.message}</div>`;
-  else div.innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  if(r.success) div.innerHTML=`<div class="alert alert-success"> ${r.message}</div>`;
+  else div.innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 // Balance edit
@@ -645,7 +645,7 @@ async function saveBalance(){
     sl_used:parseFloat(document.getElementById("eb_sl_u").value)||0,
   });
   if(r.success){showToast("Balance updated!");setTimeout(()=>{closeModal("editBalModal");location.reload();},1000);}
-  else document.getElementById("ebResult").innerHTML=`<div class="alert alert-danger">❌ ${r.error}</div>`;
+  else document.getElementById("ebResult").innerHTML=`<div class="alert alert-danger"> ${r.error}</div>`;
 }
 
 // Filter balance table
@@ -663,7 +663,7 @@ function resetType(){
   document.getElementById("lt_appl").value="Staff";
   document.getElementById("lt_paid").checked=true;
   document.getElementById("lt_carry").checked=false;
-  document.getElementById("typeModalTitle").textContent="➕ Add Leave Type";
+  document.getElementById("typeModalTitle").textContent=" Add Leave Type";
 }
 function editType(t){
   document.getElementById("lt_id").value=t.id;
@@ -673,7 +673,7 @@ function editType(t){
   document.getElementById("lt_appl").value=t.applicable_to||"Staff";
   document.getElementById("lt_paid").checked=!!t.is_paid;
   document.getElementById("lt_carry").checked=!!t.carry_forward;
-  document.getElementById("typeModalTitle").textContent="✏️ Edit Leave Type";
+  document.getElementById("typeModalTitle").textContent=" Edit Leave Type";
   openModal("typeModal");
 }
 async function saveType(){

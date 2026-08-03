@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Document Log{% endblock %}
-{% block page_title %}📄 Document Log & Verification{% endblock %}
+{% block page_title %} Document Log & Verification{% endblock %}
 {% block content %}
 
 <!-- Filters -->
@@ -26,26 +26,26 @@
       <input class="form-control" type="date" id="f_to" value="{{ to_d }}">
     </div>
     <div style="display:flex;gap:6px;align-items:flex-end;">
-      <button class="btn btn-primary btn-sm" onclick="applyFilter()">🔍 Search</button>
-      <a href="/documents/log" class="btn btn-ghost btn-sm">✕ Clear</a>
+      <button class="btn btn-primary btn-sm" onclick="applyFilter()">Search</button>
+      <a href="/documents/log" class="btn btn-ghost btn-sm">Clear</a>
     </div>
   </div>
 </div>
 
 <!-- Verify Widget -->
 <div class="table-card" style="padding:14px;margin-bottom:14px;background:linear-gradient(135deg,rgba(0,82,204,.05),rgba(0,150,220,.03));">
-  <div style="font-weight:700;margin-bottom:8px;color:#0096dc;">🔍 Verify Document Authenticity</div>
+  <div style="font-weight:700;margin-bottom:8px;color:#0096dc;">Verify Document Authenticity</div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <input class="form-control" id="verify_code" placeholder="Enter Document Code e.g. EXP-2026-0001" style="max-width:280px;">
-    <button class="btn btn-primary btn-sm" onclick="verifyDoc()">✅ Verify</button>
+    <button class="btn btn-primary btn-sm" onclick="verifyDoc()">Verify</button>
     <div id="verify_result" style="font-size:12px;font-weight:600;"></div>
   </div>
 </div>
 
 <!-- Summary + Export -->
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-  <div style="font-weight:700;">Total: <span style="color:#0096dc;">{{ docs|length }}</span> documents</div>
-  <a href="/documents/log/export?type={{ doc_type }}" class="btn btn-ghost btn-sm" style="color:#10b981;">📥 Export Excel</a>
+  <div style="font-weight:700;">Total: <span style="color:#0096dc;">{{ docs|length }}</span>documents</div>
+  <a href="/documents/log/export?type={{ doc_type }}" class="btn btn-ghost btn-sm" style="color:#10b981;">Export Excel</a>
 </div>
 
 <!-- Table -->
@@ -106,9 +106,9 @@ async function verifyDoc(){
   const r=await fetch(`/documents/verify/${code}`).then(r=>r.json());
   const div=document.getElementById("verify_result");
   if(r.verified){
-    div.innerHTML=`<span style="color:#10b981;">✅ GENUINE — ${r.emp_name} (${r.emp_code}) | ${r.doc_type} | ${r.generated_on?.slice(0,10)}</span>`;
+    div.innerHTML=`<span style="color:#10b981;">GENUINE — ${r.emp_name} (${r.emp_code}) | ${r.doc_type} | ${r.generated_on?.slice(0,10)}</span>`;
   } else {
-    div.innerHTML=`<span style="color:#ef4444;">❌ NOT FOUND — This document code is not in our records</span>`;
+    div.innerHTML=`<span style="color:#ef4444;">NOT FOUND — This document code is not in our records</span>`;
   }
 }
 </script>

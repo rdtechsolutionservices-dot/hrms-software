@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}My Career Journey{% endblock %}
-{% block page_title %}🚀 My Career Journey{% endblock %}
+{% block page_title %} My Career Journey{% endblock %}
 {% block content %}
 
 {% if error %}
@@ -10,22 +10,22 @@
 <!-- Top Summary Cards -->
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;">
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:26px;margin-bottom:6px;">👤</div>
+    <div style="font-size:26px;margin-bottom:6px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Current Designation</div>
     <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--text);">{{ emp.designation or '—' }}</div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:26px;margin-bottom:6px;">💰</div>
+    <div style="font-size:26px;margin-bottom:6px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Current CTC (Monthly)</div>
     <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--green);">₹{{ "{:,.0f}".format(monthly_ctc or 0) }}</div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:26px;margin-bottom:6px;">📈</div>
+    <div style="font-size:26px;margin-bottom:6px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Total Revisions</div>
     <div style="font-weight:800;font-size:15px;margin-top:4px;color:#0096dc;">{{ milestones|length }}</div>
   </div>
   <div class="mini-card" style="text-align:center;">
-    <div style="font-size:26px;margin-bottom:6px;">🏢</div>
+    <div style="font-size:26px;margin-bottom:6px;"></div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Department</div>
     <div style="font-weight:800;font-size:15px;margin-top:4px;color:var(--text);">{{ emp.department or '—' }}</div>
   </div>
@@ -36,14 +36,14 @@
 {% for m in milestones %}{% if m.new_basic != m.old_basic %}{% set _ = salary_milestones.append(m) %}{% endif %}{% endfor %}
 {% if salary_milestones %}
 <div class="mini-card" style="margin-bottom:18px;">
-  <div class="mini-title" style="margin-bottom:14px;">📊 My Salary Growth Timeline</div>
+  <div class="mini-title" style="margin-bottom:14px;">My Salary Growth Timeline</div>
   <canvas id="careerChart" style="max-height:220px;"></canvas>
 </div>
 {% endif %}
 
 <!-- Career Timeline -->
 <div class="mini-card" style="margin-bottom:18px;">
-  <div class="mini-title" style="margin-bottom:16px;">🗓️ Career Milestones</div>
+  <div class="mini-title" style="margin-bottom:16px;">Career Milestones</div>
   {% if milestones %}
   <div style="position:relative;padding-left:24px;">
     <!-- vertical line -->
@@ -62,7 +62,7 @@
             <div style="font-size:11px;color:var(--muted);">{{ m.effective_date }}</div>
             <div style="font-weight:700;margin-top:2px;">
               {% if m.new_basic != m.old_basic %}
-                💰 Salary Revised
+                 Salary Revised
                 <span style="font-size:12px;color:var(--green);margin-left:6px;">
                   ₹{{ "{:,.0f}".format(m.old_basic) }} → ₹{{ "{:,.0f}".format(m.new_basic) }} Basic
                   {% set pct = ((m.new_basic - m.old_basic) / m.old_basic * 100)|round(1) if m.old_basic else 0 %}
@@ -71,7 +71,7 @@
               {% endif %}
               {% if m.new_designation %}
                 {% if m.new_basic != m.old_basic %}<br>{% endif %}
-                🏷️ Designation Changed
+                 Designation Changed
                 <span style="font-size:12px;color:#0096dc;margin-left:6px;">
                   {{ m.old_designation or '—' }} → <strong>{{ m.new_designation }}</strong>
                 </span>
@@ -94,14 +94,14 @@
       <div style="position:absolute;left:-20px;top:8px;width:14px;height:14px;border-radius:50%;background:#8b5cf6;border:2px solid var(--card);"></div>
       <div style="background:var(--surface);border-radius:10px;padding:12px 14px;">
         <div style="font-size:11px;color:var(--muted);">{{ emp.joining_date }}</div>
-        <div style="font-weight:700;color:#8b5cf6;">🎉 Joined VPL — {{ emp.designation or emp.category }}</div>
+        <div style="font-weight:700;color:#8b5cf6;">Joined VPL — {{ emp.designation or emp.category }}</div>
       </div>
     </div>
     {% endif %}
   </div>
   {% else %}
   <div style="text-align:center;padding:40px;color:var(--muted);">
-    <div style="font-size:40px;margin-bottom:10px;">📋</div>
+    <div style="font-size:40px;margin-bottom:10px;"></div>
     No career milestones recorded yet.<br>
     <span style="font-size:12px;">Contact HR for any salary or designation changes.</span>
   </div>
@@ -112,7 +112,7 @@
 {% if records %}
 <div class="table-card">
   <div class="table-header">
-    <span class="table-title">📋 Recent Salary Records (Last 12 Months)</span>
+    <span class="table-title">Recent Salary Records (Last 12 Months)</span>
   </div>
   <table>
     <thead>
@@ -160,8 +160,8 @@ function fmtDate(d){
   return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : d;
 }
 
-const labels   = salaryPoints.map(p => fmtDate(p.date));
-const grossData = salaryPoints.map(p => p.gross);
+const labels   = salaryPoints.map(p =>fmtDate(p.date));
+const grossData = salaryPoints.map(p =>p.gross);
 
 const ctx = document.getElementById("careerChart").getContext("2d");
 new Chart(ctx, {

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Edit Letter — {{ doc.template_name }}{% endblock %}
-{% block page_title %}✏️ Edit Pending Letter — {{ doc.template_name }}{% endblock %}
+{% block page_title %} Edit Pending Letter — {{ doc.template_name }}{% endblock %}
 {% block content %}
 
 <div class="mini-card" style="margin-bottom:16px;">
   <div style="font-size:12px;color:var(--muted);line-height:1.6;">
     This letter is still <b>Pending Approval</b>, so you can adjust its wording here. The saved page layout, header,
     footer and margins won't change — only the content below. Every save needs a short reason for the record;
-    that reason is <b>never printed</b> on the letter itself.
+    that reason is <b>never printed</b>on the letter itself.
   </div>
 </div>
 
@@ -15,7 +15,7 @@
   <!-- Toolbar (Word-style) -->
   <div class="wtoolbar">
     <select class="tb-btn" style="cursor:pointer;min-width:120px;" onchange="fmt('fontName', this.value)" title="Font">
-      <option value="Calibri">Calibri</option>
+      <option value="Verdana">Verdana</option>
       <option value="'Times New Roman'">Times New Roman</option>
       <option value="Arial">Arial</option>
       <option value="Georgia">Georgia</option>
@@ -34,19 +34,19 @@
     <button type="button" class="tb-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
     <span class="tb-sep"></span>
     <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Text color">A<input type="color" value="#000000" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('foreColor', this.value)"></label>
-    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color">🖍<input type="color" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
+    <label class="tb-btn" style="cursor:pointer;padding:5px 6px;" title="Highlight color"><input type="color" value="#ffff00" style="width:18px;height:14px;border:none;padding:0;vertical-align:middle;margin-left:2px;cursor:pointer;" oninput="fmt('hiliteColor', this.value)"></label>
     <span class="tb-sep"></span>
     <button type="button" class="tb-btn" onclick="fmt('justifyLeft')" title="Align left">⬅</button>
     <button type="button" class="tb-btn" onclick="fmt('justifyCenter')" title="Align center">↔</button>
-    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right">➡</button>
-    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify">☰</button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyRight')" title="Align right"></button>
+    <button type="button" class="tb-btn" onclick="fmt('justifyFull')" title="Justify"></button>
     <span class="tb-sep"></span>
     <button type="button" class="tb-btn" onclick="fmt('insertUnorderedList')" title="Bullets">• List</button>
     <button type="button" class="tb-btn" onclick="fmt('insertOrderedList')" title="Numbering">1. List</button>
-    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">✖ Clear</button>
+    <button type="button" class="tb-btn" onclick="fmt('removeFormat')" title="Clear formatting">Clear</button>
   </div>
   <div id="editor" contenteditable="true"
-       style="min-height:400px;background:#fff;color:#111;border:1px solid var(--border);border-top:none;border-radius:0 0 9px 9px;padding:24px 30px;font-family:Calibri,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ doc.merged_body | safe }}</div>
+       style="min-height:400px;background:#fff;color:#111;border:1px solid var(--border);border-top:none;border-radius:0 0 9px 9px;padding:24px 30px;font-family:Verdana,'Times New Roman',serif;font-size:14px;line-height:1.8;outline:none;">{{ doc.merged_body | safe }}</div>
 </div>
 
 <div class="mini-card" style="margin-bottom:16px;">
@@ -55,14 +55,14 @@
 </div>
 
 <div style="display:flex;gap:10px;margin-bottom:20px;">
-  <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-  <a href="/letters/documents/view/{{ doc.id }}" target="_blank" class="btn btn-ghost">👁️ Preview</a>
-  <a href="/letters" class="btn btn-ghost">✖ Cancel</a>
+  <button class="btn btn-success" onclick="saveEdit()">Save Changes</button>
+  <a href="/letters/documents/view/{{ doc.id }}" target="_blank" class="btn btn-ghost">Preview</a>
+  <a href="/letters" class="btn btn-ghost">Cancel</a>
 </div>
 
 {% if edits %}
 <div class="table-card" style="margin-bottom:20px;">
-  <div class="table-header"><span class="table-title">🕘 Edit History</span></div>
+  <div class="table-header"><span class="table-title">Edit History</span></div>
   <table>
     <thead><tr><th>#</th><th>Reason</th><th>Edited By</th><th>Edited On</th></tr></thead>
     <tbody>
