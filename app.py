@@ -20139,7 +20139,17 @@ def dept_head_outside_attendance():
         my_depts = []
 
     tab = request.args.get("tab", "pending")
+
+    # History filters
+    f_emp    = request.args.get("emp", "").strip()      # emp_code (from autocomplete selection)
+    f_dept   = request.args.get("dept", "").strip()
+    f_month  = request.args.get("month", "").strip()
+    f_year   = request.args.get("year", "").strip()
+    f_status = request.args.get("status", "").strip()
+    f_type   = request.args.get("type", "").strip()
+
     pending, history = [], []
+    employees_list = []
     if my_depts:
         placeholders = ",".join(["?"]*len(my_depts))
         pending = conn.execute(f"""
@@ -20147,15 +20157,41 @@ def dept_head_outside_attendance():
             FROM outside_attendance_requests r JOIN employees e ON r.emp_code=e.emp_code
             WHERE r.status='Pending' AND e.department IN ({placeholders})
             ORDER BY r.created_on DESC""", my_depts).fetchall()
-        history = conn.execute(f"""
+
+        hist_sql = f"""
             SELECT r.*, e.emp_name, e.department, e.designation
             FROM outside_attendance_requests r JOIN employees e ON r.emp_code=e.emp_code
-            WHERE r.status IN ('Approved','Rejected') AND e.department IN ({placeholders})
-            ORDER BY r.reviewed_on DESC LIMIT 200""", my_depts).fetchall()
+            WHERE r.status IN ('Approved','Rejected') AND e.department IN ({placeholders})"""
+        hist_params = list(my_depts)
+        if f_emp:
+            hist_sql += " AND r.emp_code=?"
+            hist_params.append(f_emp)
+        if f_dept:
+            hist_sql += " AND e.department=?"
+            hist_params.append(f_dept)
+        if f_month:
+            hist_sql += " AND strftime('%m', r.request_date)=?"
+            hist_params.append(f"{int(f_month):02d}")
+        if f_year:
+            hist_sql += " AND strftime('%Y', r.request_date)=?"
+            hist_params.append(f_year)
+        if f_status:
+            hist_sql += " AND r.status=?"
+            hist_params.append(f_status)
+        if f_type:
+            hist_sql += " AND r.request_type=?"
+            hist_params.append(f_type)
+        hist_sql += " ORDER BY r.reviewed_on DESC LIMIT 500"
+        history = conn.execute(hist_sql, hist_params).fetchall()
+
+        employees_list = conn.execute(f"""
+            SELECT DISTINCT emp_code, emp_name FROM employees
+            WHERE department IN ({placeholders}) ORDER BY emp_name""", my_depts).fetchall()
     conn.close()
     return render_template("dept_head_outside_attendance.html",
         pending=[dict(r) for r in pending], history=[dict(r) for r in history],
-        my_depts=my_depts, tab=tab)
+        my_depts=my_depts, tab=tab, months=MONTHS, employees_list=[dict(e) for e in employees_list],
+        f_emp=f_emp, f_dept=f_dept, f_month=f_month, f_year=f_year, f_status=f_status, f_type=f_type)
 
 @app.route("/dept-head/attendance-requests/action/<int:req_id>", methods=["POST"])
 @amgr

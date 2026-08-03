@@ -72,6 +72,48 @@
     </div>
   {% endif %}
 {% else %}
+  <!-- History Filters -->
+  <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;">
+    <input type="hidden" name="tab" value="history">
+    <div style="position:relative;">
+      <input class="form-control" type="text" id="empSearchInput" list="empSuggestions" placeholder="🔍 Employee name..."
+        value="{% for e in employees_list %}{% if e.emp_code==f_emp %}{{ e.emp_name }}{% endif %}{% endfor %}"
+        oninput="resolveEmpCode()" style="width:190px;">
+      <input type="hidden" name="emp" id="empCodeInput" value="{{ f_emp }}">
+      <datalist id="empSuggestions">
+        {% for e in employees_list %}
+        <option data-code="{{ e.emp_code }}" value="{{ e.emp_name }}">{{ e.emp_code }}</option>
+        {% endfor %}
+      </datalist>
+    </div>
+    <select name="dept" class="form-control" style="width:150px;" onchange="this.form.submit()">
+      <option value="">All Departments</option>
+      {% for d in my_depts %}<option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+    </select>
+    <select name="month" class="form-control" style="width:130px;" onchange="this.form.submit()">
+      <option value="">All Months</option>
+      {% for i in range(1,13) %}<option value="{{ i }}" {% if (i|string)==f_month %}selected{% endif %}>{{ months[i-1] }}</option>{% endfor %}
+    </select>
+    <select name="year" class="form-control" style="width:100px;" onchange="this.form.submit()">
+      <option value="">All Years</option>
+      {% for y in range(2024, 2028) %}<option value="{{ y }}" {% if (y|string)==f_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+    <select name="type" class="form-control" style="width:110px;" onchange="this.form.submit()">
+      <option value="">IN & OUT</option>
+      <option value="IN" {% if f_type=='IN' %}selected{% endif %}>IN only</option>
+      <option value="OUT" {% if f_type=='OUT' %}selected{% endif %}>OUT only</option>
+    </select>
+    <select name="status" class="form-control" style="width:130px;" onchange="this.form.submit()">
+      <option value="">Approved & Rejected</option>
+      <option value="Approved" {% if f_status=='Approved' %}selected{% endif %}>Approved only</option>
+      <option value="Rejected" {% if f_status=='Rejected' %}selected{% endif %}>Rejected only</option>
+    </select>
+    <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
+    {% if f_emp or f_dept or f_month or f_year or f_status or f_type %}
+    <a href="?tab=history" class="btn btn-ghost btn-sm" style="color:#ef4444;">✕ Clear</a>
+    {% endif %}
+  </form>
+
   {% if history %}
   <div class="table-card">
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -81,6 +123,8 @@
         <th style="text-align:center;padding:8px;">Type</th>
         <th style="text-align:center;padding:8px;">Date</th>
         <th style="text-align:center;padding:8px;">Time</th>
+        <th style="text-align:left;padding:8px;">Reason</th>
+        <th style="text-align:center;padding:8px;">Location</th>
         <th style="text-align:center;padding:8px;">Status</th>
         <th style="text-align:left;padding:8px 12px;">Reviewed By</th>
       </tr></thead>
@@ -92,8 +136,17 @@
           <td style="text-align:center;padding:8px;">{{ r.request_type }}</td>
           <td style="text-align:center;padding:8px;">{{ r.request_date }}</td>
           <td style="text-align:center;padding:8px;">{{ r.request_time }}</td>
+          <td style="padding:8px;max-width:200px;">{{ r.reason or '—' }}</td>
+          <td style="text-align:center;padding:8px;">
+            {% if r.latitude and r.longitude %}
+            <a href="https://www.google.com/maps?q={{ r.latitude }},{{ r.longitude }}" target="_blank" style="color:#0096dc;">📍 View</a>
+            {% else %}
+            <span style="color:var(--muted);">—</span>
+            {% endif %}
+          </td>
           <td style="text-align:center;padding:8px;">
             {% if r.status == 'Approved' %}<span style="color:#10b981;">✅ Approved</span>{% else %}<span style="color:#ef4444;">❌ Rejected</span>{% endif %}
+            {% if r.review_remarks %}<div style="font-size:10px;color:var(--muted);">{{ r.review_remarks }}</div>{% endif %}
           </td>
           <td style="padding:8px 12px;">{{ r.reviewed_by }} <span style="color:var(--muted);">({{ r.reviewed_on }})</span></td>
         </tr>
@@ -102,13 +155,25 @@
     </table>
   </div>
   {% else %}
-  <div style="text-align:center;padding:50px;color:var(--muted);">No history yet.</div>
+  <div style="text-align:center;padding:50px;color:var(--muted);">No history found for this filter.</div>
   {% endif %}
 {% endif %}
 
 {% endblock %}
 {% block scripts %}
 <script>
+function resolveEmpCode(){
+  const input = document.getElementById("empSearchInput");
+  const options = document.getElementById("empSuggestions").options;
+  for (let i = 0; i < options.length; i++){
+    if (options[i].value === input.value){
+      document.getElementById("empCodeInput").value = options[i].getAttribute("data-code");
+      document.querySelector('form[method="get"]').submit();
+      return;
+    }
+  }
+  if (input.value === "") document.getElementById("empCodeInput").value = "";
+}
 function oaAction(id, action){
   const label = action === 'approve' ? 'approve' : 'reject';
   let remarks = '';

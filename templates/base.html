@@ -324,6 +324,7 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
     </div>
     <div class="topbar-right">
       <span id="todayDate" class="tbadge tbadge-blue">📅 Loading...</span>
+      <span id="liveClock" class="tbadge tbadge-blue" style="font-variant-numeric:tabular-nums;">🕐 --:--:--</span>
       <span class="tbadge tbadge-green">🟢 LAN Active</span>
       {% if session.role=='admin' %}<span class="tbadge tbadge-yellow">👑 Admin</span>{% endif %}
     </div>
@@ -333,8 +334,17 @@ td{padding:10px 14px;font-size:13px;vertical-align:middle;}
 </div>
 <div id="toast"></div>
 <script>
-const d=new Date();
-document.getElementById("todayDate").textContent="📅 "+d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+// All date/time shown here is explicitly forced to Asia/Kolkata (IST, +5:30)
+// regardless of the server's or the visitor's device timezone setting.
+function updateISTClock(){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric",timeZone:"Asia/Kolkata"});
+  const timeStr = now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true,timeZone:"Asia/Kolkata"});
+  document.getElementById("todayDate").textContent = "📅 " + dateStr;
+  document.getElementById("liveClock").textContent = "🕐 " + timeStr + " IST";
+}
+updateISTClock();
+setInterval(updateISTClock, 1000);
 function showToast(msg,type="success"){const t=document.getElementById("toast");t.textContent=(type==="success"?"✅ ":"❌ ")+msg;t.className="show toast-"+type;setTimeout(()=>t.className="",3500);}
 async function api(url,method="GET",body=null){const opts={method,headers:{"Content-Type":"application/json"}};if(body)opts.body=JSON.stringify(body);const r=await fetch(url,opts);return r.json();}
 function openModal(id){document.getElementById(id).classList.add("show");}
