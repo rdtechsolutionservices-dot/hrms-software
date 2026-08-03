@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}<div class="page-subtitle">Welcome back, {{ session.get('name') or session.get('user') or 'Admin' }}! Here's what's happening today.</div>{% endblock %}
 {% block content %}
 
 {% set cel = celebrations if celebrations else {} %}
@@ -58,7 +59,9 @@
 
   <!-- Box 1: Active Employees -->
   <div class="kpi-box" onclick="showDrilldown('active')" style="cursor:pointer;background:linear-gradient(135deg,#0052cc,#0096dc);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Active Employees</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ total }}</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
@@ -66,7 +69,9 @@
 
   <!-- Box 2: Present Today -->
   <div class="kpi-box" onclick="showDrilldown('present')" style="cursor:pointer;background:linear-gradient(135deg,#059669,#10b981);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Present Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ present_staff + present_assoc }}</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
@@ -74,7 +79,9 @@
 
   <!-- Box 3: Absent Today -->
   <div class="kpi-box" onclick="showDrilldown('absent')" style="cursor:pointer;background:linear-gradient(135deg,#dc2626,#f43f5e);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="17" y1="11" x2="23" y2="11"></line></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Absent Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ absent_staff + absent_assoc }}</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
@@ -82,47 +89,54 @@
 
   <!-- Box 3b: Yet to Arrive -->
   <div class="kpi-box" onclick="toggleYetToArrive()" style="cursor:pointer;background:linear-gradient(135deg,#7c3aed,#a855f7);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Yet to Arrive</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ yet_to_arrive }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Shift assigned, not punched yet</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 3c: WOP Today -->
   <div class="kpi-box" onclick="toggleWOP()" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15.5 14"></polyline></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WOP Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ wop_today }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off but Present</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 3d: On Leave Today -->
   <div class="kpi-box" onclick="toggleLeave()" style="cursor:pointer;background:linear-gradient(135deg,#0891b2,#06b6d4);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-1 .1-1.3.5l-.7.7c-.4.4-.3 1.1.2 1.4l5.6 3.4-2 2H3l-.7 1.2c-.3.5-.1 1.1.4 1.4l2.5 1.5 1.5 2.5c.3.5.9.7 1.4.4L9 21v-3.5l2-2 3.4 5.6c.3.5 1 .6 1.4.2l.7-.7c.4-.3.6-.8.5-1.3Z"></path></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">On Leave Today</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ leave_today }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Approved leave for today</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
   <!-- Box 4: OT This Month -->
   <div class="kpi-box" onclick="showDrilldown('ot')" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 1.5"></path><path d="M9 2h6"></path><path d="M12 2v3"></path></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">OT This Month ({{ month_name }})</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ (ot_staff_hrs + ot_assoc_hrs)|round(1) }} hrs</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
   <!-- Box 5: Week Off & Absent -->
   <div class="kpi-box" onclick="toggleWOAbsent()" style="cursor:pointer;background:linear-gradient(135deg,#374151,#6b7280);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
-    <div style="font-size:28px;margin-bottom:4px;"></div>
+    <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="9" y1="15" x2="15" y2="19"></line><line x1="15" y1="15" x2="9" y2="19"></line></svg>
+    </div>
     <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">WO & Absent</div>
     <div style="font-size:26px;font-weight:800;line-height:1;">{{ wo_absent }}</div>
     <div style="margin-top:8px;font-size:12px;opacity:.9;">Week Off day, did not come</div>
-    <div style="position:absolute;right:-10px;top:-10px;font-size:60px;opacity:.08;"></div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 </div>
