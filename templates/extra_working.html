@@ -140,10 +140,11 @@
           <th style="text-align:center;padding:6px;">Out</th>
           <th style="text-align:center;padding:6px;">Worked Hrs</th>
           <th style="text-align:center;padding:6px;">Extra Hrs</th>
+          <th style="text-align:center;padding:6px;">Short Hrs</th>
           <th style="text-align:center;padding:6px;">Status</th>
         </tr></thead>
         <tbody id="ewDetailBody">
-          <tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>
+          <tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -217,22 +218,24 @@ function showExtraDetail(empCode){
   if (EW_LOCKED) return;
   document.getElementById('ewDetailTitle').textContent = 'Loading...';
   document.getElementById('ewDetailSummary').textContent = '';
-  document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>';
+  document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>';
   openModal('ewDetailModal');
 
   fetch(`/extra-working/employee-detail/${empCode}/${EW_MONTH}/${EW_YEAR}`)
     .then(r =>r.json())
     .then(d => {
       if (!d.success){
-        document.getElementById('ewDetailBody').innerHTML = `<tr><td colspan="6" style="text-align:center;padding:16px;color:#ef4444;">${d.error || 'Error loading data'}</td></tr>`;
+        document.getElementById('ewDetailBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:#ef4444;">${d.error || 'Error loading data'}</td></tr>`;
         return;
       }
       document.getElementById('ewDetailTitle').textContent = `${d.emp_name} (${d.emp_code})`;
       document.getElementById('ewDetailSummary').innerHTML =
-        `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; Per Hr Rate: <b>₹${d.per_hr_rate.toFixed(2)}</b> &nbsp;|&nbsp; Total Extra: <b>${d.total_extra_hours} hrs</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
+        `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; Per Hr Rate: <b>₹${d.per_hr_rate.toFixed(2)}</b> &nbsp;|&nbsp; ` +
+        `Gross Extra: <b>${d.total_extra_hours} hrs</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${d.total_shortfall_hours} hrs</b> &nbsp;|&nbsp; ` +
+        `Net Extra: <b style="color:#10b981;">${d.net_extra_hours} hrs</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
 
       if (!d.days.length){
-        document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';
+        document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';
         return;
       }
       document.getElementById('ewDetailBody').innerHTML = d.days.map(row => `
@@ -242,11 +245,12 @@ function showExtraDetail(empCode){
           <td style="text-align:center;padding:6px;">${row.out_time}</td>
           <td style="text-align:center;padding:6px;">${row.working_hours}</td>
           <td style="text-align:center;padding:6px;font-weight:${row.extra_hours > 0 ? '800' : '400'};color:${row.extra_hours > 0 ? '#10b981' : 'inherit'};">${row.extra_hours}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.shortfall_hours > 0 ? '800' : '400'};color:${row.shortfall_hours > 0 ? '#ef4444' : 'inherit'};">${row.shortfall_hours > 0 ? '-' + row.shortfall_hours : '-'}</td>
           <td style="text-align:center;padding:6px;">${row.status}</td>
         </tr>`).join('');
     })
     .catch(() => {
-      document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:#ef4444;">Error loading data</td></tr>';
+      document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:#ef4444;">Error loading data</td></tr>';
     });
 }
 

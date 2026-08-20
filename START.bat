@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo  [2/4] Installing required packages...
-pip install flask openpyxl pymysql pyodbc pyzk --quiet --no-warn-script-location
+pip install flask openpyxl pymysql pyodbc pyzk pyopenssl --quiet --no-warn-script-location
 echo  Packages ready!
 
 echo.

@@ -307,6 +307,8 @@ def init_db():
         UNIQUE(emp_code, att_date))""")
     try: c.execute("ALTER TABLE attendance ADD COLUMN remarks TEXT DEFAULT NULL")
     except: pass
+    try: c.execute("ALTER TABLE attendance ADD COLUMN shortfall_minutes INTEGER DEFAULT 0")
+    except: pass
     c.execute("""CREATE TABLE IF NOT EXISTS salary_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         emp_code TEXT NOT NULL, month INTEGER, year INTEGER,
@@ -2226,6 +2228,7 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         "late_minutes":    0,
         "short_minutes":   0,
         "ot_minutes":      0,
+        "shortfall_minutes": 0,
         "is_half_day":     0,
         "working_minutes": 0,
         "is_night_shift":  0,
@@ -2395,20 +2398,28 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
     # deciding whether this shift's extra hours are computed at all and
     # feed the Extra Working module for payout — fully shift-driven,
     # not category-driven. Category is for grouping/sorting only.
+    #
+    # No minimum-minutes threshold — even 1 minute of extra work counts.
+    # shortfall_minutes tracks how many minutes SHORT of the shift duration
+    # the employee worked that day — Extra Working deducts the month's total
+    # shortfall from the month's total extra hours before payout.
     if not extra_work_paid:
         r["ot_minutes"] = 0
+        r["shortfall_minutes"] = 0
     elif ot_formula == "out_minus_shift_end":
         # OT = OUT time − Shift End time (only counts time worked past shift end)
         if pout is not None and pout > sh_end_adj:
             ot = pout - sh_end_adj
-            r["ot_minutes"] = max(0, ot) if ot >= 30 else 0
+            r["ot_minutes"] = max(0, ot)
         else:
             r["ot_minutes"] = 0
+        shortfall = wh_min - worked_net
+        r["shortfall_minutes"] = max(0, shortfall)
     else:
         # total_minus_shift (default): OT = Total Worked − Shift Duration
         ot = worked_net - wh_min
-        # Minimum 30 minutes OT rule: if OT < 30 min, do not count as OT
-        r["ot_minutes"] = max(0, ot) if ot >= 30 else 0
+        r["ot_minutes"] = max(0, ot)
+        r["shortfall_minutes"] = max(0, -ot)
 
     return r
 
@@ -2507,7 +2518,7 @@ def save_att_row(conn, emp_code, att_date, in_t, out_t, category, status="Presen
          in_t or "", out_t or "",
          c["working_minutes"], c["status"],
          c["late_minutes"], c["short_minutes"],
-         c["ot_minutes"], is_hd, shift_name)
+         c["ot_minutes"], is_hd, shift_name, c.get("shortfall_minutes", 0))
     if conn is not None:
         # Check if existing record is manually edited — preserve is_manual flag
         _is_manual_preserve = 0
@@ -2548,33 +2559,33 @@ def save_att_row(conn, emp_code, att_date, in_t, out_t, category, status="Presen
                     working_minutes=?, status=?,
                     late_minutes=CASE WHEN late_waived=1 THEN 0 ELSE ? END,
                     short_minutes=?, ot_minutes=?, is_half_day=?,
-                    shift_name=?
+                    shift_name=?, shortfall_minutes=?
                     WHERE emp_code=? AND att_date=?""",
                     (final_in, final_out,
                      c2["working_minutes"], c2["status"],
                      c2["late_minutes"], c2["short_minutes"],
                      c2["ot_minutes"], c2["is_half_day"],
-                     shift_name,
+                     shift_name, c2.get("shortfall_minutes", 0),
                      emp_code, att_date))
             else:
                 # No existing record — insert fresh with is_manual=1
                 conn.execute("""INSERT INTO attendance
                     (emp_code,att_date,in_time,out_time,working_minutes,status,
-                     late_minutes,short_minutes,ot_minutes,is_half_day,shift_name,late_waived,is_manual)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)""",
+                     late_minutes,short_minutes,ot_minutes,is_half_day,shift_name,shortfall_minutes,late_waived,is_manual)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)""",
                     row_params + (_late_waived,))
         else:
             conn.execute("""INSERT INTO attendance
                 (emp_code,att_date,in_time,out_time,working_minutes,status,
-                 late_minutes,short_minutes,ot_minutes,is_half_day,shift_name,late_waived)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                 late_minutes,short_minutes,ot_minutes,is_half_day,shift_name,shortfall_minutes,late_waived)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(emp_code,att_date) DO UPDATE SET
                 in_time=excluded.in_time, out_time=excluded.out_time,
                 working_minutes=excluded.working_minutes, status=excluded.status,
                 late_minutes=CASE WHEN attendance.late_waived=1 THEN 0 ELSE excluded.late_minutes END,
                 short_minutes=excluded.short_minutes,
                 ot_minutes=excluded.ot_minutes, is_half_day=excluded.is_half_day,
-                shift_name=excluded.shift_name,
+                shift_name=excluded.shift_name, shortfall_minutes=excluded.shortfall_minutes,
                 late_waived=CASE WHEN attendance.late_waived=1 THEN 1 ELSE excluded.late_waived END""",
                 row_params + (_late_waived,))
     c["_row_params"] = row_params
@@ -7190,10 +7201,14 @@ def _get_extra_working_lock(conn, m, y):
     return dict(row) if row else {"month": m, "year": y, "is_locked": 0, "locked_by": None, "locked_on": None}
 
 def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
-    """Live calculation straight from attendance.ot_minutes vs each employee's shift — no approval condition."""
+    """Live calculation from attendance.ot_minutes vs each employee's shift — no approval
+    condition. Days where the employee worked LESS than their shift duration (shortfall_minutes)
+    deduct from the month's total extra minutes before payout — extra and short days net out
+    over the month, floored at zero (never negative)."""
     sql = """SELECT a.emp_code, e.emp_name, e.department, e.category, e.scheme_id,
         e.basic, e.hra, e.special_allowance,
         SUM(a.ot_minutes) as total_extra_min,
+        SUM(COALESCE(a.shortfall_minutes,0)) as total_shortfall_min,
         COUNT(CASE WHEN a.ot_minutes > 0 THEN 1 END) as extra_days
         FROM attendance a
         JOIN employees e ON a.emp_code=e.emp_code
@@ -7207,16 +7222,21 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
     if search:
         sql += " AND (e.emp_code LIKE ? OR e.emp_name LIKE ?)"
         params += [f"%{search}%", f"%{search}%"]
-    sql += " GROUP BY a.emp_code HAVING total_extra_min > 0 ORDER BY e.department, e.emp_name"
+    sql += " GROUP BY a.emp_code ORDER BY e.department, e.emp_name"
 
     rows = conn.execute(sql, params).fetchall()
     settings = _get_extra_working_settings(conn)
     data = []
     for r in rows:
         r = dict(r)
+        net_min = (r["total_extra_min"] or 0) - (r["total_shortfall_min"] or 0)
+        net_min = max(0, net_min)  # short days can reduce the total but never go negative
+        if net_min <= 0:
+            continue
         shift_hours = _emp_shift_hours(r["emp_code"], conn)
         per_hr_rate = _extra_working_per_hour_rate(r, shift_hours, settings)
-        extra_hrs   = round((r["total_extra_min"] or 0) / 60, 2)
+        extra_hrs   = round(net_min / 60, 2)
+        r["shortfall_hours"] = round((r["total_shortfall_min"] or 0) / 60, 2)
         r["shift_hours"]  = shift_hours
         r["per_hr_rate"]  = per_hr_rate
         r["extra_hours"]  = extra_hrs
@@ -7318,7 +7338,8 @@ def extra_working_employee_detail(emp_code, m, y):
         return jsonify({"success": False, "error": "Employee not found"})
     emp = dict(emp)
 
-    att_rows = conn.execute("""SELECT att_date, in_time, out_time, working_minutes, ot_minutes, status
+    att_rows = conn.execute("""SELECT att_date, in_time, out_time, working_minutes, ot_minutes,
+        COALESCE(shortfall_minutes,0) as shortfall_minutes, status
         FROM attendance
         WHERE emp_code=? AND strftime('%m',att_date)=? AND strftime('%Y',att_date)=?
         ORDER BY att_date""", (emp_code, f"{m:02d}", str(y))).fetchall()
@@ -7329,19 +7350,24 @@ def extra_working_employee_detail(emp_code, m, y):
 
     days = []
     total_extra_min = 0
+    total_shortfall_min = 0
     for r in att_rows:
         r = dict(r)
         ot_min = r["ot_minutes"] or 0
+        short_min = r["shortfall_minutes"] or 0
         total_extra_min += ot_min
+        total_shortfall_min += short_min
         days.append({
             "date":            r["att_date"],
             "in_time":         r["in_time"] or "-",
             "out_time":        r["out_time"] or "-",
             "working_hours":   round((r["working_minutes"] or 0) / 60, 2),
             "extra_hours":     round(ot_min / 60, 2),
+            "shortfall_hours": round(short_min / 60, 2),
             "status":          r["status"],
         })
 
+    net_min = max(0, total_extra_min - total_shortfall_min)
     conn.close()
     return jsonify({
         "success": True,
@@ -7351,7 +7377,9 @@ def extra_working_employee_detail(emp_code, m, y):
         "shift_hours": shift_hours,
         "per_hr_rate": per_hr_rate,
         "total_extra_hours": round(total_extra_min / 60, 2),
-        "total_extra_amount": round((total_extra_min / 60) * per_hr_rate, 2),
+        "total_shortfall_hours": round(total_shortfall_min / 60, 2),
+        "net_extra_hours": round(net_min / 60, 2),
+        "total_extra_amount": round((net_min / 60) * per_hr_rate, 2),
         "days": days
     })
 
