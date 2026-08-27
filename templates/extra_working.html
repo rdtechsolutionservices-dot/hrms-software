@@ -59,7 +59,7 @@
   </div>
   <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.85;">Total Extra Hours</div>
-    <div style="font-size:26px;font-weight:800;">{{ total_hours }} hrs</div>
+    <div style="font-size:26px;font-weight:800;">{{ total_minutes|hhmm }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.85;">Total Extra Amount</div>
@@ -94,16 +94,16 @@
     </tr></thead>
     <tbody>
       {% for r in rows %}
-      <tr class="ew-row" data-hours="{{ r.extra_hours }}" style="border-bottom:1px solid var(--border);">
+      <tr class="ew-row" data-minutes="{{ r.extra_minutes }}" style="border-bottom:1px solid var(--border);">
         <td style="text-align:center;padding:10px;"><input type="checkbox" class="ew-row-check"></td>
         <td style="padding:10px 12px;font-weight:700;">{{ r.emp_code }}</td>
         <td style="padding:10px;">{{ r.emp_name }}</td>
         <td style="padding:10px;color:var(--muted);">{{ r.department or '—' }}</td>
         <td style="text-align:center;padding:10px;">
           {% if lock.is_locked %}
-          <span style="font-weight:800;">{{ r.extra_hours }}</span>
+          <span style="font-weight:800;">{{ r.extra_minutes|hhmm }}</span>
           {% else %}
-          <a href="javascript:void(0)" onclick="showExtraDetail('{{ r.emp_code }}')" style="color:#0096dc;font-weight:800;text-decoration:underline;cursor:pointer;">{{ r.extra_hours }}</a>
+          <a href="javascript:void(0)" onclick="showExtraDetail('{{ r.emp_code }}')" style="color:#0096dc;font-weight:800;text-decoration:underline;cursor:pointer;">{{ r.extra_minutes|hhmm }}</a>
           {% endif %}
         </td>
         <td style="text-align:center;padding:10px;">₹{{ '%.2f'|format(r.per_hr_rate) }}</td>
@@ -209,9 +209,17 @@ function updateSelectedCount(){
 function filterZeroRows(){
   const hide = document.getElementById('ewHideZero').checked;
   document.querySelectorAll('.ew-row').forEach(row => {
-    const hrs = parseFloat(row.dataset.hours || '0');
-    row.style.display = (hide && hrs <= 0) ? 'none' : '';
+    const mins = parseFloat(row.dataset.minutes || '0');
+    row.style.display = (hide && mins <= 0) ? 'none' : '';
   });
+}
+
+// Minutes -> HH:MM, always shows a value (00:00 for zero) — mirrors the
+// server-side `hhmm` Jinja filter, used here for JS-rendered detail rows.
+function hhmm(mins){
+  mins = Math.max(0, Math.round(mins || 0));
+  const h = Math.floor(mins/60), m = mins % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
 
 function showExtraDetail(empCode){
@@ -231,8 +239,8 @@ function showExtraDetail(empCode){
       document.getElementById('ewDetailTitle').textContent = `${d.emp_name} (${d.emp_code})`;
       document.getElementById('ewDetailSummary').innerHTML =
         `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; Per Hr Rate: <b>₹${d.per_hr_rate.toFixed(2)}</b> &nbsp;|&nbsp; ` +
-        `Gross Extra: <b>${d.total_extra_hours} hrs</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${d.total_shortfall_hours} hrs</b> &nbsp;|&nbsp; ` +
-        `Net Extra: <b style="color:#10b981;">${d.net_extra_hours} hrs</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
+        `Gross Extra: <b>${hhmm(d.total_extra_min)}</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${hhmm(d.total_shortfall_min)}</b> &nbsp;|&nbsp; ` +
+        `Net Extra: <b style="color:#10b981;">${hhmm(d.net_extra_min)}</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
 
       if (!d.days.length){
         document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';
@@ -243,9 +251,9 @@ function showExtraDetail(empCode){
           <td style="padding:6px;">${row.date}</td>
           <td style="text-align:center;padding:6px;">${row.in_time}</td>
           <td style="text-align:center;padding:6px;">${row.out_time}</td>
-          <td style="text-align:center;padding:6px;">${row.working_hours}</td>
-          <td style="text-align:center;padding:6px;font-weight:${row.extra_hours > 0 ? '800' : '400'};color:${row.extra_hours > 0 ? '#10b981' : 'inherit'};">${row.extra_hours}</td>
-          <td style="text-align:center;padding:6px;font-weight:${row.shortfall_hours > 0 ? '800' : '400'};color:${row.shortfall_hours > 0 ? '#ef4444' : 'inherit'};">${row.shortfall_hours > 0 ? '-' + row.shortfall_hours : '-'}</td>
+          <td style="text-align:center;padding:6px;">${hhmm(row.working_min)}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.extra_min > 0 ? '800' : '400'};color:${row.extra_min > 0 ? '#10b981' : 'inherit'};">${hhmm(row.extra_min)}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.shortfall_min > 0 ? '800' : '400'};color:${row.shortfall_min > 0 ? '#ef4444' : 'inherit'};">${row.shortfall_min > 0 ? '-' + hhmm(row.shortfall_min) : '-'}</td>
           <td style="text-align:center;padding:6px;">${row.status}</td>
         </tr>`).join('');
     })

@@ -226,7 +226,7 @@
           {{ row.late_minutes if row and row.late_minutes else '—' }}
         </td>
         <td id="disp_ot_{{ emp.emp_code }}" style="font-size:12px;color:{% if row and row.ot_minutes and row.ot_minutes>0 %}var(--yellow){% else %}var(--muted){% endif %}">
-          {{ row.ot_minutes if row and row.ot_minutes else '—' }}
+          {{ row.ot_minutes|hhmm if row and row.ot_minutes else '—' }}
         </td>
         <td id="disp_st_{{ emp.emp_code }}">
           {% if row %}
@@ -502,6 +502,13 @@
 {% endblock %}
 {% block scripts %}
 <script>
+// Minutes -> HH:MM, mirrors the server-side `hhmm` Jinja filter — used for
+// JS-driven table cell updates after a manual attendance edit.
+function hhmm(mins){
+  mins = Math.max(0, Math.round(mins || 0));
+  const h = Math.floor(mins/60), m = mins % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
 // Auto-fix Miss Punch on page load (today's records where shift still ongoing)
 document.addEventListener("DOMContentLoaded", async ()=>{
   try {
@@ -722,7 +729,7 @@ async function saveEdit(){
       document.getElementById(`disp_wh_${code}`).textContent  = c.working_minutes ? (c.working_minutes/60).toFixed(1)+" hrs" : "—";
       document.getElementById(`disp_late_${code}`).textContent = c.late_minutes || "—";
       document.getElementById(`disp_late_${code}`).style.color = c.late_minutes>0 ? "var(--red)" : "var(--muted)";
-      document.getElementById(`disp_ot_${code}`).textContent  = c.ot_minutes || "—";
+      document.getElementById(`disp_ot_${code}`).textContent  = c.ot_minutes ? hhmm(c.ot_minutes) : "—";
       document.getElementById(`disp_ot_${code}`).style.color  = c.ot_minutes>0 ? "var(--yellow)" : "var(--muted)";
       document.getElementById(`disp_hd_${code}`).textContent  = c.is_half_day ? "" : "—";
       const stColors = {"Present":"badge-active","Absent":"badge-inactive","WO":"","WOP":"","Leave":"","Holiday":"","Miss Punch":""};

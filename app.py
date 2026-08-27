@@ -66,6 +66,18 @@ def otfmt_filter(minutes):
     m = int(float(minutes))
     return f"{m//60:02d}:{m%60:02d}"
 
+@app.template_filter('hhmm')
+def hhmm_filter(minutes):
+    """Minutes to HH:MM — always shows a value (00:00 for zero/blank),
+    unlike hrsmin/otfmt which show '—' for zero. Used where a zero total
+    (e.g. an employee with no extra working hours) still needs to be shown."""
+    try:
+        m = int(float(minutes or 0))
+        if m < 0: m = 0
+        return f"{m//60:02d}:{m%60:02d}"
+    except (TypeError, ValueError):
+        return "00:00"
+
 @app.context_processor
 def inject_company_name():
     """Makes {{ company_name }} available in every template — driven by Branding Settings."""
@@ -2898,11 +2910,16 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
         # - Associates: NO deduction (perfect as-is)
 
         if cat == "Staff":
-            # Late deduction: configurable free days, then 0.5 day per late
-            _late_free = int(ps.get("late_free_days", 2) or 2)
-            if late_marks > _late_free:
-                chargeable_lates = late_marks - _late_free
-                present_days = max(0, present_days - chargeable_lates * 0.5)
+            # Late deduction: DISABLED — late marks are tracked (late_marks, shown
+            # in Late Arrival Report) for visibility/waiver purposes only and no
+            # longer reduce present_days/salary. A late arrival still shows up as
+            # shortfall_minutes (shift hours short of the day's IN/OUT), which is
+            # deducted from the employee's Extra Working balance in the Extra
+            # Working module — that is the only place lateness now costs anything.
+            # _late_free = int(ps.get("late_free_days", 2) or 2)
+            # if late_marks > _late_free:
+            #     chargeable_lates = late_marks - _late_free
+            #     present_days = max(0, present_days - chargeable_lates * 0.5)
 
             # Short time deduction: configurable allowance and rate
             _short_limit_hrs = float(ps.get("short_time_limit_hrs", 5.0) or 5.0)
@@ -7205,15 +7222,15 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
     condition. Days where the employee worked LESS than their shift duration (shortfall_minutes)
     deduct from the month's total extra minutes before payout — extra and short days net out
     over the month, floored at zero (never negative)."""
-    sql = """SELECT a.emp_code, e.emp_name, e.department, e.category, e.scheme_id,
+    sql = """SELECT e.emp_code, e.emp_name, e.department, e.category, e.scheme_id,
         e.basic, e.hra, e.special_allowance,
-        SUM(a.ot_minutes) as total_extra_min,
+        SUM(COALESCE(a.ot_minutes,0)) as total_extra_min,
         SUM(COALESCE(a.shortfall_minutes,0)) as total_shortfall_min,
         COUNT(CASE WHEN a.ot_minutes > 0 THEN 1 END) as extra_days
-        FROM attendance a
-        JOIN employees e ON a.emp_code=e.emp_code
-        WHERE strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-        AND e.status='Active'"""
+        FROM employees e
+        LEFT JOIN attendance a ON a.emp_code=e.emp_code
+            AND strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
+        WHERE e.status='Active'"""
     params = [f"{m:02d}", str(y)]
     if dept:
         sql += " AND e.department=?"; params.append(dept)
@@ -7222,7 +7239,7 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
     if search:
         sql += " AND (e.emp_code LIKE ? OR e.emp_name LIKE ?)"
         params += [f"%{search}%", f"%{search}%"]
-    sql += " GROUP BY a.emp_code ORDER BY e.department, e.emp_name"
+    sql += " GROUP BY e.emp_code ORDER BY e.department, e.emp_name"
 
     rows = conn.execute(sql, params).fetchall()
     settings = _get_extra_working_settings(conn)
@@ -7231,16 +7248,18 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
         r = dict(r)
         net_min = (r["total_extra_min"] or 0) - (r["total_shortfall_min"] or 0)
         net_min = max(0, net_min)  # short days can reduce the total but never go negative
-        if net_min <= 0:
-            continue
+        # Every active employee is shown, including those with zero extra
+        # working hours this month (net_min == 0) — no skipping.
         shift_hours = _emp_shift_hours(r["emp_code"], conn)
         per_hr_rate = _extra_working_per_hour_rate(r, shift_hours, settings)
         extra_hrs   = round(net_min / 60, 2)
         r["shortfall_hours"] = round((r["total_shortfall_min"] or 0) / 60, 2)
-        r["shift_hours"]  = shift_hours
-        r["per_hr_rate"]  = per_hr_rate
-        r["extra_hours"]  = extra_hrs
-        r["extra_amount"] = round(extra_hrs * per_hr_rate, 2)
+        r["shift_hours"]     = shift_hours
+        r["per_hr_rate"]     = per_hr_rate
+        r["extra_hours"]     = extra_hrs
+        r["extra_amount"]    = round(extra_hrs * per_hr_rate, 2)
+        r["extra_minutes"]   = net_min          # for HH:MM display
+        r["shortfall_minutes_total"] = r["total_shortfall_min"] or 0
         data.append(r)
     return data
 
@@ -7265,6 +7284,7 @@ def _load_extra_working_snapshot(conn, m, y, dept="", scheme_id="", search=""):
     for r in rows:
         r = dict(r)
         r["extra_days"] = None  # not tracked in frozen snapshot
+        r["extra_minutes"] = round((r["extra_hours"] or 0) * 60)  # for HH:MM display
         data.append(r)
     return data
 
@@ -7286,9 +7306,10 @@ def extra_working_page():
     else:
         data = _compute_extra_working_live(conn, m, y, dept, scheme, search)
 
-    total_amount = round(sum(r["extra_amount"] for r in data), 2)
-    total_hours  = round(sum(r["extra_hours"] for r in data), 2)
-    emp_count    = len(data)
+    total_amount  = round(sum(r["extra_amount"] for r in data), 2)
+    total_hours   = round(sum(r["extra_hours"] for r in data), 2)
+    total_minutes = sum(r.get("extra_minutes", 0) for r in data)
+    emp_count     = len(data)
 
     depts = [d["department"] for d in conn.execute(
         "SELECT DISTINCT department FROM employees WHERE status='Active' AND department IS NOT NULL ORDER BY department").fetchall()]
@@ -7297,7 +7318,8 @@ def extra_working_page():
     conn.close()
     return render_template("extra_working.html",
         rows=data, settings=settings, month=m, year=y, months=MONTHS,
-        total_amount=total_amount, total_hours=total_hours, emp_count=emp_count,
+        total_amount=total_amount, total_hours=total_hours, total_minutes=total_minutes,
+        emp_count=emp_count,
         departments=depts, schemes=[dict(s) for s in schemes],
         f_dept=dept, f_scheme=scheme, f_search=search,
         lock=lock)
@@ -7364,6 +7386,9 @@ def extra_working_employee_detail(emp_code, m, y):
             "working_hours":   round((r["working_minutes"] or 0) / 60, 2),
             "extra_hours":     round(ot_min / 60, 2),
             "shortfall_hours": round(short_min / 60, 2),
+            "working_min":     r["working_minutes"] or 0,
+            "extra_min":       ot_min,
+            "shortfall_min":   short_min,
             "status":          r["status"],
         })
 
@@ -7380,6 +7405,9 @@ def extra_working_employee_detail(emp_code, m, y):
         "total_shortfall_hours": round(total_shortfall_min / 60, 2),
         "net_extra_hours": round(net_min / 60, 2),
         "total_extra_amount": round((net_min / 60) * per_hr_rate, 2),
+        "total_extra_min": total_extra_min,
+        "total_shortfall_min": total_shortfall_min,
+        "net_extra_min": net_min,
         "days": days
     })
 
@@ -20178,7 +20206,9 @@ def my_attendance():
         if late_min and late_min > 0:
             _running_late_count += 1
             _late_serial = _running_late_count
-            _late_is_deducted = (_running_late_count > _late_free_days)
+            # Late deduction is disabled — lates are shown for visibility only,
+            # never as a salary deduction (see run_payroll()).
+            _late_is_deducted = False
         elif half_day and not (late_min and late_min > 0) and in_time:
             # Check if half_day is because of >12:30 IN (not from short duration)
             try:
