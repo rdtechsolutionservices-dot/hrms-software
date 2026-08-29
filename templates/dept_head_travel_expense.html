@@ -65,6 +65,9 @@
           by {{ c.approved_by }} ({{ c.approved_on }})
           {% if c.approval_remarks %}<div style="color:var(--muted);"> {{ c.approval_remarks }}</div>{% endif %}
         </div>
+        {% if c.status in ('Approved', 'Processed', 'Paid') %}
+        <a href="/travel-expense/export-pdf/{{ c.id }}" target="_blank" class="btn btn-sm" style="margin-top:8px;display:inline-block;background:rgba(0,150,220,.15);color:#0096dc;border:1px solid rgba(0,150,220,.3);text-decoration:none;">Export PDF</a>
+        {% endif %}
         {% endif %}
       </div>
       {% if tab == 'pending' %}

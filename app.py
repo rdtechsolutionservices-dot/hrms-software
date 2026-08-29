@@ -3497,6 +3497,7 @@ def amgr(f):
             ("/dept-head/attendance-requests", ["outside_att_approve", "dept_head_approve"]),
             ("/dept-head/travel-expense", ["travel_expense_approve", "dept_head_approve"]),
             ("/my-attendance/punch",    ["my_attendance_punch", "my_attendance"]),
+            ("/travel-expense/export-pdf", ["travel_expense_process", "travel_expense_approve", "dept_head_approve", "travel_expense"]),
             ("/travel-expense/process", ["travel_expense_process", "payroll_process", "payroll_view"]),
             ("/travel-expense/receipt", ["travel_expense_process", "travel_expense_approve", "payroll_process"]),
             ("/dept-head/",             ["dept_head_approve"]),
@@ -20821,6 +20822,37 @@ def dept_head_travel_expense_action(claim_id):
         return jsonify({"success": False, "error": str(e)})
     finally:
         conn.close()
+
+@app.route("/travel-expense/export-pdf/<int:claim_id>")
+@amgr
+def travel_expense_export_pdf(claim_id):
+    """Printable, professional-format export of one approved (or later-stage)
+    Travel Expense claim, with the company logo from Branding Settings —
+    opens as an HTML print view (browser's own Print → Save as PDF), matching
+    every other document in this app (payslips, letters)."""
+    conn = get_db()
+    claim = conn.execute("""SELECT c.*, e.emp_name, e.designation, e.emp_code as emp_code2
+        FROM travel_expense_claims c JOIN employees e ON c.emp_code=e.emp_code
+        WHERE c.id=?""", (claim_id,)).fetchone()
+    if not claim:
+        conn.close()
+        return "Claim not found", 404
+    claim = dict(claim)
+    if claim["status"] == "Pending":
+        conn.close()
+        return "This claim has not been approved yet — nothing to export.", 400
+
+    # Employee-role users may only export their own claims
+    if session.get("role") == "employee" and session.get("emp_id") != claim["emp_code"]:
+        conn.close()
+        return "Not authorized", 403
+
+    items = conn.execute("""SELECT category, expense_date, description, amount
+        FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (claim_id,)).fetchall()
+    claim["line_items"] = [dict(i) for i in items]
+    conn.close()
+    return render_template("travel_expense_export.html", c=claim, months=MONTHS,
+        generated_on=datetime.now().strftime("%d %b %Y, %I:%M %p"))
 
 @app.route("/travel-expense/process")
 @amgr

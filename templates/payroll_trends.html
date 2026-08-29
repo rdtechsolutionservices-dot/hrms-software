@@ -123,7 +123,9 @@ async function loadChart(){
   // Update title
   document.getElementById('chartTitle').textContent = label;
 
-  // Stats
+  // Stats — always reflect the currently selected metric, even when it has no data,
+  // so a metric with nothing recorded yet (e.g. before any month is locked/processed)
+  // doesn't leave the previous metric's numbers frozen on screen.
   const vals = r.values.filter(v=>v>0);
   if(vals.length){
     const max=Math.max(...vals), min=Math.min(...vals), avg=vals.reduce((a,b)=>a+b,0)/vals.length;
@@ -134,6 +136,9 @@ async function loadChart(){
       <span style="color:#ef4444;">▼ Min: <strong>${fmt(min)}</strong></span>
       <span style="color:var(--muted);">~ Avg: <strong>${fmt(avg)}</strong></span>
     `;
+  } else {
+    document.getElementById('chartStats').innerHTML =
+      '<span style="color:var(--muted);">No data recorded yet for this metric in the selected period.</span>';
   }
 
   // Line chart (main)
@@ -209,7 +214,7 @@ async function loadChart(){
   if(_barChart){ _barChart.destroy(); _barChart=null; }
 
   // Color bars by value (red = low, green = high)
-  const maxV=Math.max(...r.values)||1;
+  const maxV = r.values.length ? (Math.max(...r.values)||1) : 1;
   const barColors = r.values.map(v=>{
     const pct=v/maxV;
     if(pct>=0.8) return '#10b981';

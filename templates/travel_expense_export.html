@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Travel Expense Claim — {{ c.emp_name }} ({{ c.emp_code }})</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:#f0f0f0; font-size:13px; color:#222; }
+
+  @page { size: A4; margin: 14mm 16mm; }
+  @media print {
+    body{background:#fff;}
+    .no-print{display:none!important;}
+    .sheet{box-shadow:none!important;margin:0!important;width:auto!important;min-height:0!important;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
+  }
+
+  .sheet{ width:210mm; min-height:297mm; margin:20px auto; background:#fff; box-shadow:0 4px 30px rgba(0,0,0,.15); border-radius:4px; padding:14mm 16mm; }
+
+  .doc-header{ display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #0052cc; padding-bottom:14px; margin-bottom:18px; }
+  .doc-header-left{ display:flex; align-items:center; gap:14px; }
+  .doc-header-left img{ max-height:56px; max-width:150px; object-fit:contain; }
+  .doc-company-name{ font-size:18px; font-weight:800; color:#0f172a; }
+  .doc-company-sub{ font-size:10.5px; color:#64748b; margin-top:2px; }
+  .doc-title-block{ text-align:right; }
+  .doc-title{ font-size:15px; font-weight:800; color:#0052cc; text-transform:uppercase; letter-spacing:1px; }
+  .doc-ref{ font-size:10.5px; color:#64748b; margin-top:3px; }
+
+  .status-badge{ display:inline-block; padding:3px 12px; border-radius:20px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
+  .status-approved{ background:rgba(16,185,129,.15); color:#059669; }
+  .status-processed{ background:rgba(0,150,220,.15); color:#0072b8; }
+  .status-paid{ background:rgba(124,58,237,.15); color:#6d28d9; }
+
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; margin-bottom:20px; padding:14px 16px; background:#f8fafc; border-radius:8px; border:1px solid #e5e9f0; }
+  .info-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; }
+  .info-label{ color:#64748b; }
+  .info-value{ font-weight:700; color:#0f172a; text-align:right; }
+
+  .section-title{ font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#0052cc; margin:20px 0 8px; }
+
+  table.items-table{ width:100%; border-collapse:collapse; margin-bottom:6px; }
+  table.items-table th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:#64748b; padding:8px 10px; border-bottom:2px solid #e5e9f0; }
+  table.items-table td{ font-size:12.5px; padding:8px 10px; border-bottom:1px solid #eef1f5; }
+  table.items-table td.num{ text-align:right; font-weight:700; }
+  table.items-table th.num{ text-align:right; }
+
+  .total-row{ display:flex; justify-content:flex-end; gap:20px; padding:12px 10px 4px; align-items:center; }
+  .total-label{ font-size:13px; color:#64748b; font-weight:600; }
+  .total-value{ font-size:19px; font-weight:800; color:#0052cc; }
+
+  .approval-box{ margin-top:22px; padding:14px 16px; background:#f8fafc; border-radius:8px; border:1px solid #e5e9f0; }
+  .approval-row{ font-size:12px; color:#334155; margin-bottom:4px; }
+  .approval-row b{ color:#0f172a; }
+  .remarks{ font-size:11.5px; color:#64748b; font-style:italic; margin-top:6px; }
+
+  .doc-footer{ margin-top:36px; padding-top:12px; border-top:1px solid #e5e9f0; display:flex; justify-content:space-between; font-size:9.5px; color:#94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="background:#1a1a2e;padding:10px 24px;display:flex;gap:12px;align-items:center;">
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#0052cc;color:white;" onclick="window.print()">Print / Save as PDF</button>
+  <span style="color:rgba(255,255,255,.6);font-size:12px;">Use your browser's print dialog and choose "Save as PDF" as the destination.</span>
+</div>
+
+<div class="sheet">
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <img src="/admin/logo" alt="{{ company_name }}">
+      <div>
+        <div class="doc-company-name">{{ company_name }}</div>
+        <div class="doc-company-sub">Travel Expense Reimbursement Voucher</div>
+      </div>
+    </div>
+    <div class="doc-title-block">
+      <div class="doc-title">Expense Claim</div>
+      <div class="doc-ref">Claim #{{ '%04d'|format(c.id) }}</div>
+      <div>
+        {% if c.status == 'Approved' %}<span class="status-badge status-approved">Approved</span>
+        {% elif c.status == 'Processed' %}<span class="status-badge status-processed">Processed</span>
+        {% elif c.status == 'Paid' %}<span class="status-badge status-paid">Paid</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-row"><span class="info-label">Employee Name</span><span class="info-value">{{ c.emp_name }}</span></div>
+    <div class="info-row"><span class="info-label">Employee Code</span><span class="info-value">{{ c.emp_code }}</span></div>
+    <div class="info-row"><span class="info-label">Department</span><span class="info-value">{{ c.department or '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Designation</span><span class="info-value">{{ c.designation or '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Purpose</span><span class="info-value">{{ c.purpose or '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Travel</span><span class="info-value">{{ c.travel_from or '—' }} → {{ c.travel_to or '—' }}</span></div>
+    <div class="info-row"><span class="info-label">Travel Dates</span><span class="info-value">{{ c.from_date or '—' }}{% if c.to_date and c.to_date != c.from_date %} to {{ c.to_date }}{% endif %}</span></div>
+    <div class="info-row"><span class="info-label">Submitted On</span><span class="info-value">{{ c.submitted_on[:16] if c.submitted_on else '—' }}</span></div>
+  </div>
+
+  <div class="section-title">Expense Breakup</div>
+  <table class="items-table">
+    <thead><tr>
+      <th>Category</th>
+      <th>Date</th>
+      <th>Description</th>
+      <th class="num">Amount</th>
+    </tr></thead>
+    <tbody>
+      {% for it in c.line_items %}
+      <tr>
+        <td>{{ it.category }}</td>
+        <td>{{ it.expense_date or '—' }}</td>
+        <td>{{ it.description or '—' }}</td>
+        <td class="num">₹{{ '%.2f'|format(it.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="total-row">
+    <span class="total-label">Total Claimed</span>
+    <span class="total-value">₹{{ '%.2f'|format(c.total_amount or 0) }}</span>
+  </div>
+
+  <div class="section-title">Approval Details</div>
+  <div class="approval-box">
+    <div class="approval-row">Approved by: <b>{{ c.approved_by or '—' }}</b> on <b>{{ c.approved_on or '—' }}</b></div>
+    {% if c.approval_remarks %}<div class="remarks"> {{ c.approval_remarks }}</div>{% endif %}
+    {% if c.status in ('Processed', 'Paid') %}
+    <div class="approval-row" style="margin-top:8px;">Payout processed by: <b>{{ c.processed_by or '—' }}</b> on <b>{{ c.processed_on or '—' }}</b>
+      {% if c.payout_month and c.payout_year %} — payout month: <b>{{ months[c.payout_month-1] if months else c.payout_month }} {{ c.payout_year }}</b>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="doc-footer">
+    <span>This is a system-generated document from {{ company_name }}.</span>
+    <span>Generated on {{ generated_on }}</span>
+  </div>
+</div>
+
+</body>
+</html>

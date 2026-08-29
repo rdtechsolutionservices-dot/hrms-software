@@ -63,6 +63,7 @@
           {% else %}
           <span style="color:var(--muted);">Paid on {{ c.processed_on[:16] if c.processed_on else '—' }}</span>
           {% endif %}
+          <a href="/travel-expense/export-pdf/{{ c.id }}" target="_blank" class="btn btn-sm" style="margin-left:6px;background:rgba(100,116,139,.15);color:#64748b;border:1px solid rgba(100,116,139,.3);text-decoration:none;">Export PDF</a>
         </td>
       </tr>
       {% endfor %}
