@@ -47,7 +47,7 @@
         </div>
         <div style="font-size:13px;margin-top:6px;font-weight:800;color:#0096dc;">Total: ₹{{ '%.2f'|format(c.total_amount or 0) }}</div>
         <div style="margin-top:6px;font-size:11px;color:var(--muted);">
-          {% for it in c.items %}
+          {% for it in c.line_items %}
           <div style="padding:2px 0;">
             {{ it.category }} — ₹{{ '%.2f'|format(it.amount) }}{% if it.expense_date %} ({{ it.expense_date }}){% endif %}{% if it.description %} — {{ it.description }}{% endif %}
             {% if it.has_receipt %} <a href="/travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}

@@ -20602,7 +20602,7 @@ def my_travel_expense():
         items = conn.execute("""SELECT id, category, expense_date, description, amount,
             CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
             FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
-        c["items"] = [dict(i) for i in items]
+        c["line_items"] = [dict(i) for i in items]
     conn.close()
     return render_template("my_travel_expense.html", claims=claims,
         categories=TRAVEL_EXPENSE_CATEGORIES, today=date.today().strftime("%Y-%m-%d"))
@@ -20779,7 +20779,7 @@ def dept_head_travel_expense():
         items = conn.execute("""SELECT id, category, expense_date, description, amount,
             CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
             FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
-        c["items"] = [dict(i) for i in items]
+        c["line_items"] = [dict(i) for i in items]
     conn.close()
     return render_template("dept_head_travel_expense.html",
         pending=pending, history=history, my_depts=my_depts, tab=tab)
@@ -20837,7 +20837,7 @@ def travel_expense_process():
         items = conn.execute("""SELECT id, category, expense_date, description, amount,
             CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
             FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
-        c["items"] = [dict(i) for i in items]
+        c["line_items"] = [dict(i) for i in items]
     conn.close()
     return render_template("travel_expense_process.html", rows=rows, status_filter=status_filter,
         months=MONTHS, current_month=date.today().month, current_year=date.today().year)

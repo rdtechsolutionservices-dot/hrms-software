@@ -29,7 +29,7 @@
         <td style="padding:8px 12px;">
           <div style="font-weight:600;">{{ c.purpose or 'Travel Expense Claim' }}</div>
           <div style="font-size:10px;color:var(--muted);">
-            {% for it in c.items %}{{ it.category }}: ₹{{ '%.2f'|format(it.amount) }}{% if it.has_receipt %} <a href="/my-travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+            {% for it in c.line_items %}{{ it.category }}: ₹{{ '%.2f'|format(it.amount) }}{% if it.has_receipt %} <a href="/my-travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
           </div>
         </td>
         <td style="padding:8px;">{{ c.travel_from or '—' }} → {{ c.travel_to or '—' }}</td>
