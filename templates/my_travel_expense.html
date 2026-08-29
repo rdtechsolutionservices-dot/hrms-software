@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}My Travel Expense{% endblock %}
+{% block page_title %} My Travel Expense{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+  <div style="font-size:12px;color:var(--muted);max-width:560px;">
+    Submit fuel, hotel, food, or other trip costs from company travel here. Your claim goes to your department
+    head for approval, then to Payroll for payout processing.
+  </div>
+  <button class="btn btn-primary" onclick="openModal('teApplyModal')">+ New Claim</button>
+</div>
+
+{% if claims %}
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Purpose</th>
+      <th style="text-align:left;padding:8px;">Travel</th>
+      <th style="text-align:left;padding:8px;">Dates</th>
+      <th style="text-align:right;padding:8px;">Amount</th>
+      <th style="text-align:center;padding:8px;">Status</th>
+      <th style="text-align:left;padding:8px 12px;">Remarks</th>
+      <th style="text-align:center;padding:8px 12px;"></th>
+    </tr></thead>
+    <tbody>
+      {% for c in claims %}
+      <tr style="border-bottom:1px solid var(--border);" id="claim_{{ c.id }}">
+        <td style="padding:8px 12px;">
+          <div style="font-weight:600;">{{ c.purpose or 'Travel Expense Claim' }}</div>
+          <div style="font-size:10px;color:var(--muted);">
+            {% for it in c.items %}{{ it.category }}: ₹{{ '%.2f'|format(it.amount) }}{% if it.has_receipt %} <a href="/my-travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+          </div>
+        </td>
+        <td style="padding:8px;">{{ c.travel_from or '—' }} → {{ c.travel_to or '—' }}</td>
+        <td style="padding:8px;">{{ c.from_date or '—' }}{% if c.to_date and c.to_date != c.from_date %} to {{ c.to_date }}{% endif %}</td>
+        <td style="text-align:right;padding:8px;font-weight:800;">₹{{ '%.2f'|format(c.total_amount or 0) }}</td>
+        <td style="text-align:center;padding:8px;">
+          {% if c.status == 'Pending' %}<span style="color:#f59e0b;">Pending</span>
+          {% elif c.status == 'Approved' %}<span style="color:#10b981;">Approved</span>
+          {% elif c.status == 'Rejected' %}<span style="color:#ef4444;">Rejected</span>
+          {% elif c.status == 'Processed' %}<span style="color:#0096dc;">Processed</span>
+          {% elif c.status == 'Paid' %}<span style="color:#7c3aed;">Paid</span>
+          {% endif %}
+        </td>
+        <td style="padding:8px 12px;font-size:11px;color:var(--muted);">{{ c.approval_remarks or '—' }}</td>
+        <td style="text-align:center;padding:8px 12px;">
+          {% if c.status == 'Pending' %}
+          <button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
+            onclick="teCancel({{ c.id }})">Withdraw</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:50px;color:var(--muted);">No travel expense claims submitted yet.</div>
+{% endif %}
+
+<!-- Apply Modal -->
+<div class="modal-overlay" id="teApplyModal">
+  <div class="modal" style="width:640px;max-width:94vw;max-height:88vh;overflow:auto;">
+    <div class="modal-header">
+      <span class="modal-title">New Travel Expense Claim</span>
+      <button class="modal-close" onclick="closeModal('teApplyModal')"></button>
+    </div>
+    <form id="teApplyForm" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Purpose</label>
+          <input class="form-control" type="text" name="purpose" placeholder="e.g. Client visit to Pune" required>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <div class="form-group" style="flex:1;margin:0;">
+            <label class="form-label">Travel From</label>
+            <input class="form-control" type="text" name="travel_from" placeholder="City / Location">
+          </div>
+          <div class="form-group" style="flex:1;margin:0;">
+            <label class="form-label">Travel To</label>
+            <input class="form-control" type="text" name="travel_to" placeholder="City / Location">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <div class="form-group" style="flex:1;margin:0;">
+            <label class="form-label">From Date</label>
+            <input class="form-control" type="date" name="from_date" value="{{ today }}">
+          </div>
+          <div class="form-group" style="flex:1;margin:0;">
+            <label class="form-label">To Date</label>
+            <input class="form-control" type="date" name="to_date" value="{{ today }}">
+          </div>
+        </div>
+
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Expense Items</div>
+        <div id="teItemsBody"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="teAddItem()" style="margin-top:6px;">+ Add Item</button>
+
+        <div style="text-align:right;margin-top:14px;font-weight:800;font-size:14px;">
+          Total: ₹<span id="teTotal">0.00</span>
+        </div>
+        <div id="teApplyError" style="color:#ef4444;font-size:12px;margin-top:8px;display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('teApplyModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Claim</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const TE_CATEGORIES = {{ categories|tojson }};
+let teItemIdx = 0;
+
+function teItemRow(){
+  const opts = TE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+  const idx = teItemIdx++;
+  const row = document.createElement('div');
+  row.className = 'te-item-row';
+  row.dataset.idx = idx;
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;';
+  row.innerHTML = `
+    <select class="form-control" name="item_category[]" style="width:150px;">${opts}</select>
+    <input class="form-control" type="date" name="item_date[]" style="width:140px;" value="{{ today }}">
+    <input class="form-control" type="text" name="item_description[]" placeholder="Description" style="flex:1;min-width:120px;">
+    <input class="form-control te-amount" type="number" step="0.01" min="0" name="item_amount[]" placeholder="Amount" style="width:100px;" oninput="teUpdateTotal()">
+    <input type="file" name="item_receipt[]" accept="image/*,.pdf" style="width:130px;font-size:11px;">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.te-item-row').remove(); teUpdateTotal();" style="color:#ef4444;">✕</button>
+  `;
+  return row;
+}
+function teAddItem(){
+  document.getElementById('teItemsBody').appendChild(teItemRow());
+}
+function teUpdateTotal(){
+  let total = 0;
+  document.querySelectorAll('.te-amount').forEach(inp => { total += parseFloat(inp.value || 0); });
+  document.getElementById('teTotal').textContent = total.toFixed(2);
+}
+// Start with one row
+document.addEventListener('DOMContentLoaded', teAddItem);
+
+document.getElementById('teApplyForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const errEl = document.getElementById('teApplyError');
+  errEl.style.display = 'none';
+  const fd = new FormData(this);
+  fetch('/my-travel-expense/apply', {method:'POST', body: fd})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success){
+        location.reload();
+      } else {
+        errEl.textContent = d.error || 'Failed to submit claim';
+        errEl.style.display = 'block';
+      }
+    })
+    .catch(() => { errEl.textContent = 'Failed to submit claim'; errEl.style.display = 'block'; });
+});
+
+function teCancel(id){
+  if (!confirm('Withdraw this claim?')) return;
+  fetch(`/my-travel-expense/cancel/${id}`, {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success){ const el = document.getElementById(`claim_${id}`); if (el) el.remove(); }
+      else alert(d.error || 'Failed to withdraw');
+    })
+    .catch(() => alert('Failed to withdraw'));
+}
+</script>
+{% endblock %}

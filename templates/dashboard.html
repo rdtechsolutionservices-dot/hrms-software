@@ -120,13 +120,13 @@
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click to see list →</div>
   </div>
 
-  <!-- Box 4: OT This Month -->
+  <!-- Box 4: Extra Working Hrs This Month -->
   <div class="kpi-box" onclick="showDrilldown('ot')" style="cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;">
     <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 1.5"></path><path d="M9 2h6"></path><path d="M12 2v3"></path></svg>
     </div>
-    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">OT This Month ({{ month_name }})</div>
-    <div style="font-size:26px;font-weight:800;line-height:1;">{{ (ot_staff_hrs + ot_assoc_hrs)|round(1) }} hrs</div>
+    <div style="font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Extra Working Hrs ({{ month_name }})</div>
+    <div style="font-size:26px;font-weight:800;line-height:1;">{{ extra_working_total_min|hhmm }}</div>
     <div style="margin-top:8px;font-size:10px;opacity:.7;">Click for dept-wise detail →</div>
   </div>
   <!-- Box 5: Week Off & Absent -->
@@ -406,17 +406,101 @@
   </div>
 </div>
 
+<!-- Employee Extra Working Detail Modal (reuses the Extra Working module's data) -->
+<div class="modal-overlay" id="empExtraModal">
+  <div class="modal" style="width:640px;max-width:92vw;max-height:85vh;overflow:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="empExtraTitle">Attendance Detail</span>
+      <button class="modal-close" onclick="closeModal('empExtraModal')"></button>
+    </div>
+    <div class="modal-body">
+      <div id="empExtraSummary" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:6px;">Date</th>
+          <th style="text-align:center;padding:6px;">In</th>
+          <th style="text-align:center;padding:6px;">Out</th>
+          <th style="text-align:center;padding:6px;">Worked Hrs</th>
+          <th style="text-align:center;padding:6px;">Extra Hrs</th>
+          <th style="text-align:center;padding:6px;">Short Hrs</th>
+          <th style="text-align:center;padding:6px;">Status</th>
+        </tr></thead>
+        <tbody id="empExtraBody">
+          <tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('empExtraModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
+// Minutes -> HH:MM, always shows a value (00:00 for zero) — mirrors the
+// server-side `hhmm` Jinja filter, used for JS-rendered dashboard rows.
+function hhmm(mins){
+  mins = Math.max(0, Math.round(mins || 0));
+  const h = Math.floor(mins/60), m = mins % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+const DASH_MONTH = {{ current_month }};
+const DASH_YEAR  = {{ current_year }};
+
+// Opens the current month's attendance + Extra Working detail for one
+// employee — reuses the Extra Working module's own endpoint so the
+// figures are always exactly what that module would show.
+function showEmpExtraDetail(empCode){
+  document.getElementById('empExtraTitle').textContent = 'Loading...';
+  document.getElementById('empExtraSummary').textContent = '';
+  document.getElementById('empExtraBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">Loading...</td></tr>';
+  openModal('empExtraModal');
+
+  fetch(`/extra-working/employee-detail/${empCode}/${DASH_MONTH}/${DASH_YEAR}`)
+    .then(r => r.json())
+    .then(d => {
+      if (!d.success){
+        document.getElementById('empExtraBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:#ef4444;">${d.error || 'Error loading data'}</td></tr>`;
+        return;
+      }
+      document.getElementById('empExtraTitle').textContent = `${d.emp_name} (${d.emp_code})`;
+      document.getElementById('empExtraSummary').innerHTML =
+        `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; ` +
+        `Gross Extra: <b>${hhmm(d.total_extra_min)}</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${hhmm(d.total_shortfall_min)}</b> &nbsp;|&nbsp; ` +
+        `Net Extra: <b style="color:#10b981;">${hhmm(d.net_extra_min)}</b>`;
+
+      if (!d.days.length){
+        document.getElementById('empExtraBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';
+        return;
+      }
+      document.getElementById('empExtraBody').innerHTML = d.days.map(row => `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px;">${row.date}</td>
+          <td style="text-align:center;padding:6px;">${row.in_time}</td>
+          <td style="text-align:center;padding:6px;">${row.out_time}</td>
+          <td style="text-align:center;padding:6px;">${hhmm(row.working_min)}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.extra_min > 0 ? '800' : '400'};color:${row.extra_min > 0 ? '#10b981' : 'inherit'};">${hhmm(row.extra_min)}</td>
+          <td style="text-align:center;padding:6px;font-weight:${row.shortfall_min > 0 ? '800' : '400'};color:${row.shortfall_min > 0 ? '#ef4444' : 'inherit'};">${row.shortfall_min > 0 ? '-' + hhmm(row.shortfall_min) : '-'}</td>
+          <td style="text-align:center;padding:6px;">${row.status}</td>
+        </tr>`).join('');
+    })
+    .catch(() => {
+      document.getElementById('empExtraBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:#ef4444;">Error loading data</td></tr>';
+    });
+}
+
 // ══════════════════════════════════════════════════════════
 // DRILLDOWN for KPI cards (Dept-wise detail)
 // ══════════════════════════════════════════════════════════
 const _dept_active  = {{ dept_active|tojson }};
 const _dept_present = {{ dept_present|tojson }};
 const _dept_ot      = {{ dept_ot|tojson }};
+
 
 function toggleWOPPanel(){
   const p=document.getElementById("wopPanel");
@@ -452,7 +536,7 @@ function showDrilldown(box){
     active: ' Active Employees — Department Wise',
     present:' Present Today — Department Wise',
     absent: ' Absent Today — Department Wise',
-    ot:     ' OT Hours This Month — Department Wise'
+    ot:     ' Extra Working Hrs This Month — Department Wise'
   };
   const titleEl = document.querySelector('#drillPanel .table-title');
   if(titleEl) titleEl.textContent = titles[box]||box;
@@ -523,13 +607,13 @@ function showDrilldown(box){
       const totalOTMin = (d.staff_ot||0)+(d.assoc_ot||0);
       return '<tr style="border-bottom:1px solid var(--border);">' +
         '<td style="padding:7px 12px;font-weight:600;"><span style="color:#f59e0b;cursor:pointer;" data-dept="'+( d.department||'')+'" data-box="ot" onclick="handleDeptClick(this)">'+( d.department||'-')+'</span></td>' +
-        '<td style="padding:7px;text-align:center;font-weight:800;">'+(totalOTMin/60).toFixed(1)+' hrs</td>' +
+        '<td style="padding:7px;text-align:center;font-weight:800;">'+hhmm(totalOTMin)+'</td>' +
         '</tr>';
     }).join('');
     body.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
       '<thead><tr style="border-bottom:2px solid var(--border);">' +
       '<th style="text-align:left;padding:7px 12px;">Department</th>' +
-      '<th style="padding:7px;text-align:center;">Total OT</th>' +
+      '<th style="padding:7px;text-align:center;">Extra Working Hrs</th>' +
       '</tr></thead><tbody>'+rows+'</tbody></table>';
   }
 
@@ -750,14 +834,14 @@ function handleDeptClick(el) {
         html += '</table>';
       } else if(box==='ot'){
         html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-        html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Cat</td><td style="padding:3px;text-align:right;color:#f59e0b;">OT hrs</td></tr>';
+        html += '<tr style="color:var(--muted);font-size:10px;"><td style="padding:3px 8px;">Code</td><td style="padding:3px;">Name</td><td style="padding:3px;">Designation</td><td style="padding:3px;text-align:center;">Cat</td><td style="padding:3px;text-align:right;color:#f59e0b;">Extra Hrs</td></tr>';
         emps.forEach(e => {
           html += '<tr style="border-top:1px solid rgba(255,255,255,.05);">' +
             '<td style="padding:3px 8px;color:#0096dc;font-weight:700;">'+e.emp_code+'</td>' +
-            '<td style="padding:3px;font-weight:600;">'+e.emp_name+'</td>' +
+            '<td style="padding:3px;font-weight:600;color:#0096dc;cursor:pointer;text-decoration:underline;" onclick="showEmpExtraDetail(\''+e.emp_code+'\')">'+e.emp_name+'</td>' +
             '<td style="padding:3px;color:var(--muted);">'+(e.designation||'—')+'</td>' +
             '<td style="padding:3px;text-align:center;"><span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,.15);color:#f59e0b;">'+e.category+'</span></td>' +
-            '<td style="padding:3px;text-align:right;color:#f59e0b;font-weight:700;">'+(e.total_ot?(e.total_ot/60).toFixed(1):'—')+'</td>' +
+            '<td style="padding:3px;text-align:right;color:#f59e0b;font-weight:700;">'+hhmm(e.total_ot)+'</td>' +
             '</tr>';
         });
         html += '</table>';
@@ -789,14 +873,14 @@ async function showDeptEmps(dept, box) {
   const r = await fetch('/dashboard/dept-emps?dept=' + encodeURIComponent(dept) + '&box=' + bx);
   const j = await r.json();
   if(!j.success) return;
-  const labels = {active:'Active Employees',present:'Present Today',absent:'Absent Today',ot:'OT This Month'};
+  const labels = {active:'Active Employees',present:'Present Today',absent:'Absent Today',ot:'Extra Working Hrs This Month'};
   let hdr, rows;
   if(bx === 'present'){
     hdr = '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:7px 10px;">Code</th><th style="text-align:left;padding:7px;">Name</th><th style="padding:7px;">Designation</th><th style="padding:7px;text-align:center;">Category</th><th style="padding:7px;text-align:center;color:#10b981;">In</th><th style="padding:7px;text-align:center;">Out</th></tr>';
     rows = j.employees.map(e => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td><td style="padding:6px;font-weight:600;">'+e.emp_name+'</td><td style="padding:6px;font-size:11px;color:var(--muted);">'+(e.designation||'—')+'</td><td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,.15);color:#10b981;">'+(e.category||'—')+'</span></td><td style="padding:6px;text-align:center;color:#10b981;font-weight:700;">'+(e.in_time||'—')+'</td><td style="padding:6px;text-align:center;color:var(--muted);">'+(e.out_time||'—')+'</td></tr>').join('');
   } else if(bx === 'ot'){
-    hdr = '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:7px 10px;">Code</th><th style="text-align:left;padding:7px;">Name</th><th style="padding:7px;">Designation</th><th style="padding:7px;text-align:center;">Category</th><th style="padding:7px;text-align:right;color:#f59e0b;">OT (hrs)</th></tr>';
-    rows = j.employees.map(e => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td><td style="padding:6px;font-weight:600;">'+e.emp_name+'</td><td style="padding:6px;font-size:11px;color:var(--muted);">'+(e.designation||'—')+'</td><td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;">'+(e.category||'—')+'</span></td><td style="padding:6px;text-align:right;font-weight:700;color:#f59e0b;">'+(e.total_ot?(e.total_ot/60).toFixed(1)+' hrs':'—')+'</td></tr>').join('');
+    hdr = '<tr style="border-bottom:2px solid var(--border);"><th style="text-align:left;padding:7px 10px;">Code</th><th style="text-align:left;padding:7px;">Name</th><th style="padding:7px;">Designation</th><th style="padding:7px;text-align:center;">Category</th><th style="padding:7px;text-align:right;color:#f59e0b;">Extra Hrs</th></tr>';
+    rows = j.employees.map(e => '<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px 10px;font-weight:700;color:#0096dc;">'+e.emp_code+'</td><td style="padding:6px;font-weight:600;">'+e.emp_name+'</td><td style="padding:6px;font-size:11px;color:var(--muted);">'+(e.designation||'—')+'</td><td style="padding:6px;text-align:center;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;">'+(e.category||'—')+'</span></td><td style="padding:6px;text-align:right;font-weight:700;color:#f59e0b;">'+hhmm(e.total_ot)+'</td></tr>').join('');
   } else {
     // Absent / Active — Phone as separate column between Designation and Category
     hdr = '<tr style="border-bottom:2px solid var(--border);">'

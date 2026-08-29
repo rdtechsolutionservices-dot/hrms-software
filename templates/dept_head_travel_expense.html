@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Travel Expense Approvals{% endblock %}
+{% block page_title %} Travel Expense — Approval{% endblock %}
+{% block content %}
+
+{% if my_depts %}
+<div class="mini-card" style="margin-bottom:14px;font-size:12px;">
+  <span style="color:var(--muted);">Your Departments: </span>
+  {% for d in my_depts %}
+  <span style="background:rgba(0,82,204,.15);color:#0096dc;padding:2px 10px;border-radius:20px;font-weight:700;margin-right:4px;">{{ d }}</span>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-danger">No departments assigned to you as Department Head. Contact Admin.</div>
+{% endif %}
+
+<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+  Employees submit travel expense claims (fuel, hotel, food, and other trip costs) here for your approval.
+  Once approved, Payroll/Finance processes the claim for payout.
+</div>
+
+<!-- Tabs -->
+<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
+  <a href="?tab=pending" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
+    {% if tab=='pending' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
+     Pending ({{ pending|length }})
+  </a>
+  <a href="?tab=history" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
+    {% if tab=='history' %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
+     History
+  </a>
+</div>
+
+{% set rows = pending if tab == 'pending' else history %}
+{% if rows %}
+  {% for c in rows %}
+  <div style="background:var(--card);border:1px solid {% if tab=='pending' %}rgba(245,158,11,.3){% else %}var(--border){% endif %};border-radius:12px;padding:14px 18px;margin-bottom:10px;" id="claim_{{ c.id }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-weight:800;font-size:14px;">{{ c.emp_name }}
+          <span style="color:var(--muted);font-weight:400;font-size:11px;">({{ c.emp_code }} · {{ c.department }} · {{ c.designation or '' }})</span>
+        </div>
+        <div style="font-size:12px;margin-top:5px;">
+          {{ c.purpose or 'Travel Expense Claim' }}
+          {% if c.travel_from or c.travel_to %}&nbsp;·&nbsp; {{ c.travel_from or '—' }} → {{ c.travel_to or '—' }}{% endif %}
+          {% if c.from_date %}&nbsp;·&nbsp; {{ c.from_date }}{% if c.to_date and c.to_date != c.from_date %} to {{ c.to_date }}{% endif %}{% endif %}
+        </div>
+        <div style="font-size:13px;margin-top:6px;font-weight:800;color:#0096dc;">Total: ₹{{ '%.2f'|format(c.total_amount or 0) }}</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--muted);">
+          {% for it in c.items %}
+          <div style="padding:2px 0;">
+            {{ it.category }} — ₹{{ '%.2f'|format(it.amount) }}{% if it.expense_date %} ({{ it.expense_date }}){% endif %}{% if it.description %} — {{ it.description }}{% endif %}
+            {% if it.has_receipt %} <a href="/travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">Submitted: {{ c.submitted_on[:16] if c.submitted_on else '—' }}</div>
+        {% if tab == 'history' %}
+        <div style="font-size:11px;margin-top:4px;">
+          {% if c.status == 'Approved' %}<span style="color:#10b981;">Approved</span>
+          {% elif c.status == 'Rejected' %}<span style="color:#ef4444;">Rejected</span>
+          {% elif c.status == 'Processed' %}<span style="color:#0096dc;">Processed</span>
+          {% elif c.status == 'Paid' %}<span style="color:#7c3aed;">Paid</span>
+          {% endif %}
+          by {{ c.approved_by }} ({{ c.approved_on }})
+          {% if c.approval_remarks %}<div style="color:var(--muted);"> {{ c.approval_remarks }}</div>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% if tab == 'pending' %}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3);"
+          onclick="teAction({{ c.id }},'approve')">Approve</button>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
+          onclick="teAction({{ c.id }},'reject')">Reject</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div style="text-align:center;padding:50px;color:var(--muted);">
+    <div style="font-weight:700;">No {{ 'pending' if tab=='pending' else '' }} travel expense claims{% if tab=='pending' %} — all caught up!{% endif %}</div>
+  </div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function teAction(id, action){
+  const label = action === 'approve' ? 'approve' : 'reject';
+  let remarks = '';
+  if (action === 'reject'){
+    remarks = prompt('Reason for rejection (optional):') || '';
+  }
+  if (!confirm(`Are you sure you want to ${label} this claim?`)) return;
+  fetch(`/dept-head/travel-expense/action/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action: action, remarks: remarks})
+  })
+  .then(r =>r.json())
+  .then(d => {
+    if (d.success){
+      const el = document.getElementById(`claim_${id}`);
+      if (el) el.remove();
+    } else {
+      alert(d.error || 'Action failed');
+    }
+  })
+  .catch(() =>alert('Action failed'));
+}
+</script>
+{% endblock %}

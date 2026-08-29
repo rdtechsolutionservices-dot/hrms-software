@@ -14,10 +14,9 @@
         <option value="pf">PF Deduction</option>
         <option value="esi">ESI Deduction</option>
         <option value="present_days">Present Days</option>
-        <option value="ot_hours">OT Hours</option>
-        <option value="ot_amount">OT Amount</option>
         <option value="extra_working_hours">Extra Working Hours</option>
         <option value="extra_working_amount">Extra Working Amount</option>
+        <option value="expense">Travel Expense (Payout)</option>
       </select>
     </div>
     <div class="form-group" style="margin:0;">
@@ -98,13 +97,14 @@ const METRIC_LABELS = {
   pf:' PF Deduction',
   esi:' ESI Deduction',
   present_days:' Avg Present Days', ot_hours:' Total OT Hours', ot_amount:' Total OT Amount',
-  extra_working_hours:' Extra Working Hours', extra_working_amount:' Extra Working Amount'
+  extra_working_hours:' Extra Working Hours', extra_working_amount:' Extra Working Amount',
+  expense:' Travel Expense (Payout)'
 };
 
 const METRIC_COLORS = {
   net_salary:'#0096dc', gross:'#7c3aed', ot_hours:'#f59e0b', ot_amount:'#10b981',
   pf:'#f59e0b', esi:'#10b981', present_days:'#ec4899',
-  extra_working_hours:'#f59e0b', extra_working_amount:'#7c3aed'
+  extra_working_hours:'#f59e0b', extra_working_amount:'#7c3aed', expense:'#ef4444'
 };
 
 async function loadChart(){

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Travel Expense — Process Payout{% endblock %}
+{% block page_title %} Travel Expense — Process Payout{% endblock %}
+{% block content %}
+
+<div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+  Claims land here once their department head approves them. Mark a claim <b>Processed</b> once you've assigned it
+  to a payout month, then <b>Paid</b> once the payout has actually gone out. Processed/Paid amounts feed the
+  Payroll Insights "Travel Expense" metric.
+</div>
+
+<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0;">
+  {% for s in ['Approved','Processed','Paid'] %}
+  <a href="?status={{ s }}" style="padding:8px 18px;font-weight:700;font-size:13px;border-radius:8px 8px 0 0;text-decoration:none;
+    {% if status_filter==s %}background:var(--primary);color:#fff;{% else %}color:var(--muted);{% endif %}">
+    {{ s }}{% if status_filter==s %} ({{ rows|length }}){% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{% if rows %}
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Employee</th>
+      <th style="text-align:left;padding:8px;">Department</th>
+      <th style="text-align:left;padding:8px;">Purpose / Items</th>
+      <th style="text-align:right;padding:8px;">Amount</th>
+      <th style="text-align:center;padding:8px;">Approved On</th>
+      {% if status_filter == 'Approved' %}<th style="text-align:center;padding:8px;">Payout Month</th>{% endif %}
+      <th style="text-align:center;padding:8px 12px;">Action</th>
+    </tr></thead>
+    <tbody>
+      {% for c in rows %}
+      <tr style="border-bottom:1px solid var(--border);" id="claim_{{ c.id }}">
+        <td style="padding:8px 12px;">{{ c.emp_name }} <span style="color:var(--muted);">({{ c.emp_code }})</span></td>
+        <td style="padding:8px;">{{ c.emp_department or '—' }}</td>
+        <td style="padding:8px;max-width:260px;">
+          <div style="font-weight:600;">{{ c.purpose or 'Travel Expense Claim' }}</div>
+          <div style="font-size:10px;color:var(--muted);">
+            {% for it in c.items %}{{ it.category }}: ₹{{ '%.2f'|format(it.amount) }}{% if not loop.last %}, {% endif %}{% endfor %}
+          </div>
+        </td>
+        <td style="text-align:right;padding:8px;font-weight:800;">₹{{ '%.2f'|format(c.total_amount or 0) }}</td>
+        <td style="text-align:center;padding:8px;">{{ c.approved_on[:16] if c.approved_on else '—' }}</td>
+        {% if status_filter == 'Approved' %}
+        <td style="text-align:center;padding:8px;">
+          <select id="pm_{{ c.id }}" class="form-control" style="width:90px;display:inline-block;">
+            {% for i in range(1,13) %}<option value="{{ i }}" {% if i==current_month %}selected{% endif %}>{{ months[i-1] }}</option>{% endfor %}
+          </select>
+          <select id="py_{{ c.id }}" class="form-control" style="width:80px;display:inline-block;">
+            {% for y in range(current_year-1, current_year+2) %}<option value="{{ y }}" {% if y==current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+          </select>
+        </td>
+        {% endif %}
+        <td style="text-align:center;padding:8px 12px;">
+          {% if status_filter == 'Approved' %}
+          <button class="btn btn-sm" style="background:rgba(0,150,220,.15);color:#0096dc;border:1px solid rgba(0,150,220,.3);"
+            onclick="teProcess({{ c.id }})">Mark Processed</button>
+          {% elif status_filter == 'Processed' %}
+          <button class="btn btn-sm" style="background:rgba(124,58,237,.15);color:#7c3aed;border:1px solid rgba(124,58,237,.3);"
+            onclick="tePaid({{ c.id }})">Mark Paid</button>
+          {% else %}
+          <span style="color:var(--muted);">Paid on {{ c.processed_on[:16] if c.processed_on else '—' }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:50px;color:var(--muted);">No {{ status_filter|lower }} claims.</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function teProcess(id){
+  const m = document.getElementById(`pm_${id}`).value;
+  const y = document.getElementById(`py_${id}`).value;
+  if (!confirm('Mark this claim as Processed for payout?')) return;
+  fetch(`/travel-expense/process/action/${id}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action:'process', payout_month:m, payout_year:y})
+  }).then(r=>r.json()).then(d=>{
+    if (d.success){ const el=document.getElementById(`claim_${id}`); if(el) el.remove(); }
+    else alert(d.error || 'Action failed');
+  }).catch(()=>alert('Action failed'));
+}
+function tePaid(id){
+  if (!confirm('Mark this claim as Paid?')) return;
+  fetch(`/travel-expense/process/action/${id}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action:'paid'})
+  }).then(r=>r.json()).then(d=>{
+    if (d.success){ const el=document.getElementById(`claim_${id}`); if(el) el.remove(); }
+    else alert(d.error || 'Action failed');
+  }).catch(()=>alert('Action failed'));
+}
+</script>
+{% endblock %}

@@ -93,6 +93,7 @@ def inject_pending_counts():
     leave_mgmt_pending_count = 0
     pending_assoc_ot_count = 0
     outside_att_pending_count = 0
+    travel_expense_pending_count = 0
     try:
         if session.get("user"):
             conn = sqlite3.connect(DB)
@@ -155,13 +156,34 @@ def inject_pending_counts():
                 except Exception:
                     outside_att_pending_count = 0
 
+            # Travel Expense claims pending dept-head approval (dept head scoped)
+            if role == "admin" or "travel_expense_approve" in perms or "dept_head_approve" in perms:
+                try:
+                    u3 = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+                    if role == "admin":
+                        travel_expense_pending_count = conn.execute(
+                            "SELECT COUNT(*) FROM travel_expense_claims WHERE status='Pending'"
+                        ).fetchone()[0]
+                    elif u3:
+                        my_depts3 = [r["department"] for r in conn.execute(
+                            "SELECT department FROM dept_head_assignments WHERE user_id=?", (u3["id"],)).fetchall()]
+                        if my_depts3:
+                            ph3 = ",".join("?"*len(my_depts3))
+                            travel_expense_pending_count = conn.execute(f"""
+                                SELECT COUNT(*) FROM travel_expense_claims c
+                                JOIN employees e ON c.emp_code=e.emp_code
+                                WHERE c.status='Pending' AND e.department IN ({ph3})""", my_depts3).fetchone()[0]
+                except Exception:
+                    travel_expense_pending_count = 0
+
             conn.close()
     except Exception:
         pass
     return dict(dept_head_pending_count=dept_head_pending_count,
                 leave_mgmt_pending_count=leave_mgmt_pending_count,
                 pending_assoc_ot_count=pending_assoc_ot_count,
-                outside_att_pending_count=outside_att_pending_count)
+                outside_att_pending_count=outside_att_pending_count,
+                travel_expense_pending_count=travel_expense_pending_count)
 
 DB = "vpl_payroll.db"
 
@@ -258,6 +280,37 @@ def init_db():
         reviewed_by TEXT, reviewed_on TEXT, review_remarks TEXT,
         ip_address TEXT,
         created_on TEXT)""")
+
+    # ── Travel Expense Claims — header + line items ─────────────────
+    # Flow: employee applies (with itemised expenses: Fuel/Hotel/Food/etc,
+    # optional receipt per item) -> goes to their department head for
+    # approval/rejection -> once Approved, Payroll/Finance processes it
+    # for payout (Processed -> Paid) and it feeds the Payroll Insights
+    # "Expense" metric.
+    c.execute("""CREATE TABLE IF NOT EXISTS travel_expense_claims (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emp_code TEXT NOT NULL,
+        department TEXT,
+        purpose TEXT,
+        from_date TEXT,
+        to_date TEXT,
+        travel_from TEXT,
+        travel_to TEXT,
+        total_amount REAL DEFAULT 0,
+        status TEXT DEFAULT 'Pending',
+        approved_by TEXT, approved_on TEXT, approval_remarks TEXT,
+        processed_by TEXT, processed_on TEXT,
+        payout_month INTEGER, payout_year INTEGER,
+        submitted_on TEXT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS travel_expense_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        claim_id INTEGER NOT NULL,
+        category TEXT,
+        expense_date TEXT,
+        description TEXT,
+        amount REAL DEFAULT 0,
+        receipt_data BLOB,
+        receipt_filename TEXT)""")
     try: c.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT ''")
     except: pass
 
@@ -3270,6 +3323,9 @@ PERMISSION_TREE = [
     ("dept_head_approve",   "Leave — Dept Head Approval",       None,  1),
     ("my_attendance_punch", "My Attendance — Self Punch Request", None, 1),
     ("outside_att_approve", "Outside Attendance — Dept Head Approval", None, 1),
+    ("travel_expense",         "Travel Expense — My Claims (Self)",           None, 1),
+    ("travel_expense_approve", "Travel Expense — Dept Head Approval",         None, 1),
+    ("travel_expense_process", "Travel Expense — Process Payout (Payroll)",   None, 1),
     # Reports
     ("reports_att",         "Reports — Attendance Reports",     None,  1),
     ("reports_salary",      "Reports — Salary Reports",         None,  1),
@@ -3439,7 +3495,10 @@ def amgr(f):
             # Leave — specific first
             ("/dept-head/manage",       ["dept_head_approve", "users"]),
             ("/dept-head/attendance-requests", ["outside_att_approve", "dept_head_approve"]),
+            ("/dept-head/travel-expense", ["travel_expense_approve", "dept_head_approve"]),
             ("/my-attendance/punch",    ["my_attendance_punch", "my_attendance"]),
+            ("/travel-expense/process", ["travel_expense_process", "payroll_process", "payroll_view"]),
+            ("/travel-expense/receipt", ["travel_expense_process", "travel_expense_approve", "payroll_process"]),
             ("/dept-head/",             ["dept_head_approve"]),
             ("/leaves/manage",          ["leave_approve"]),
             ("/leaves/approved",        ["leave_approve", "leave_balance"]),
@@ -3602,6 +3661,34 @@ def manpower_save():
     finally: conn.close()
 
 # ─── DASHBOARD DRILLDOWN API ────────────────────────
+def _dashboard_extra_working_totals(conn, m, y, d_sql="", d_params=None):
+    """Extra Working totals for the Dashboard 'Extra Working Hrs' KPI —
+    the exact same net (extra_minutes - shortfall_minutes, floored at 0)
+    calculation as the Extra Working module, for ALL active employees
+    (Staff + Associate) the current user has department access to.
+    Returns (total_minutes, {dept: {"staff_min":.., "nonstaff_min":..}})."""
+    d_params = d_params or []
+    rows = conn.execute(f"""SELECT e.emp_code, e.department, e.category,
+        COALESCE(SUM(a.ot_minutes),0) as total_extra_min,
+        COALESCE(SUM(a.shortfall_minutes),0) as total_shortfall_min
+        FROM employees e
+        LEFT JOIN attendance a ON a.emp_code=e.emp_code
+            AND strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
+        WHERE e.status='Active'{d_sql}
+        GROUP BY e.emp_code""", [f"{m:02d}", str(y)]+d_params).fetchall()
+    total_min = 0
+    by_dept = {}
+    for r in rows:
+        net = max(0, (r["total_extra_min"] or 0) - (r["total_shortfall_min"] or 0))
+        total_min += net
+        dept = r["department"] or "N/A"
+        dd = by_dept.setdefault(dept, {"staff_min": 0, "nonstaff_min": 0})
+        if r["category"] == "Staff":
+            dd["staff_min"] += net
+        else:
+            dd["nonstaff_min"] += net
+    return total_min, by_dept
+
 @app.route("/dashboard/dept-detail")
 @amgr
 def dashboard_dept_detail():
@@ -3731,16 +3818,10 @@ def dashboard_dept_detail():
         data.sort(key=lambda x: x["dept"])
 
     elif box == "ot":
-        rows = conn.execute(f"""SELECT e.department,
-            SUM(CASE WHEN e.category='Staff' THEN COALESCE(a.ot_minutes,0) ELSE 0 END) as staff_ot,
-            SUM(CASE WHEN e.category='Associate' THEN COALESCE(a.ot_minutes,0) ELSE 0 END) as assoc_ot
-            FROM attendance a JOIN employees e ON a.emp_code=e.emp_code
-            WHERE strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-            AND a.att_date < ? AND e.status='Active'{d_sql_dd}
-            GROUP BY e.department ORDER BY e.department""", [month_str,str(y),today_str]+d_params_dd).fetchall()
-        data = [{"dept": r["department"] or "N/A",
-            "staff_ot": round(r["staff_ot"]/60,1),
-            "nonstaff_ot": round(r["assoc_ot"]/60,1)} for r in rows]
+        _, dept_totals = _dashboard_extra_working_totals(conn, m, y, d_sql_dd, d_params_dd)
+        data = [{"dept": dept, "staff_ot_min": v["staff_min"], "nonstaff_ot_min": v["nonstaff_min"]}
+                for dept, v in dept_totals.items()]
+        data.sort(key=lambda x: x["dept"])
     else:
         data = []
     conn.close()
@@ -3801,15 +3882,10 @@ def dashboard_kpi_refresh():
             f"SELECT COUNT(*) FROM employees e WHERE e.status='Active' AND COALESCE(e.weekly_off,'Sunday')=?{dept_sql}",
             [_today_wo_kpi]+dept_params).fetchone()[0]
         absent = max(0, absent - wo_today_kpi)
-        ot_min  = conn.execute(f"""SELECT COALESCE(SUM(a.ot_minutes),0) FROM attendance a
-            JOIN employees e ON a.emp_code=e.emp_code
-            WHERE e.category='Associate' AND e.status='Active'
-            AND strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-            AND a.att_date < ?{dept_sql}""",
-            [month_str, str(y), today_str]+dept_params).fetchone()[0]
+        ew_total_min, _ = _dashboard_extra_working_totals(conn, m, y, dept_sql, dept_params)
         conn.close()
         return jsonify({"success":True,"total":total,"present":present,
-                        "absent":absent,"ot":round(ot_min/60,1)})
+                        "absent":absent,"ot":round(ew_total_min/60,1),"ot_min":ew_total_min})
     except Exception as e:
         conn.close()
         return jsonify({"success":False,"error":str(e)})
@@ -3896,15 +3972,22 @@ def dashboard_dept_emps():
 
     elif box == "ot":
         m = date.today().month; y = date.today().year
-        rows = conn.execute("""SELECT e.emp_code,e.emp_name,e.designation,e.category,
-            SUM(a.ot_minutes) as total_ot
-            FROM employees e JOIN attendance a ON e.emp_code=a.emp_code
-            WHERE e.department=? AND e.category='Associate'
-            AND strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-            AND e.status='Active' AND a.ot_minutes>0
-            GROUP BY e.emp_code ORDER BY total_ot DESC""",
-            (dept, f"{m:02d}", str(y))).fetchall()
-        result = [dict(r) for r in rows]
+        rows = conn.execute("""SELECT e.emp_code, e.emp_name, e.designation, e.category,
+            COALESCE(SUM(a.ot_minutes),0) as total_extra_min,
+            COALESCE(SUM(a.shortfall_minutes),0) as total_shortfall_min
+            FROM employees e
+            LEFT JOIN attendance a ON a.emp_code=e.emp_code
+                AND strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
+            WHERE e.department=? AND e.status='Active'
+            GROUP BY e.emp_code""",
+            (f"{m:02d}", str(y), dept)).fetchall()
+        result = []
+        for r in rows:
+            net_min = max(0, (r["total_extra_min"] or 0) - (r["total_shortfall_min"] or 0))
+            result.append({"emp_code": r["emp_code"], "emp_name": r["emp_name"],
+                "designation": r["designation"], "category": r["category"],
+                "total_ot": net_min})
+        result.sort(key=lambda x: x["total_ot"], reverse=True)
     else:
         result = []
 
@@ -4573,6 +4656,35 @@ def payroll_trend_api():
         return jsonify({"success":True,"labels":labels,"values":values,
             "emp_counts":emp_counts,"metric":metric,"departments":depts})
 
+    # Travel Expense metric — only claims that have been processed for
+    # payout (Processed/Paid, with a payout month/year assigned) feed this
+    if metric == "expense":
+        exp_extra = ""
+        exp_params = []
+        if dept: exp_extra += " AND e.department=?"; exp_params.append(dept)
+        if cat:  exp_extra += " AND e.category=?";   exp_params.append(cat)
+        exp_rows = conn.execute(f"""
+            SELECT c.payout_month as mn, c.payout_year as yr,
+                   SUM(c.total_amount) as total_amount,
+                   COUNT(DISTINCT c.emp_code) as emp_count
+            FROM travel_expense_claims c
+            JOIN employees e ON c.emp_code=e.emp_code
+            WHERE c.status IN ('Processed','Paid') AND c.payout_month IS NOT NULL{exp_extra}
+            GROUP BY c.payout_year, c.payout_month
+            ORDER BY c.payout_year DESC, c.payout_month DESC
+            LIMIT ?
+        """, exp_params+[months_back]).fetchall()
+        depts = [d["department"] for d in conn.execute(
+            "SELECT DISTINCT department FROM employees WHERE status='Active' AND department IS NOT NULL ORDER BY department"
+        ).fetchall()]
+        conn.close()
+        exp_rows = list(reversed(exp_rows))
+        labels = [f"{mnames[(int(r['mn']) or 1)-1]} {r['yr']}" for r in exp_rows]
+        values = [round(float(r["total_amount"] or 0), 2) for r in exp_rows]
+        emp_counts = [r["emp_count"] for r in exp_rows]
+        return jsonify({"success":True,"labels":labels,"values":values,
+            "emp_counts":emp_counts,"metric":metric,"departments":depts})
+
     # OT metrics: pull from attendance table
     if metric in ("ot_hours", "ot_amount"):
         from datetime import datetime as _dtm
@@ -4856,13 +4968,9 @@ def dashboard():
         ORDER BY e.department, e.emp_name""",
         [today_str]+d_params).fetchall()
 
-    # OT this month (1st to yesterday)
-    ot_staff = 0  # Not shown on dashboard
-    ot_assoc = conn.execute(f"""SELECT COALESCE(SUM(a.ot_minutes),0) as s FROM attendance a
-        JOIN employees e ON a.emp_code=e.emp_code
-        WHERE strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-        AND a.att_date < ? AND e.category='Associate' AND e.status='Active'{d_sql}""",
-        [month_str,str(y),today_str]+d_params).fetchone()["s"]
+    # Extra Working Hrs this month — same net (extra - shortfall) calculation
+    # as the Extra Working module, for the dashboard KPI and its dept drilldown
+    ew_total_min, ew_by_dept = _dashboard_extra_working_totals(conn, m, y, d_sql, d_params)
 
     # Dept-wise data for dashboard drilldown
     dept_active = conn.execute(f"""SELECT department,
@@ -4878,13 +4986,8 @@ def dashboard():
         WHERE a.att_date=? AND a.status NOT IN ('Absent','WO') AND e.status='Active'{d_sql}
         GROUP BY e.department ORDER BY e.department""", [today_str]+d_params).fetchall()
 
-    dept_ot = conn.execute(f"""SELECT e.department,
-        SUM(CASE WHEN e.category='Staff' THEN COALESCE(a.ot_minutes,0) ELSE 0 END) as staff_ot,
-        SUM(CASE WHEN e.category='Associate' THEN COALESCE(a.ot_minutes,0) ELSE 0 END) as assoc_ot
-        FROM attendance a JOIN employees e ON a.emp_code=e.emp_code
-        WHERE strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-        AND a.att_date < ? AND e.status='Active'{d_sql}
-        GROUP BY e.department ORDER BY e.department""", [month_str,str(y),today_str]+d_params).fetchall()
+    dept_ot = [{"department": dept, "staff_ot": v["staff_min"], "assoc_ot": v["nonstaff_min"]}
+               for dept, v in sorted(ew_by_dept.items(), key=lambda kv: kv[0] or "")]
 
     # Manpower master
     if d_params:
@@ -4908,7 +5011,7 @@ def dashboard():
         wo_absent_list=wo_absent_list,
         leave_today=len(leave_today_list),
         leave_today_list=leave_today_list,
-        ot_staff_hrs=round(ot_staff/60,1), ot_assoc_hrs=round(ot_assoc/60,1),
+        extra_working_total_min=ew_total_min,
         dept_active=[dict(d) for d in dept_active],
         dept_present=[dict(d) for d in dept_present],
         dept_ot=[dict(d) for d in dept_ot],
@@ -10875,7 +10978,7 @@ def add_user():
     d = request.json; conn = get_db()
     try:
         # Default permissions for new employee users
-        default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career"]
+        default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career", "my_attendance_punch", "travel_expense"]
         conn.execute("""INSERT INTO users (username, password, role, emp_id, name, email, mobile, is_active, permissions)
             VALUES (?,?,?,?,?,?,?,1,?)""",
             (d["username"], hp(d["password"]), d.get("role","employee"),
@@ -11057,7 +11160,7 @@ def assign_default_selected():
     user_ids = d.get("user_ids", [])
     if not user_ids:
         return jsonify({"success": False, "error": "No users selected"})
-    default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career"]
+    default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career", "my_attendance_punch", "travel_expense"]
     conn = get_db()
     try:
         count = 0
@@ -11132,7 +11235,7 @@ def delete_user(uid):
 @amgr
 def assign_default_all():
     """Auto-assign default perms (my_payslip, my_leaves, my_attendance) to ALL employee-role users"""
-    default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career"]
+    default_perms = ["my_payslip", "my_leaves", "my_attendance", "holidays", "my_career", "my_attendance_punch", "travel_expense"]
     conn = get_db()
     try:
         emp_users = conn.execute("SELECT id FROM users WHERE role='employee' AND is_active=1").fetchall()
@@ -20466,6 +20569,311 @@ def dept_head_outside_attendance_action(req_id):
             (reviewer, now_str, remarks, req_id))
         conn.commit()
         return jsonify({"success": True, "message": f"Approved — {req['request_type']} marked at {req['request_time']} for {att_date}."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────────────
+#  TRAVEL EXPENSE CLAIMS
+#  Employee applies (itemised: Fuel/Hotel/Food/Local Conveyance/Other,
+#  with optional receipt per item) -> their Department Head approves or
+#  rejects it -> once Approved, Payroll/Finance processes it for payout
+#  (Processed -> Paid), and it feeds the Payroll Insights "Expense" metric.
+# ─────────────────────────────────────────────────────
+TRAVEL_EXPENSE_CATEGORIES = ["Fuel", "Hotel/Lodging", "Food", "Local Conveyance", "Toll/Parking", "Other"]
+
+def _current_emp_code():
+    """emp_code of the logged-in self-service employee, or None for admin/HR users."""
+    return session.get("emp_id") if session.get("role") == "employee" else None
+
+@app.route("/my-travel-expense")
+@amgr
+def my_travel_expense():
+    emp_code = _current_emp_code() or request.args.get("emp_code", "")
+    if session.get("role") == "employee" and not emp_code:
+        return redirect("/login")
+    conn = get_db()
+    claims = conn.execute("""SELECT * FROM travel_expense_claims
+        WHERE emp_code=? ORDER BY submitted_on DESC""", (emp_code,)).fetchall()
+    claims = [dict(c) for c in claims]
+    for c in claims:
+        items = conn.execute("""SELECT id, category, expense_date, description, amount,
+            CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
+            FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
+        c["items"] = [dict(i) for i in items]
+    conn.close()
+    return render_template("my_travel_expense.html", claims=claims,
+        categories=TRAVEL_EXPENSE_CATEGORIES, today=date.today().strftime("%Y-%m-%d"))
+
+@app.route("/my-travel-expense/apply", methods=["POST"])
+@amgr
+def my_travel_expense_apply():
+    emp_code = _current_emp_code() or request.form.get("emp_code", "")
+    if not emp_code:
+        return jsonify({"success": False, "error": "Employee not identified"})
+    conn = get_db()
+    try:
+        emp = conn.execute("SELECT department FROM employees WHERE emp_code=?", (emp_code,)).fetchone()
+        department = emp["department"] if emp else None
+
+        purpose      = (request.form.get("purpose") or "").strip()
+        from_date    = (request.form.get("from_date") or "").strip()
+        to_date      = (request.form.get("to_date") or "").strip()
+        travel_from  = (request.form.get("travel_from") or "").strip()
+        travel_to    = (request.form.get("travel_to") or "").strip()
+
+        categories    = request.form.getlist("item_category[]")
+        exp_dates     = request.form.getlist("item_date[]")
+        descriptions  = request.form.getlist("item_description[]")
+        amounts       = request.form.getlist("item_amount[]")
+        receipt_files = request.files.getlist("item_receipt[]")
+
+        if not categories:
+            conn.close()
+            return jsonify({"success": False, "error": "Add at least one expense line item"})
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        cur = conn.execute("""INSERT INTO travel_expense_claims
+            (emp_code, department, purpose, from_date, to_date, travel_from, travel_to,
+             total_amount, status, submitted_on)
+            VALUES (?,?,?,?,?,?,?,0,'Pending',?)""",
+            (emp_code, department, purpose, from_date or None, to_date or None,
+             travel_from, travel_to, now_str))
+        claim_id = cur.lastrowid
+
+        total = 0.0
+        for i in range(len(categories)):
+            try:
+                amt = float(amounts[i] or 0)
+            except (ValueError, IndexError):
+                amt = 0.0
+            if amt <= 0:
+                continue
+            total += amt
+            receipt_data = None; receipt_filename = None
+            f = receipt_files[i] if i < len(receipt_files) else None
+            if f and f.filename:
+                receipt_data = f.read()
+                receipt_filename = secure_filename(f.filename)
+            conn.execute("""INSERT INTO travel_expense_items
+                (claim_id, category, expense_date, description, amount, receipt_data, receipt_filename)
+                VALUES (?,?,?,?,?,?,?)""",
+                (claim_id, categories[i], exp_dates[i] if i < len(exp_dates) else None,
+                 descriptions[i] if i < len(descriptions) else "", amt,
+                 receipt_data, receipt_filename))
+
+        if total <= 0:
+            conn.rollback()
+            conn.close()
+            return jsonify({"success": False, "error": "Total claim amount must be greater than zero"})
+
+        conn.execute("UPDATE travel_expense_claims SET total_amount=? WHERE id=?", (total, claim_id))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": f"Claim submitted for ₹{total:.2f} — sent to your department head for approval."})
+    except Exception as e:
+        conn.close()
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/my-travel-expense/cancel/<int:claim_id>", methods=["POST"])
+@amgr
+def my_travel_expense_cancel(claim_id):
+    """Employee can withdraw their own claim while it's still Pending."""
+    emp_code = _current_emp_code()
+    conn = get_db()
+    try:
+        claim = conn.execute("SELECT emp_code, status FROM travel_expense_claims WHERE id=?", (claim_id,)).fetchone()
+        if not claim:
+            return jsonify({"success": False, "error": "Claim not found"})
+        if emp_code and claim["emp_code"] != emp_code:
+            return jsonify({"success": False, "error": "Not authorized"})
+        if claim["status"] != "Pending":
+            return jsonify({"success": False, "error": f"Cannot withdraw a claim that is already {claim['status']}"})
+        conn.execute("DELETE FROM travel_expense_items WHERE claim_id=?", (claim_id,))
+        conn.execute("DELETE FROM travel_expense_claims WHERE id=?", (claim_id,))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+@app.route("/my-travel-expense/receipt/<int:item_id>")
+@amgr
+def my_travel_expense_receipt(item_id):
+    """Self-service: employee downloads a receipt from their own claim."""
+    emp_code = _current_emp_code()
+    conn = get_db()
+    row = conn.execute("""SELECT i.receipt_data, i.receipt_filename, c.emp_code
+        FROM travel_expense_items i JOIN travel_expense_claims c ON i.claim_id=c.id
+        WHERE i.id=?""", (item_id,)).fetchone()
+    conn.close()
+    if not row or not row["receipt_data"]:
+        return "Receipt not found", 404
+    if emp_code and row["emp_code"] != emp_code:
+        return "Not authorized", 403
+    fname = row["receipt_filename"] or "receipt"
+    mimetype = "application/octet-stream"
+    lower = fname.lower()
+    if lower.endswith((".jpg", ".jpeg")): mimetype = "image/jpeg"
+    elif lower.endswith(".png"): mimetype = "image/png"
+    elif lower.endswith(".pdf"): mimetype = "application/pdf"
+    return send_file(io.BytesIO(row["receipt_data"]), mimetype=mimetype, download_name=fname)
+
+@app.route("/travel-expense/receipt/<int:item_id>")
+@amgr
+def travel_expense_receipt(item_id):
+    """Download/view a receipt image/PDF. Self-service employees may only
+    fetch receipts on their own claims; approvers/processors go through
+    the normal permission check on this route's perm_map entry."""
+    conn = get_db()
+    row = conn.execute("""SELECT i.receipt_data, i.receipt_filename, c.emp_code
+        FROM travel_expense_items i JOIN travel_expense_claims c ON i.claim_id=c.id
+        WHERE i.id=?""", (item_id,)).fetchone()
+    conn.close()
+    if not row or not row["receipt_data"]:
+        return "Receipt not found", 404
+    if session.get("role") == "employee" and session.get("emp_id") != row["emp_code"]:
+        return "Not authorized", 403
+    fname = row["receipt_filename"] or "receipt"
+    mimetype = "application/octet-stream"
+    lower = fname.lower()
+    if lower.endswith((".jpg", ".jpeg")): mimetype = "image/jpeg"
+    elif lower.endswith(".png"): mimetype = "image/png"
+    elif lower.endswith(".pdf"): mimetype = "application/pdf"
+    return send_file(io.BytesIO(row["receipt_data"]), mimetype=mimetype, download_name=fname)
+
+@app.route("/dept-head/travel-expense")
+@amgr
+def dept_head_travel_expense():
+    conn = get_db()
+    user_row = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+    uid = user_row["id"] if user_row else None
+    is_admin = session.get("role") == "admin"
+    if is_admin:
+        my_depts = [r["department"] for r in conn.execute(
+            "SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department!=''").fetchall()]
+    elif uid:
+        my_depts = [r["department"] for r in conn.execute(
+            "SELECT department FROM dept_head_assignments WHERE user_id=?", (uid,)).fetchall()]
+    else:
+        my_depts = []
+
+    tab = request.args.get("tab", "pending")
+    pending, history = [], []
+    if my_depts:
+        placeholders = ",".join(["?"]*len(my_depts))
+        pending = conn.execute(f"""SELECT c.*, e.emp_name, e.designation
+            FROM travel_expense_claims c JOIN employees e ON c.emp_code=e.emp_code
+            WHERE c.status='Pending' AND e.department IN ({placeholders})
+            ORDER BY c.submitted_on DESC""", my_depts).fetchall()
+        history = conn.execute(f"""SELECT c.*, e.emp_name, e.designation
+            FROM travel_expense_claims c JOIN employees e ON c.emp_code=e.emp_code
+            WHERE c.status!='Pending' AND e.department IN ({placeholders})
+            ORDER BY c.approved_on DESC LIMIT 300""", my_depts).fetchall()
+    pending = [dict(r) for r in pending]
+    history = [dict(r) for r in history]
+    for c in pending + history:
+        items = conn.execute("""SELECT id, category, expense_date, description, amount,
+            CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
+            FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
+        c["items"] = [dict(i) for i in items]
+    conn.close()
+    return render_template("dept_head_travel_expense.html",
+        pending=pending, history=history, my_depts=my_depts, tab=tab)
+
+@app.route("/dept-head/travel-expense/action/<int:claim_id>", methods=["POST"])
+@amgr
+def dept_head_travel_expense_action(claim_id):
+    d = request.json or {}
+    action  = d.get("action")
+    remarks = (d.get("remarks") or "").strip()
+    if action not in ("approve", "reject"):
+        return jsonify({"success": False, "error": "Invalid action"})
+    conn = get_db()
+    try:
+        claim = conn.execute("""SELECT c.*, e.department FROM travel_expense_claims c
+            JOIN employees e ON c.emp_code=e.emp_code WHERE c.id=?""", (claim_id,)).fetchone()
+        if not claim:
+            return jsonify({"success": False, "error": "Claim not found"})
+        if claim["status"] != "Pending":
+            return jsonify({"success": False, "error": f"This claim was already {claim['status'].lower()}."})
+        if session.get("role") != "admin":
+            user_row = conn.execute("SELECT id FROM users WHERE username=?", (session.get("user",""),)).fetchone()
+            if not user_row:
+                return jsonify({"success": False, "error": "User not found"})
+            heads_dept = conn.execute("SELECT id FROM dept_head_assignments WHERE user_id=? AND department=?",
+                (user_row["id"], claim["department"])).fetchone()
+            if not heads_dept:
+                return jsonify({"success": False, "error": "You are not the department head for this employee's department"})
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        approver = session.get("name") or session.get("user") or "Dept Head"
+        new_status = "Approved" if action == "approve" else "Rejected"
+        conn.execute("""UPDATE travel_expense_claims SET
+            status=?, approved_by=?, approved_on=?, approval_remarks=? WHERE id=?""",
+            (new_status, approver, now_str, remarks, claim_id))
+        conn.commit()
+        return jsonify({"success": True, "message": f"Claim {new_status.lower()}."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+@app.route("/travel-expense/process")
+@amgr
+def travel_expense_process():
+    """Payroll/Finance: list Approved claims awaiting payout processing,
+    plus already-Processed/Paid claims for reference."""
+    status_filter = request.args.get("status", "Approved")
+    conn = get_db()
+    rows = conn.execute("""SELECT c.*, e.emp_name, e.department as emp_department, e.designation
+        FROM travel_expense_claims c JOIN employees e ON c.emp_code=e.emp_code
+        WHERE c.status=? ORDER BY c.approved_on DESC LIMIT 300""", (status_filter,)).fetchall()
+    rows = [dict(r) for r in rows]
+    for c in rows:
+        items = conn.execute("""SELECT id, category, expense_date, description, amount,
+            CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
+            FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
+        c["items"] = [dict(i) for i in items]
+    conn.close()
+    return render_template("travel_expense_process.html", rows=rows, status_filter=status_filter,
+        months=MONTHS, current_month=date.today().month, current_year=date.today().year)
+
+@app.route("/travel-expense/process/action/<int:claim_id>", methods=["POST"])
+@amgr
+def travel_expense_process_action(claim_id):
+    """Mark an Approved claim as Processed (payout scheduled for a given
+    month/year) or Paid. Feeds the Payroll Insights Expense metric."""
+    d = request.json or {}
+    action = d.get("action")   # 'process' or 'paid'
+    if action not in ("process", "paid"):
+        return jsonify({"success": False, "error": "Invalid action"})
+    conn = get_db()
+    try:
+        claim = conn.execute("SELECT status FROM travel_expense_claims WHERE id=?", (claim_id,)).fetchone()
+        if not claim:
+            return jsonify({"success": False, "error": "Claim not found"})
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        processor = session.get("name") or session.get("user") or "Payroll"
+        if action == "process":
+            if claim["status"] != "Approved":
+                return jsonify({"success": False, "error": f"Only Approved claims can be processed (current: {claim['status']})"})
+            m = int(d.get("payout_month", date.today().month))
+            y = int(d.get("payout_year", date.today().year))
+            conn.execute("""UPDATE travel_expense_claims SET
+                status='Processed', processed_by=?, processed_on=?, payout_month=?, payout_year=? WHERE id=?""",
+                (processor, now_str, m, y, claim_id))
+        else:  # paid
+            if claim["status"] != "Processed":
+                return jsonify({"success": False, "error": f"Only Processed claims can be marked Paid (current: {claim['status']})"})
+            conn.execute("""UPDATE travel_expense_claims SET
+                status='Paid', processed_by=?, processed_on=? WHERE id=?""",
+                (processor, now_str, claim_id))
+        conn.commit()
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     finally:
