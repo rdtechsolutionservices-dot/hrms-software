@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Salary Sheet{% endblock %}
+{% block page_title %} Salary Sheet{% endblock %}
+{% block content %}
+
+<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+  <select id="ssMonth" class="form-control" style="width:130px;" onchange="ssReload()">
+    {% for i in range(1,13) %}<option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ months[i-1] }}</option>{% endfor %}
+  </select>
+  <select id="ssYear" class="form-control" style="width:100px;" onchange="ssReload()">
+    {% for yy in range(year-2, year+2) %}<option value="{{ yy }}" {% if yy==year %}selected{% endif %}>{{ yy }}</option>{% endfor %}
+  </select>
+  <select id="ssDept" class="form-control" style="width:160px;" onchange="ssReload()">
+    <option value="">All Departments</option>
+    {% for d in departments %}<option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+  </select>
+</div>
+
+{% if not (payroll_locked and ew_locked) %}
+<div style="text-align:center;padding:50px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:12px;">
+  <div style="font-weight:700;font-size:14px;margin-bottom:8px;">Salary Sheet not available yet for {{ month_name }} {{ year }}</div>
+  <div style="font-size:12px;">
+    {% if not payroll_locked %}Payroll has not been locked for this month yet.{% endif %}
+    {% if not ew_locked %}{% if not payroll_locked %}<br>{% endif %}Extra Working has not been locked for this month yet.{% endif %}
+  </div>
+  <div style="font-size:11px;margin-top:10px;">The Salary Sheet becomes available once both are locked.</div>
+</div>
+{% elif rows %}
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Employee</th>
+      <th style="text-align:left;padding:8px;">Department</th>
+      <th style="text-align:left;padding:8px;">Designation</th>
+      <th style="text-align:right;padding:8px;">Net Payable (Original Payslip)</th>
+      <th style="text-align:center;padding:8px 12px;"></th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:8px 12px;font-weight:700;">{{ r.emp_name }} <span style="color:var(--muted);font-weight:400;">({{ r.emp_code }})</span></td>
+        <td style="padding:8px;color:var(--muted);">{{ r.department or '—' }}</td>
+        <td style="padding:8px;color:var(--muted);">{{ r.designation or '—' }}</td>
+        <td style="text-align:right;padding:8px;">₹{{ '%.2f'|format(r.net_salary or 0) }}</td>
+        <td style="text-align:center;padding:8px 12px;">
+          <a href="/payslip/salary-sheet/view/{{ r.emp_code }}/{{ month }}/{{ year }}" target="_blank"
+            class="btn btn-sm btn-primary">View Salary Sheet</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div style="text-align:center;padding:50px;color:var(--muted);">No locked payroll records found for {{ month_name }} {{ year }}.</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function ssReload(){
+  const m = document.getElementById('ssMonth').value;
+  const y = document.getElementById('ssYear').value;
+  const d = document.getElementById('ssDept').value;
+  location.href = `/payslip/salary-sheet?month=${m}&year=${y}&dept=${encodeURIComponent(d)}`;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Salary Sheet — {{ emp_name }} ({{ emp_code }}) — {{ month_name }} {{ year }}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif; background:#f0f0f0; font-size:13px; color:#222; }
+
+  @page { size: A4; margin: 14mm 16mm; }
+  @media print {
+    body{background:#fff;}
+    .no-print{display:none!important;}
+    .sheet{box-shadow:none!important;margin:0!important;width:auto!important;min-height:0!important;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
+  }
+
+  .sheet{ width:210mm; min-height:200mm; margin:20px auto; background:#fff; box-shadow:0 4px 30px rgba(0,0,0,.15); border-radius:4px; padding:14mm 16mm; }
+
+  .doc-header{ display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #0052cc; padding-bottom:14px; margin-bottom:16px; }
+  .doc-header-left{ display:flex; align-items:center; gap:14px; }
+  .doc-header-left img{ max-height:56px; max-width:150px; object-fit:contain; }
+  .doc-company-name{ font-size:18px; font-weight:800; color:#0f172a; }
+  .doc-company-sub{ font-size:10.5px; color:#64748b; margin-top:2px; }
+  .doc-title-block{ text-align:right; }
+  .doc-title{ font-size:15px; font-weight:800; color:#0052cc; text-transform:uppercase; letter-spacing:1px; }
+  .doc-ref{ font-size:10.5px; color:#64748b; margin-top:3px; }
+
+  .who-grid{ display:grid; grid-template-columns:1fr 1fr; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; margin-bottom:4px; }
+  .who-cell{ padding:9px 14px; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1; }
+  .who-cell:nth-child(2n){ border-right:none; }
+  .who-label{ font-size:9.5px; text-transform:uppercase; letter-spacing:.5px; color:#64748b; margin-bottom:2px; }
+  .who-value{ font-size:13.5px; font-weight:800; color:#0f172a; }
+
+  .sheet-table{ width:100%; border-collapse:collapse; margin-top:16px; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden; }
+  .sheet-table td{ border:1px solid #e2e8f0; padding:10px 14px; font-size:12.5px; vertical-align:middle; }
+  .st-label{ color:#475569; width:24%; }
+  .st-value{ font-weight:700; color:#0f172a; text-align:right; width:16%; }
+  .st-value.add{ color:#10b981; }
+  .st-value.less{ color:#ef4444; }
+  .st-total td{ background:#eff6ff; font-size:14px; }
+  .st-total .st-label{ font-weight:800; color:#0052cc; }
+  .st-total .st-value{ font-weight:900; color:#0052cc; }
+  .st-net td{ background:#0052cc; }
+  .st-net .st-label{ font-weight:800; color:#fff; }
+  .st-net .st-value{ font-weight:900; color:#fff; font-size:15px; }
+
+  .section-title{ font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#0052cc; margin:18px 0 6px; }
+
+  .status-badge{ display:inline-block; padding:3px 12px; border-radius:20px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+  .status-paid{ background:rgba(16,185,129,.15); color:#059669; }
+  .status-pending{ background:rgba(245,158,11,.15); color:#b45309; }
+
+  .doc-footer{ margin-top:28px; padding-top:12px; border-top:1px solid #e5e9f0; display:flex; justify-content:space-between; font-size:9.5px; color:#94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="background:#1a1a2e;padding:10px 24px;display:flex;gap:12px;align-items:center;">
+  <button style="padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#0052cc;color:white;" onclick="window.print()">Print / Save as PDF</button>
+  <span style="color:rgba(255,255,255,.6);font-size:12px;">Use your browser's print dialog and choose "Save as PDF" as the destination.</span>
+</div>
+
+<div class="sheet">
+  <div class="doc-header">
+    <div class="doc-header-left">
+      <img src="/admin/logo" alt="{{ company_name }}">
+      <div>
+        <div class="doc-company-name">{{ company_name }}</div>
+        <div class="doc-company-sub">Salary Sheet — FY {{ fy_label }}</div>
+      </div>
+    </div>
+    <div class="doc-title-block">
+      <div class="doc-title">Salary Sheet</div>
+      <div class="doc-ref">{{ month_name }} {{ year }}</div>
+      <div style="margin-top:6px;">
+        {% if payment_status == 'Paid' %}<span class="status-badge status-paid">Paid</span>
+        {% else %}<span class="status-badge status-pending">{{ payment_status or 'Pending' }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="who-grid">
+    <div class="who-cell"><div class="who-label">Name</div><div class="who-value">{{ emp_name }} ({{ emp_code }})</div></div>
+    <div class="who-cell"><div class="who-label">Month</div><div class="who-value">{{ month_name }}-{{ (year|string)[2:] }}</div></div>
+    <div class="who-cell"><div class="who-label">Time</div><div class="who-value">{{ shift_time }}</div></div>
+    <div class="who-cell"><div class="who-label">Hours</div><div class="who-value">{{ shift_hours }} Hours</div></div>
+  </div>
+
+  <div class="section-title">Earnings &amp; Settlement</div>
+  <table class="sheet-table">
+    <tr>
+      <td class="st-label">Salary</td><td class="st-value">₹{{ '%.2f'|format(salary) }}</td>
+      <td class="st-label">Per Day Salary</td><td class="st-value">₹{{ '%.2f'|format(per_day_salary) }}</td>
+    </tr>
+    <tr>
+      <td class="st-label">Extra Working (Add)</td><td class="st-value add">+₹{{ '%.2f'|format(extra_amount) }}</td>
+      <td class="st-label">Per Hour Rate</td><td class="st-value">₹{{ '%.2f'|format(per_hr_rate) }}</td>
+    </tr>
+    <tr>
+      <td class="st-label">Leave (Less)</td><td class="st-value less">-₹{{ '%.2f'|format(leave_amount) }}</td>
+      <td class="st-label">Extra Time</td><td class="st-value">{{ extra_hours_min|hhmm }}</td>
+    </tr>
+    <tr>
+      <td class="st-label">Petrol (Add)</td><td class="st-value add">+₹{{ '%.2f'|format(petrol_amount) }}</td>
+      <td class="st-label">Leave (Days)</td><td class="st-value">{{ leave_days }}</td>
+    </tr>
+    <tr class="st-total">
+      <td class="st-label">Total Earn</td><td class="st-value">₹{{ '%.2f'|format(total_earn) }}</td>
+      <td class="st-label">Petrol (KM)</td><td class="st-value">{{ '%.1f'|format(petrol_km) }} KM</td>
+    </tr>
+    <tr>
+      <td class="st-label">Imprest Amount</td><td class="st-value">₹{{ '%.2f'|format(imprest_amount) }}</td>
+      <td class="st-label"></td><td class="st-value"></td>
+    </tr>
+    <tr>
+      <td class="st-label">Actual Expense</td><td class="st-value">₹{{ '%.2f'|format(actual_expense) }}</td>
+      <td class="st-label"></td><td class="st-value"></td>
+    </tr>
+    <tr>
+      <td class="st-label">Remaining</td><td class="st-value">₹{{ '%.2f'|format(remaining) }}</td>
+      <td class="st-label"></td><td class="st-value"></td>
+    </tr>
+    <tr>
+      <td class="st-label">Advance (Less)</td><td class="st-value less">-₹{{ '%.2f'|format(advance) }}</td>
+      <td class="st-label"></td><td class="st-value"></td>
+    </tr>
+    <tr class="st-net">
+      <td class="st-label">Net Payable</td><td class="st-value">₹{{ '%.2f'|format(net_payable) }}</td>
+      <td class="st-label"></td><td class="st-value"></td>
+    </tr>
+  </table>
+
+  <div class="doc-footer">
+    <span>This is a system-generated document from {{ company_name }}.</span>
+    <span>{{ department or '—' }} · {{ designation or '—' }}</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Imprest Management{% endblock %}
+{% block page_title %} Imprest Management{% endblock %}
+{% block content %}
+
+<div style="font-size:12px;color:var(--muted);margin-bottom:14px;max-width:640px;">
+  Record the cash advance (Imprest) issued to an employee for company work, and their actual spend for the month.
+  The difference (Remaining) is settled against that month's Salary Sheet payslip.
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+  <select id="impMonth" class="form-control" style="width:130px;" onchange="impReload()">
+    {% for i in range(1,13) %}<option value="{{ i }}" {% if i==month %}selected{% endif %}>{{ months[i-1] }}</option>{% endfor %}
+  </select>
+  <select id="impYear" class="form-control" style="width:100px;" onchange="impReload()">
+    {% for yy in range(year-2, year+2) %}<option value="{{ yy }}" {% if yy==year %}selected{% endif %}>{{ yy }}</option>{% endfor %}
+  </select>
+  <select id="impDept" class="form-control" style="width:160px;" onchange="impReload()">
+    <option value="">All Departments</option>
+    {% for d in departments %}<option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
+  </select>
+</div>
+
+<div class="table-card">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="border-bottom:2px solid var(--border);">
+      <th style="text-align:left;padding:8px 12px;">Employee</th>
+      <th style="text-align:left;padding:8px;">Department</th>
+      <th style="text-align:right;padding:8px;">Imprest Amount</th>
+      <th style="text-align:right;padding:8px;">Actual Expense</th>
+      <th style="text-align:right;padding:8px;">Remaining</th>
+      <th style="text-align:left;padding:8px;">Remarks</th>
+      <th style="text-align:center;padding:8px 12px;">Save</th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr style="border-bottom:1px solid var(--border);" id="imp_row_{{ r.emp_code }}">
+        <td style="padding:8px 12px;font-weight:700;">{{ r.emp_name }} <span style="color:var(--muted);font-weight:400;">({{ r.emp_code }})</span></td>
+        <td style="padding:8px;color:var(--muted);">{{ r.department or '—' }}</td>
+        <td style="text-align:right;padding:8px;">
+          <input type="number" step="0.01" class="form-control imp-amt" value="{{ r.imprest_amount }}" style="width:100px;text-align:right;" oninput="impUpdateRemaining('{{ r.emp_code }}')">
+        </td>
+        <td style="text-align:right;padding:8px;">
+          <input type="number" step="0.01" class="form-control imp-exp" value="{{ r.actual_expense }}" style="width:100px;text-align:right;" oninput="impUpdateRemaining('{{ r.emp_code }}')">
+        </td>
+        <td style="text-align:right;padding:8px;font-weight:800;" class="imp-remaining">₹{{ '%.2f'|format(r.remaining) }}</td>
+        <td style="padding:8px;"><input type="text" class="form-control imp-remarks" value="{{ r.remarks or '' }}" style="width:130px;"></td>
+        <td style="text-align:center;padding:8px 12px;">
+          <button class="btn btn-sm btn-primary" onclick="impSave('{{ r.emp_code }}')">Save</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No active employees found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function impReload(){
+  const m = document.getElementById('impMonth').value;
+  const y = document.getElementById('impYear').value;
+  const d = document.getElementById('impDept').value;
+  location.href = `/imprest?month=${m}&year=${y}&dept=${encodeURIComponent(d)}`;
+}
+function impUpdateRemaining(empCode){
+  const row = document.getElementById(`imp_row_${empCode}`);
+  const amt = parseFloat(row.querySelector('.imp-amt').value || 0);
+  const exp = parseFloat(row.querySelector('.imp-exp').value || 0);
+  row.querySelector('.imp-remaining').textContent = '₹' + (amt - exp).toFixed(2);
+}
+function impSave(empCode){
+  const row = document.getElementById(`imp_row_${empCode}`);
+  const amt = parseFloat(row.querySelector('.imp-amt').value || 0);
+  const exp = parseFloat(row.querySelector('.imp-exp').value || 0);
+  const remarks = row.querySelector('.imp-remarks').value;
+  fetch('/imprest/save', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      emp_code: empCode,
+      month: document.getElementById('impMonth').value,
+      year: document.getElementById('impYear').value,
+      imprest_amount: amt, actual_expense: exp, remarks: remarks
+    })
+  }).then(r=>r.json()).then(d=>{
+    if(d.success){ row.querySelector('.imp-remaining').textContent = '₹' + d.remaining.toFixed(2); }
+    else alert(d.error || 'Failed to save');
+  }).catch(()=>alert('Failed to save'));
+}
+</script>
+{% endblock %}

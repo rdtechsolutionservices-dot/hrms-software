@@ -311,6 +311,25 @@ def init_db():
         amount REAL DEFAULT 0,
         receipt_data BLOB,
         receipt_filename TEXT)""")
+    # distance_km — optional, mainly for Fuel items; feeds the "Petrol (KM)" line
+    # on the Salary Sheet payslip. Added via ALTER for installs where the table
+    # already existed before this column was introduced.
+    try: c.execute("ALTER TABLE travel_expense_items ADD COLUMN distance_km REAL DEFAULT 0")
+    except: pass
+
+    # ── Imprest — company advance issued to an employee for company work,
+    # reconciled against their actual spend each month; the difference feeds
+    # the Salary Sheet payslip's Imprest/Actual Expense/Remaining lines.
+    c.execute("""CREATE TABLE IF NOT EXISTS imprest_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        emp_code TEXT NOT NULL,
+        month INTEGER NOT NULL, year INTEGER NOT NULL,
+        imprest_amount REAL DEFAULT 0,
+        actual_expense REAL DEFAULT 0,
+        remarks TEXT,
+        updated_by TEXT, updated_on TEXT,
+        UNIQUE(emp_code, month, year))""")
+
     try: c.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT ''")
     except: pass
 
@@ -3303,6 +3322,7 @@ PERMISSION_TREE = [
     ("payroll_process",     "Payroll — Process Salary",         None,  1),
     ("payroll_mark_paid",   "Payroll — Mark Paid / Lock",       None,  1),
     ("payslip",             "Payroll — Payslips",               None,  1),
+    ("imprest_manage",      "Payroll — Imprest Management",      None,  1),
     ("payroll_trends",      "Payroll — Trends & Analytics",     None,  1),
     ("ctc_report",         "Payroll — CTC Report",              None,  1),
     ("salary_revision",     "Payroll — Salary Revisions",       None,  1),
@@ -3461,9 +3481,11 @@ def amgr(f):
             ("/payroll/summary",        ["payroll_view"]),
             ("/payroll/process",        ["payroll_process"]),
             ("/payroll",                ["payroll_view", "payroll_process"]),
+            ("/payslip/salary-sheet",    ["payslip", "payroll_view"]),
             ("/payslip/wages",           ["leave_assoc", "payslip", "payroll_view"]),
             ("/payslip/get",            ["payslip", "payroll_view"]),
             ("/payslip",                ["payslip", "payroll_view"]),
+            ("/imprest",                 ["imprest_manage", "payroll_process"]),
             ("/wa/send-wages-bulk",     ["leave_assoc", "payslip"]),
             ("/wa/send-wages",          ["leave_assoc", "payslip"]),
             ("/salary/increment-letter", ["letters_view", "salary_revision"]),
@@ -20629,6 +20651,7 @@ def my_travel_expense_apply():
         exp_dates     = request.form.getlist("item_date[]")
         descriptions  = request.form.getlist("item_description[]")
         amounts       = request.form.getlist("item_amount[]")
+        kms           = request.form.getlist("item_km[]")
         receipt_files = request.files.getlist("item_receipt[]")
 
         if not categories:
@@ -20653,17 +20676,21 @@ def my_travel_expense_apply():
             if amt <= 0:
                 continue
             total += amt
+            try:
+                km = float(kms[i]) if i < len(kms) and kms[i] else 0
+            except ValueError:
+                km = 0
             receipt_data = None; receipt_filename = None
             f = receipt_files[i] if i < len(receipt_files) else None
             if f and f.filename:
                 receipt_data = f.read()
                 receipt_filename = secure_filename(f.filename)
             conn.execute("""INSERT INTO travel_expense_items
-                (claim_id, category, expense_date, description, amount, receipt_data, receipt_filename)
-                VALUES (?,?,?,?,?,?,?)""",
+                (claim_id, category, expense_date, description, amount, receipt_data, receipt_filename, distance_km)
+                VALUES (?,?,?,?,?,?,?,?)""",
                 (claim_id, categories[i], exp_dates[i] if i < len(exp_dates) else None,
                  descriptions[i] if i < len(descriptions) else "", amt,
-                 receipt_data, receipt_filename))
+                 receipt_data, receipt_filename, km))
 
         if total <= 0:
             conn.rollback()
@@ -20910,6 +20937,193 @@ def travel_expense_process_action(claim_id):
         return jsonify({"success": False, "error": str(e)})
     finally:
         conn.close()
+
+
+# ─────────────────────────────────────────────────────
+#  IMPREST MANAGEMENT
+#  Company issues a cash advance to an employee for company work; at
+#  month end the actual spend is recorded and the difference (Remaining)
+#  is settled against that month's Salary Sheet payslip.
+# ─────────────────────────────────────────────────────
+@app.route("/imprest")
+@amgr
+def imprest_page():
+    m = int(request.args.get("month", date.today().month))
+    y = int(request.args.get("year", date.today().year))
+    dept = request.args.get("dept", "")
+    conn = get_db()
+    sql = "SELECT emp_code, emp_name, department, designation FROM employees WHERE status='Active'"
+    params = []
+    if dept:
+        sql += " AND department=?"; params.append(dept)
+    sql += " ORDER BY department, emp_name"
+    emps = conn.execute(sql, params).fetchall()
+    recs = {r["emp_code"]: dict(r) for r in conn.execute(
+        "SELECT * FROM imprest_records WHERE month=? AND year=?", (m, y)).fetchall()}
+    rows = []
+    for e in emps:
+        rec = recs.get(e["emp_code"], {})
+        imprest_amt = rec.get("imprest_amount", 0) or 0
+        actual_exp  = rec.get("actual_expense", 0) or 0
+        rows.append({**dict(e),
+            "imprest_amount": imprest_amt, "actual_expense": actual_exp,
+            "remaining": round(imprest_amt - actual_exp, 2),
+            "remarks": rec.get("remarks", "")})
+    depts = [d["department"] for d in conn.execute(
+        "SELECT DISTINCT department FROM employees WHERE status='Active' AND department IS NOT NULL ORDER BY department").fetchall()]
+    conn.close()
+    return render_template("imprest.html", rows=rows, month=m, year=y, months=MONTHS,
+        departments=depts, f_dept=dept)
+
+@app.route("/imprest/save", methods=["POST"])
+@amgr
+def imprest_save():
+    d = request.json or {}
+    emp_code = d.get("emp_code")
+    m = int(d.get("month", date.today().month))
+    y = int(d.get("year", date.today().year))
+    if not emp_code:
+        return jsonify({"success": False, "error": "Employee not specified"})
+    try:
+        imprest_amt = float(d.get("imprest_amount") or 0)
+        actual_exp  = float(d.get("actual_expense") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "Invalid amount"})
+    remarks = (d.get("remarks") or "").strip()
+    conn = get_db()
+    try:
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        who = session.get("name") or session.get("user") or "Admin"
+        conn.execute("""INSERT INTO imprest_records
+            (emp_code, month, year, imprest_amount, actual_expense, remarks, updated_by, updated_on)
+            VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(emp_code, month, year) DO UPDATE SET
+                imprest_amount=excluded.imprest_amount,
+                actual_expense=excluded.actual_expense,
+                remarks=excluded.remarks,
+                updated_by=excluded.updated_by,
+                updated_on=excluded.updated_on""",
+            (emp_code, m, y, imprest_amt, actual_exp, remarks, who, now_str))
+        conn.commit()
+        return jsonify({"success": True, "remaining": round(imprest_amt - actual_exp, 2)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────────────
+#  SALARY SHEET — new-format payslip
+#  Only available for a month once BOTH the payroll (salary_records.locked)
+#  and Extra Working (extra_working_lock) are locked for that month, since
+#  it pulls final figures from both.
+# ─────────────────────────────────────────────────────
+def _salary_sheet_fy_label(m, y, conn):
+    try:
+        lms = conn.execute("SELECT financial_year_start_month FROM leave_master_settings WHERE id=1").fetchone()
+        fy_start = int(lms["financial_year_start_month"]) if lms and lms["financial_year_start_month"] else 4
+    except Exception:
+        fy_start = 4
+    return f"{y}-{y+1}" if m >= fy_start else f"{y-1}-{y}"
+
+@app.route("/payslip/salary-sheet")
+@amgr
+def payslip_salary_sheet():
+    m = int(request.args.get("month", date.today().month))
+    y = int(request.args.get("year", date.today().year))
+    dept = request.args.get("dept", "")
+    conn = get_db()
+
+    payroll_locked = conn.execute(
+        "SELECT COUNT(*) FROM salary_records WHERE month=? AND year=? AND locked=1", (m, y)).fetchone()[0] > 0
+    ew_lock = conn.execute(
+        "SELECT is_locked FROM extra_working_lock WHERE month=? AND year=?", (m, y)).fetchone()
+    ew_locked = bool(ew_lock and ew_lock["is_locked"])
+
+    rows = []
+    if payroll_locked and ew_locked:
+        sql = """SELECT s.emp_code, s.net_salary, e.emp_name, e.department, e.designation
+            FROM salary_records s JOIN employees e ON s.emp_code=e.emp_code
+            WHERE s.month=? AND s.year=? AND s.locked=1"""
+        params = [m, y]
+        if dept:
+            sql += " AND e.department=?"; params.append(dept)
+        sql += " ORDER BY e.department, e.emp_name"
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    depts = [d["department"] for d in conn.execute(
+        "SELECT DISTINCT department FROM employees WHERE status='Active' AND department IS NOT NULL ORDER BY department").fetchall()]
+    conn.close()
+    return render_template("payslip_salary_sheet.html", rows=rows, month=m, year=y,
+        months=MONTHS, month_name=MONTHS[m-1], departments=depts, f_dept=dept,
+        payroll_locked=payroll_locked, ew_locked=ew_locked)
+
+@app.route("/payslip/salary-sheet/view/<emp_code>/<int:month>/<int:year>")
+@amgr
+def payslip_salary_sheet_view(emp_code, month, year):
+    conn = get_db()
+    if session.get("role") == "employee" and session.get("emp_id") != emp_code:
+        conn.close()
+        return "Not authorized", 403
+
+    sr = conn.execute("""SELECT s.*, e.emp_name, e.department, e.designation, e.basic, e.hra, e.special_allowance
+        FROM salary_records s JOIN employees e ON s.emp_code=e.emp_code
+        WHERE s.emp_code=? AND s.month=? AND s.year=?""", (emp_code, month, year)).fetchone()
+    if not sr or not sr["locked"]:
+        conn.close()
+        return "This month's payroll is not locked yet — the Salary Sheet is not available until it is.", 400
+    ew_lock = conn.execute("SELECT is_locked FROM extra_working_lock WHERE month=? AND year=?", (month, year)).fetchone()
+    if not (ew_lock and ew_lock["is_locked"]):
+        conn.close()
+        return "This month's Extra Working is not locked yet — the Salary Sheet is not available until it is.", 400
+    sr = dict(sr)
+
+    ew = conn.execute("""SELECT extra_hours, per_hr_rate, extra_amount FROM extra_working_snapshot
+        WHERE emp_code=? AND month=? AND year=?""", (emp_code, month, year)).fetchone()
+    ew = dict(ew) if ew else {"extra_hours": 0, "per_hr_rate": 0, "extra_amount": 0}
+
+    petrol_row = conn.execute("""SELECT COALESCE(SUM(c.total_amount),0) as amt
+        FROM travel_expense_claims c
+        WHERE c.emp_code=? AND c.payout_month=? AND c.payout_year=? AND c.status IN ('Processed','Paid')""",
+        (emp_code, month, year)).fetchone()
+    petrol_amount = petrol_row["amt"] or 0
+    km_row = conn.execute("""SELECT COALESCE(SUM(i.distance_km),0) as km
+        FROM travel_expense_items i JOIN travel_expense_claims c ON i.claim_id=c.id
+        WHERE c.emp_code=? AND c.payout_month=? AND c.payout_year=? AND c.status IN ('Processed','Paid')""",
+        (emp_code, month, year)).fetchone()
+    petrol_km = km_row["km"] or 0
+
+    imp = conn.execute("SELECT imprest_amount, actual_expense FROM imprest_records WHERE emp_code=? AND month=? AND year=?",
+        (emp_code, month, year)).fetchone()
+    imprest_amount = imp["imprest_amount"] if imp else 0
+    actual_expense = imp["actual_expense"] if imp else 0
+    remaining = round((imprest_amount or 0) - (actual_expense or 0), 2)
+
+    salary = float(sr["basic"] or 0) + float(sr["hra"] or 0) + float(sr["special_allowance"] or 0)
+    leave_amount = round(float(sr["absent_days"] or 0) * float(sr["per_day_salary"] or 0), 2)
+    total_earn = round(salary + (ew["extra_amount"] or 0) + petrol_amount - leave_amount, 2)
+    advance = float(sr["advance_deduction"] or 0)
+    net_payable = round(total_earn - remaining - advance, 2)
+
+    shift, _mode = get_shift_for_emp(emp_code, conn=conn)
+    shift_time = f"{shift['start_time']} to {shift['end_time']}" if shift else "—"
+    shift_hours = shift["working_hours"] if shift else _emp_shift_hours(emp_code, conn)
+
+    fy_label = _salary_sheet_fy_label(month, year, conn)
+    conn.close()
+
+    return render_template("payslip_salary_sheet_view.html",
+        emp_code=emp_code, emp_name=sr["emp_name"], department=sr["department"], designation=sr["designation"],
+        month_name=MONTHS[month-1], year=year, fy_label=fy_label,
+        shift_time=shift_time, shift_hours=shift_hours,
+        salary=salary, extra_amount=ew["extra_amount"] or 0, extra_hours_min=round((ew["extra_hours"] or 0)*60),
+        per_hr_rate=ew["per_hr_rate"] or 0, per_day_salary=sr["per_day_salary"] or 0,
+        leave_amount=leave_amount, leave_days=sr["absent_days"] or 0,
+        petrol_amount=petrol_amount, petrol_km=petrol_km,
+        total_earn=total_earn,
+        imprest_amount=imprest_amount, actual_expense=actual_expense, remaining=remaining,
+        advance=advance, net_payable=net_payable,
+        payment_status=sr["payment_status"])
 
 
 # ─────────────────────────────────────────────────────
