@@ -59,7 +59,7 @@
   </div>
   <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.85;">Total Extra Hours</div>
-    <div style="font-size:26px;font-weight:800;">{{ total_minutes|hhmm }}</div>
+    <div style="font-size:26px;font-weight:800;{% if total_minutes < 0 %}color:#ef4444;{% endif %}">{{ total_minutes|hhmm_signed }}</div>
   </div>
   <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:12px;padding:16px;color:#fff;">
     <div style="font-size:11px;opacity:.85;">Total Extra Amount</div>
@@ -101,13 +101,13 @@
         <td style="padding:10px;color:var(--muted);">{{ r.department or '—' }}</td>
         <td style="text-align:center;padding:10px;">
           {% if lock.is_locked %}
-          <span style="font-weight:800;">{{ r.extra_minutes|hhmm }}</span>
+          <span style="font-weight:800;{% if r.extra_minutes < 0 %}color:#ef4444;{% else %}color:#10b981;{% endif %}">{{ r.extra_minutes|hhmm_signed }}</span>
           {% else %}
-          <a href="javascript:void(0)" onclick="showExtraDetail('{{ r.emp_code }}')" style="color:#0096dc;font-weight:800;text-decoration:underline;cursor:pointer;">{{ r.extra_minutes|hhmm }}</a>
+          <a href="javascript:void(0)" onclick="showExtraDetail('{{ r.emp_code }}')" style="{% if r.extra_minutes < 0 %}color:#ef4444;{% else %}color:#10b981;{% endif %}font-weight:800;text-decoration:underline;cursor:pointer;">{{ r.extra_minutes|hhmm_signed }}</a>
           {% endif %}
         </td>
         <td style="text-align:center;padding:10px;">₹{{ '%.2f'|format(r.per_hr_rate) }}</td>
-        <td style="text-align:right;padding:10px 12px;font-weight:800;">₹{{ '%.2f'|format(r.extra_amount) }}</td>
+        <td style="text-align:right;padding:10px 12px;font-weight:800;{% if r.extra_amount < 0 %}color:#ef4444;{% else %}color:#10b981;{% endif %}">{% if r.extra_amount < 0 %}-{% endif %}₹{{ '%.2f'|format(r.extra_amount|abs) }}</td>
       </tr>
       {% else %}
       <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted);">No extra working hours found for this filter.</td></tr>
@@ -221,6 +221,12 @@ function hhmm(mins){
   const h = Math.floor(mins/60), m = mins % 60;
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
+// Signed version for values that can genuinely go negative (Net Extra) —
+// shows a leading "-" and the magnitude in HH:MM, e.g. "-01:14".
+function signedHhmm(mins){
+  mins = Math.round(mins || 0);
+  return (mins < 0 ? '-' : '') + hhmm(Math.abs(mins));
+}
 
 function showExtraDetail(empCode){
   if (EW_LOCKED) return;
@@ -237,10 +243,12 @@ function showExtraDetail(empCode){
         return;
       }
       document.getElementById('ewDetailTitle').textContent = `${d.emp_name} (${d.emp_code})`;
+      const netColor = d.net_extra_min < 0 ? '#ef4444' : '#10b981';
+      const amtColor = d.total_extra_amount < 0 ? '#ef4444' : '#10b981';
       document.getElementById('ewDetailSummary').innerHTML =
         `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; Per Hr Rate: <b>₹${d.per_hr_rate.toFixed(2)}</b> &nbsp;|&nbsp; ` +
         `Gross Extra: <b>${hhmm(d.total_extra_min)}</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${hhmm(d.total_shortfall_min)}</b> &nbsp;|&nbsp; ` +
-        `Net Extra: <b style="color:#10b981;">${hhmm(d.net_extra_min)}</b> &nbsp;|&nbsp; Total Amount: <b>₹${d.total_extra_amount.toFixed(2)}</b>`;
+        `Net Extra: <b style="color:${netColor};">${signedHhmm(d.net_extra_min)}</b> &nbsp;|&nbsp; Total Amount: <b style="color:${amtColor};">${d.total_extra_amount < 0 ? '-' : ''}₹${Math.abs(d.total_extra_amount).toFixed(2)}</b>`;
 
       if (!d.days.length){
         document.getElementById('ewDetailBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';

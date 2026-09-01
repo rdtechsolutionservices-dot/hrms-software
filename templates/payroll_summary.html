@@ -184,7 +184,6 @@
       <th style="padding:8px 6px;text-align:right;width:65px;cursor:pointer;color:#7c3aed;" onclick="sortTable('salTable',19)" data-sort-col="19">Loan<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       <th style="padding:8px 6px;text-align:right;width:70px;cursor:pointer;color:#7c3aed;" onclick="sortTable('salTable',19)" data-sort-col="19">Uniform<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       <th style="padding:8px 6px;text-align:right;width:65px;cursor:pointer;color:#7c3aed;" onclick="sortTable('salTable',19)" data-sort-col="19">Penalty<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
-      <th style="padding:8px 6px;text-align:center;width:50px;cursor:pointer;" onclick="sortTable('salTable',19)" data-sort-col="19">Late<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       <th style="padding:8px 6px;text-align:right;width:80px;cursor:pointer;color:#ef4444;" onclick="sortTable('salTable',19)" data-sort-col="19">Total Ded.<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       <th style="padding:8px 6px;text-align:right;width:80px;color:#10b981;font-weight:800;cursor:pointer;" onclick="sortTable('salTable',19)" data-sort-col="19">Net<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
       <th style="padding:8px 6px;text-align:center;width:70px;cursor:pointer;" onclick="sortTable('salTable',19)" data-sort-col="19">Status<span class="sort-arrow" style="font-size:9px;opacity:0.5;"> ↕</span></th>
@@ -215,7 +214,6 @@
         <td style="padding:6px 6px;text-align:right;color:#7c3aed;">{% if r.loan_deduction and r.loan_deduction>0 %}₹{{ "{:,.0f}".format(r.loan_deduction) }}{% else %}—{% endif %}</td>
         <td style="padding:6px 6px;text-align:right;color:#7c3aed;">{% if r.canteen_deduction and r.canteen_deduction>0 %}₹{{ "{:,.0f}".format(r.canteen_deduction) }}{% else %}—{% endif %}</td>
         <td style="padding:6px 6px;text-align:right;color:#7c3aed;">{% if r.fine_deduction and r.fine_deduction>0 %}₹{{ "{:,.0f}".format(r.fine_deduction) }}{% else %}—{% endif %}</td>
-        <td style="padding:6px 6px;text-align:center;{% if r.late_marks and r.late_marks > 0 %}color:#ef4444;font-weight:700;{% else %}color:var(--muted);{% endif %}">{{ r.late_marks or 0 }}</td>
         <td style="padding:6px 6px;text-align:right;color:#ef4444;font-weight:700;">₹{{ "{:,.0f}".format(r.total_deductions or 0) }}</td>
         <td style="padding:6px 6px;text-align:right;font-weight:800;color:#10b981;">₹{{ "{:,.0f}".format(r.net_salary or 0) }}</td>
         <td style="padding:6px;text-align:center;">
@@ -496,7 +494,6 @@ async function previewEmp(ec){
               <tr><td>Absent</td><td style="text-align:right;color:#ef4444;">${d.absent_days}</td></tr>
               <tr><td>Paid Leave</td><td style="text-align:right;">${d.paid_leave_days}</td></tr>
               <tr><td>WOP</td><td style="text-align:right;">${d.wop_days}</td></tr>
-              <tr><td>Late Marks</td><td style="text-align:right;">${d.late_marks}</td></tr>
               <tr><td>OT Hours</td><td style="text-align:right;color:#f59e0b;">${d.ot_hours}</td></tr>
               <tr style="border-top:1px solid var(--border);"><td><strong>Payable Days</strong></td><td style="text-align:right;font-weight:800;">${d.payable_days}</td></tr>
             </table>
@@ -625,7 +622,7 @@ async function showAttPopup(empCode, empName, month, year){
     // Day-wise table
     let tbl = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11px;">';
     tbl += '<thead><tr style="background:var(--surface);">';
-    ['Date','Day','Status','In Time','Out Time','Duration','Late','OT'].forEach(h=>{
+    ['Date','Day','Status','In Time','Out Time','Duration','OT'].forEach(h=>{
       tbl += `<th style="padding:7px 10px;text-align:center;font-weight:700;border-bottom:2px solid var(--border);">${h}</th>`;
     });
     tbl += '</tr></thead><tbody>';
@@ -639,10 +636,6 @@ async function showAttPopup(empCode, empName, month, year){
         <td style="padding:6px;text-align:center;color:#10b981;font-weight:600;">${r.in_time||'—'}</td>
         <td style="padding:6px;text-align:center;color:var(--muted);">${r.out_time||'—'}</td>
         <td style="padding:6px;text-align:center;">${r.duration||'—'}</td>
-        <td style="padding:6px;text-align:center;">${
-          r.late_waived ? '<span style="color:#10b981;font-weight:600;font-size:10px;">Waived</span>' :
-          r.late_waived ? '<span style="background:rgba(16,185,129,.15);color:#10b981;padding:1px 6px;border-radius:4px;font-size:10px;">Waived</span>' : r.late_min>0 ? '<span style="color:#f97316;">'+r.late_min+' min</span>' : '—'
-        }</td>
         <td style="padding:6px;text-align:center;color:#8b5cf6;font-weight:600;">${r.ot_hrs>0?r.ot_hrs+' hrs':'—'}</td>
       </tr>`;
     });

@@ -90,7 +90,11 @@
       <td class="st-label">Per Day Salary</td><td class="st-value">₹{{ '%.2f'|format(per_day_salary) }}</td>
     </tr>
     <tr>
+      {% if extra_amount < 0 %}
+      <td class="st-label">Extra Working (Less)</td><td class="st-value less">-₹{{ '%.2f'|format(-extra_amount) }}</td>
+      {% else %}
       <td class="st-label">Extra Working (Add)</td><td class="st-value add">+₹{{ '%.2f'|format(extra_amount) }}</td>
+      {% endif %}
       <td class="st-label">Per Hour Rate</td><td class="st-value">₹{{ '%.2f'|format(per_hr_rate) }}</td>
     </tr>
     <tr>

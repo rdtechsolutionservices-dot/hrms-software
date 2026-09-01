@@ -124,7 +124,6 @@
       <th style="padding:8px;">Out Time</th>
       <th style="padding:8px;">Hours</th>
       <th style="padding:8px;">Status</th>
-      <th style="padding:8px;">Late</th>
     </tr></thead>
     <tbody>
       {% for row in attendance_rows %}
@@ -159,21 +158,10 @@
             <span style="color:var(--muted);font-size:11px;">{{ row.status or '—' }}</span>
           {% endif %}
         </td>
-        <td style="padding:7px;text-align:center;">
-          {% if row.is_halfday_from_late %}
-            <span style="color:#ef4444;font-size:10px;font-weight:700;" title="IN after 12:30 PM — Half Day marked">Late IN</span>
-          {% elif row.late_minutes and row.late_minutes > 0 %}
-            {% if row.late_is_deducted %}
-              <span style="background:rgba(239,68,68,.12);color:#ef4444;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Salary deduction">{{ row.late_minutes }}m </span>
-            {% else %}
-              <span style="background:rgba(245,158,11,.12);color:#f59e0b;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;" title="Late #{{ row.late_serial }} — Free (no deduction)">{{ row.late_minutes }}m</span>
-            {% endif %}
-          {% else %}—{% endif %}
-        </td>
       </tr>
       {% endfor %}
       {% if not attendance_rows %}
-      <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No attendance data for this month</td></tr>
+      <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">No attendance data for this month</td></tr>
       {% endif %}
     </tbody>
   </table>

@@ -448,6 +448,12 @@ function hhmm(mins){
   const h = Math.floor(mins/60), m = mins % 60;
   return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
 }
+// Signed version for values that can genuinely go negative (Net Extra) —
+// shows a leading "-" and the magnitude in HH:MM, e.g. "-01:14".
+function signedHhmm(mins){
+  mins = Math.round(mins || 0);
+  return (mins < 0 ? '-' : '') + hhmm(Math.abs(mins));
+}
 
 const DASH_MONTH = {{ current_month }};
 const DASH_YEAR  = {{ current_year }};
@@ -469,10 +475,11 @@ function showEmpExtraDetail(empCode){
         return;
       }
       document.getElementById('empExtraTitle').textContent = `${d.emp_name} (${d.emp_code})`;
+      const netColor2 = d.net_extra_min < 0 ? '#ef4444' : '#10b981';
       document.getElementById('empExtraSummary').innerHTML =
         `Shift Hours: <b>${d.shift_hours}</b> &nbsp;|&nbsp; ` +
         `Gross Extra: <b>${hhmm(d.total_extra_min)}</b> &nbsp;|&nbsp; Short Deduction: <b style="color:#ef4444;">-${hhmm(d.total_shortfall_min)}</b> &nbsp;|&nbsp; ` +
-        `Net Extra: <b style="color:#10b981;">${hhmm(d.net_extra_min)}</b>`;
+        `Net Extra: <b style="color:${netColor2};">${signedHhmm(d.net_extra_min)}</b>`;
 
       if (!d.days.length){
         document.getElementById('empExtraBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);">No attendance records.</td></tr>';

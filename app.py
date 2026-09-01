@@ -78,6 +78,20 @@ def hhmm_filter(minutes):
     except (TypeError, ValueError):
         return "00:00"
 
+@app.template_filter('hhmm_signed')
+def hhmm_signed_filter(minutes):
+    """Minutes to HH:MM, preserving sign (e.g. -01:14) — for values that
+    can genuinely go negative, such as Extra Working's Net Extra once it
+    exceeds the hours actually worked extra. Unlike `hhmm`, never floors
+    a negative value to zero."""
+    try:
+        m = int(float(minutes or 0))
+        sign = "-" if m < 0 else ""
+        m = abs(m)
+        return f"{sign}{m//60:02d}:{m%60:02d}"
+    except (TypeError, ValueError):
+        return "00:00"
+
 @app.context_processor
 def inject_company_name():
     """Makes {{ company_name }} available in every template — driven by Branding Settings."""
@@ -2538,23 +2552,12 @@ def save_att_row(conn, emp_code, att_date, in_t, out_t, category, status="Presen
     elif status in ("WOP","Holiday"):
         c = calc_att(emp_code, in_t, out_t, category, shift=shift, status_override=status)
 
-    # ── Step 3: Late grace tracking (shift-configurable via count_late_marks) ──
+    # ── Step 3: Late tracking ───────────────────────────────────
+    # Half-day marking is DISABLED everywhere: an employee who came in
+    # always gets a full Present day, regardless of how many times they've
+    # been late this month. Shortfall hours (from lateness or otherwise)
+    # are deducted from Extra Working instead — see calc_att().
     is_hd = c["is_half_day"]
-    count_late = int(shift.get("count_late_marks", 1)) if shift else 0
-    if count_late and c["late_minutes"] > 0:
-        mn = int(att_date[5:7]); yr = int(att_date[:4])
-        if late_count_map is not None:
-            # Use preloaded map — zero DB queries
-            late_count = late_count_map.get((emp_code, mn, yr), 0)
-        elif conn is not None:
-            late_count = conn.execute("""SELECT COUNT(*) FROM attendance
-                WHERE emp_code=? AND strftime('%m',att_date)=? AND strftime('%Y',att_date)=?
-                AND late_minutes>0""",
-                (emp_code, f"{mn:02d}", str(yr))).fetchone()[0]
-        else:
-            late_count = 0
-        if late_count >= 2:
-            is_hd = 1
 
     shift_name = shift["shift_name"] if shift else ""
 
@@ -3342,7 +3345,6 @@ PERMISSION_TREE = [
     ("holidays",            "Attendance — Holiday Calendar (View)",  None,  1),
     ("holidays_edit",       "Attendance — Holiday Calendar (Edit)",  None,  1),
     ("absent_report",       "Attendance — Absent Report",       None,  1),
-    ("late_report",         "Attendance — Late Report",         None,  1),
     # Employees
     ("emp_view",            "Employees — View List",            None,  1),
     ("emp_add_edit",        "Employees — Add / Edit",           None,  1),
@@ -3450,7 +3452,6 @@ def amgr(f):
             ("/attendance/machines",    ["machines"]),
             ("/attendance/recalculate", ["att_register"]),
             ("/attendance/fix-weekly-off", ["att_register"]),
-            ("/attendance/late-report", ["late_report", "reports_att"]),
             ("/attendance",             ["att_register", "manual_entry"]),
             ("/shift-roster",           ["shift_roster"]),
             ("/shift-groups",           ["shift_roster", "masters"]),
@@ -3464,7 +3465,6 @@ def amgr(f):
             ("/holidays/clear-all",      ["holidays_edit"]),
             ("/holidays",               ["holidays", "holidays_edit"]),
             ("/absent-report",          ["absent_report", "reports_att"]),
-            ("/late-report",            ["late_report", "reports_att"]),
             ("/reports/att-data",       ["reports_att", "att_register"]),
             # Employees — specific sub-routes first
             ("/employees/calculate-salary-defaults", ["emp_add_edit"]),
@@ -5409,148 +5409,6 @@ def upload_emp_excel():
 
 # ─── ATTENDANCE ──────────────────────────────────────
 
-# ── Late Employee Management ──────────────────────
-@app.route("/attendance/late-report")
-@amgr
-def late_report():
-    m      = int(request.args.get("month", date.today().month))
-    y      = int(request.args.get("year",  date.today().year))
-    dept   = request.args.get("dept","")
-    cat    = request.args.get("cat","")
-    status_filter = request.args.get("status","pending")  # pending | approved | all
-    conn   = get_db()
-
-    ps = get_payroll_settings(conn)
-    late_free = int(ps.get("late_free_days", 2) or 2)
-
-    extra  = ""
-    params = [f"{m:02d}", str(y)]
-    if dept: extra += " AND e.department=?"; params.append(dept)
-    if cat:  extra += " AND e.category=?";   params.append(cat)
-
-    # Status filter
-    if status_filter == "pending":
-        status_extra = " AND (a.late_waived IS NULL OR a.late_waived = 0)"
-        late_filter  = " AND a.late_minutes > 0 AND (a.is_half_day IS NULL OR a.is_half_day = 0)"
-    elif status_filter == "approved":
-        status_extra = " AND a.late_waived = 1"
-        late_filter  = ""
-    else:  # all
-        status_extra = ""
-        late_filter  = " AND (a.late_minutes > 0 OR a.late_waived = 1)"
-
-    sql = f"""SELECT a.*, e.emp_name, e.department, e.category, e.designation
-        FROM attendance a JOIN employees e ON a.emp_code=e.emp_code
-        WHERE strftime('%m',a.att_date)=? AND strftime('%Y',a.att_date)=?
-        {late_filter}{status_extra}{extra}
-        ORDER BY e.emp_name, a.att_date"""
-
-    rows  = conn.execute(sql, params).fetchall()
-    depts = conn.execute("SELECT DISTINCT department FROM employees WHERE status='Active' ORDER BY department").fetchall()
-    conn.close()
-
-    # Group by employee, then mark which lates are chargeable (after free_late threshold)
-    by_emp = {}
-    for r in rows:
-        ec = r["emp_code"]
-        if ec not in by_emp:
-            by_emp[ec] = {
-                "emp_name": r["emp_name"], "department": r["department"],
-                "category": r["category"], "records": [], "total_late": 0,
-                "chargeable_late": 0
-            }
-        by_emp[ec]["records"].append(dict(r))
-
-    # Sort each employee's records by date, assign sequence number, mark chargeable
-    for ec, emp_data in by_emp.items():
-        emp_data["records"].sort(key=lambda x: x["att_date"])
-        for i, rec in enumerate(emp_data["records"], 1):
-            rec["late_seq"] = i  # 1st late, 2nd late, 3rd late…
-            rec["is_chargeable"] = (i > late_free)
-        emp_data["total_late"]      = len(emp_data["records"])
-        emp_data["chargeable_late"] = max(0, len(emp_data["records"]) - late_free)
-
-    # For "pending" view: only show employees who have chargeable lates (> free threshold)
-    if status_filter == "pending":
-        by_emp = {ec: d for ec, d in by_emp.items() if d["chargeable_late"] > 0}
-
-    return render_template("late_report.html",
-        by_emp=by_emp, month=m, year=y,
-        month_name=MONTHS[m-1], months=MONTHS,
-        departments=[d["department"] for d in depts],
-        selected_dept=dept, selected_cat=cat,
-        status_filter=status_filter,
-        late_free=late_free)
-
-@app.route("/attendance/late-waive", methods=["POST"])
-@amgr
-def late_waive():
-    """Waive late mark for an attendance record — permanently protected from recalculate"""
-    d = request.json; conn = get_db()
-    try:
-        emp_code = d.get("emp_code")
-        att_date = d.get("att_date")
-        reason   = d.get("reason","Company work")
-        # Set late_minutes=0, late_waived=1 — recalculate will never overwrite this
-        conn.execute("""UPDATE attendance
-            SET late_minutes=0, late_waived=1, remarks=?
-            WHERE emp_code=? AND att_date=?""",
-            (f"Late waived: {reason}", emp_code, att_date))
-        conn.commit()
-        return jsonify({"success":True})
-    except Exception as e:
-        return jsonify({"success":False,"error":str(e)})
-    finally: conn.close()
-
-@app.route("/attendance/late-revert", methods=["POST"])
-@amgr
-def late_revert():
-    """Revert a waived late mark back to pending (late_waived=0, restore late_minutes)"""
-    d = request.json; conn = get_db()
-    try:
-        emp_code = d.get("emp_code")
-        att_date = d.get("att_date")
-        # Recalculate late_minutes fresh from punch data
-        rec = conn.execute(
-            "SELECT in_time, out_time FROM attendance WHERE emp_code=? AND att_date=?",
-            (emp_code, att_date)).fetchone()
-        if not rec:
-            return jsonify({"success": False, "error": "Record not found"})
-        emp = conn.execute("SELECT category FROM employees WHERE emp_code=?", (emp_code,)).fetchone()
-        category = emp["category"] if emp else "Associate"
-        c = calc_att(emp_code, rec["in_time"] or None, rec["out_time"] or None, category)
-        late_min = c.get("late_minutes", 0) or 0
-        conn.execute("""UPDATE attendance
-            SET late_waived=0, late_minutes=?, remarks=NULL
-            WHERE emp_code=? AND att_date=?""",
-            (late_min, emp_code, att_date))
-        conn.commit()
-        return jsonify({"success": True, "late_minutes": late_min})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-    finally: conn.close()
-
-
-@app.route("/attendance/late-bulk-waive", methods=["POST"])
-@amgr
-def late_bulk_waive():
-    """Waive multiple late marks — permanently protected"""
-    d = request.json; conn = get_db()
-    try:
-        records = d.get("records",[])
-        reason  = d.get("reason","Company work")
-        for rec in records:
-            conn.execute("""UPDATE attendance
-                SET late_minutes=0, late_waived=1, remarks=?
-                WHERE emp_code=? AND att_date=?""",
-                (f"Late waived: {reason}", rec["emp_code"], rec["att_date"]))
-        conn.commit()
-        return jsonify({"success":True,"waived":len(records)})
-    except Exception as e:
-        return jsonify({"success":False,"error":str(e)})
-    finally: conn.close()
-
-
 # ── Manual Attendance Entry ──────────────────────────────────
 
 @app.route("/attendance/edit-record", methods=["POST"])
@@ -7420,7 +7278,9 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
     for r in rows:
         r = dict(r)
         net_min = (r["total_extra_min"] or 0) - (r["total_shortfall_min"] or 0)
-        net_min = max(0, net_min)  # short days can reduce the total but never go negative
+        # Not floored at 0 — if shortfall exceeds extra worked, the net is
+        # negative and stays negative (shows as a deduction downstream,
+        # e.g. in the Salary Sheet payslip).
         # Every active employee is shown, including those with zero extra
         # working hours this month (net_min == 0) — no skipping.
         # Use the shift assigned to the employee for THIS month (mid-month
@@ -7572,7 +7432,10 @@ def _extra_working_employee_data(conn, emp_code, m, y):
             "status":          r["status"],
         })
 
-    net_min = max(0, total_extra_min - total_shortfall_min)
+    # Not floored at 0 — if shortfall exceeds extra worked, the net is
+    # negative and stays negative (shows as a deduction downstream, e.g.
+    # in the Salary Sheet payslip).
+    net_min = total_extra_min - total_shortfall_min
     return {
         "emp_code": emp["emp_code"],
         "emp_name": emp["emp_name"],
@@ -7777,6 +7640,12 @@ def export_attendance_extra_working(m, y):
         mins = max(0, round(mins or 0))
         return f"{mins//60:02d}:{mins%60:02d}"
 
+    def hhmm_signed(mins):
+        mins = round(mins or 0)
+        sign = "-" if mins < 0 else ""
+        mins = abs(mins)
+        return f"{sign}{mins//60:02d}:{mins%60:02d}"
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = f"{MONTHS[m-1]} {y}"[:31]
@@ -7811,7 +7680,8 @@ def export_attendance_extra_working(m, y):
         c = ws[f"A{cur_row}"]
         c.value = (f"Shift Hours: {data['shift_hours']}  |  Per Hr Rate: \u20b9{data['per_hr_rate']}  |  "
                    f"Gross Extra: {hhmm(data['total_extra_min'])}  |  Short Deduction: -{hhmm(data['total_shortfall_min'])}  |  "
-                   f"Net Extra: {hhmm(data['net_extra_min'])}  |  Total Amount: \u20b9{data['total_extra_amount']}")
+                   f"Net Extra: {hhmm_signed(data['net_extra_min'])}  |  Total Amount: "
+                   f"{'-' if data['total_extra_amount'] < 0 else ''}\u20b9{abs(data['total_extra_amount'])}")
         c.font = Font(bold=False, size=10, color="FFFFFF")
         c.fill = F_INFO
         c.alignment = Alignment(horizontal="left", vertical="center")
