@@ -73,10 +73,6 @@
     <div class="doc-title-block">
       <div class="doc-title">Salary Sheet</div>
       <div class="doc-ref">{{ month_name }} {{ year }}</div>
-      <div style="margin-top:6px;">
-        {% if payment_status == 'Paid' %}<span class="status-badge status-paid">Paid</span>
-        {% else %}<span class="status-badge status-pending">{{ payment_status or 'Pending' }}</span>{% endif %}
-      </div>
     </div>
   </div>
 

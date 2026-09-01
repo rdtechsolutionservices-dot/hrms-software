@@ -21125,9 +21125,6 @@ def payslip_salary_sheet():
 @amgr
 def payslip_salary_sheet_view(emp_code, month, year):
     conn = get_db()
-    if session.get("role") == "employee" and session.get("emp_id") != emp_code:
-        conn.close()
-        return "Not authorized", 403
 
     payroll_locked = conn.execute(
         "SELECT COUNT(*) FROM payroll_locks WHERE month=? AND year=?", (month, year)).fetchone()[0] > 0
