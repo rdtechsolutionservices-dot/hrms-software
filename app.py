@@ -2813,6 +2813,7 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
         ot_minutes      = 0
         short_tot       = 0
         wo_days         = 0  # actual weekly offs (no punch)
+        day_info_list   = []  # per-day classification, built in pass 1 below
 
         # emp_weekly_off_wd already fetched above when computing wd
         emp_weekly_off = emp_weekly_off_wd  # reuse — no extra DB query needed
@@ -2875,6 +2876,33 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
                             st = "Absent"  # Past night shift, no punch = genuinely absent
                     else:
                         st = "Absent"   # Working day with no punch = Absent
+
+            day_info_list.append({"dt_str": dt_str, "is_sun": is_sun, "st": st, "is_hd": is_hd, "rec": rec})
+
+        # ── Weekly Absent Escalation ────────────────────────────
+        # If an employee has 3 or more Absent/unpaid-Leave days within a
+        # week (the 7-day block ending on their weekly-off day), that
+        # week's weekly-off is also treated as Absent — i.e. a 4th
+        # absence, with deduction for all 4 days. Only a genuine unpunched
+        # WO day is escalated (never a Holiday, and never a WO the
+        # employee actually worked — WOP).
+        _week_bucket = []
+        for _di in day_info_list:
+            _week_bucket.append(_di)
+            if _di["is_sun"]:
+                _absent_leave_ct = sum(
+                    1 for _d in _week_bucket
+                    if not _d["is_sun"] and _d["st"] in ("Absent", "Leave")
+                )
+                if _absent_leave_ct >= 3 and _di["st"] == "WO":
+                    _di["st"] = "Absent"
+                _week_bucket = []
+        # Trailing partial week at month-end (no WO day to escalate) is
+        # left as-is — nothing to escalate without a WO day in the block.
+
+        for _di in day_info_list:
+            dt_str = _di["dt_str"]; is_sun = _di["is_sun"]; st = _di["st"]
+            is_hd  = _di["is_hd"];  rec    = _di["rec"]
 
             # Count by status
             if st == "WO":
@@ -3004,8 +3032,8 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
                 if extra_halfdays > 0:
                     present_days = max(0, present_days - extra_halfdays * 0.5)
 
-        # Payable days = Present + Paid Leave + Holidays (already in paid_leave_days)
-        payable_days = present_days + paid_leave_days
+        # Payable days = Present + Paid Leave + Weekly Off + Holidays
+        payable_days = present_days + paid_leave_days + wo_days + holiday_days
 
         # ── Step 4: Salary Components ──────────────────────────
         basic = float(emp.get("basic", 0) or 0)
@@ -3013,12 +3041,32 @@ def calc_salary_emp(emp_code, month, year, preview=False, force=False):
         special = float(emp.get("special_allowance", 0) or 0)
 
         working_days = wd if wd > 0 else 26
-        per_day = basic / working_days if working_days else 0
+
+        # Fixed 30-day month basis: per-day rate is always the employee's
+        # total fixed monthly salary divided by 30, regardless of whether
+        # the calendar month actually has 28, 30, or 31 days.
+        FIXED_MONTH_DAYS = 30
+        total_monthly_salary = basic + hra + special
+        per_day = total_monthly_salary / FIXED_MONTH_DAYS if FIXED_MONTH_DAYS else 0
         per_day_salary = round(per_day, 2)  # stored in salary_records
 
-        basic_earned   = round(per_day * payable_days, 2)
-        hra_earned     = round((hra / working_days * payable_days) if working_days else 0, 2)
-        special_earned = round((special / working_days * payable_days) if working_days else 0, 2)
+        earned_total = round(per_day * payable_days, 2)
+        # payable_days can exceed 30 in a month with 31 days and no
+        # absences — never let the earned amount exceed the employee's
+        # actual fixed monthly salary.
+        if earned_total > total_monthly_salary:
+            earned_total = round(total_monthly_salary, 2)
+
+        # Split the (possibly capped) earned total back across
+        # Basic/HRA/Special in their original proportion, so downstream
+        # PF/ESI/reports that read basic_earned specifically still get a
+        # sensible, proportional figure.
+        if total_monthly_salary > 0:
+            basic_earned   = round(earned_total * (basic / total_monthly_salary), 2)
+            hra_earned     = round(earned_total * (hra / total_monthly_salary), 2)
+            special_earned = round(earned_total - basic_earned - hra_earned, 2)  # remainder — avoids rounding drift
+        else:
+            basic_earned = hra_earned = special_earned = 0.0
 
         # ── Step 5: OT — tracked only, NOT included in salary ──
         # OT is processed separately via OT Process page
