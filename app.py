@@ -7364,10 +7364,12 @@ def _get_extra_working_settings(conn):
         row = conn.execute("SELECT * FROM extra_working_settings WHERE id=1").fetchone()
     return dict(row)
 
-def _emp_shift_hours(emp_code, conn):
-    """Return the working_hours (float) of the employee's assigned shift, default 8.5."""
+def _emp_shift_hours(emp_code, conn, for_date=None):
+    """Return the working_hours (float) of the employee's shift as assigned
+    for `for_date` (roster-based months resolve correctly this way), or
+    their current/fixed shift if for_date is omitted. Default 8.5."""
     try:
-        shift, _mode = get_shift_for_emp(emp_code, conn=conn)
+        shift, _mode = get_shift_for_emp(emp_code, for_date=for_date, conn=conn)
         if shift:
             wh = float(shift.get("working_hours") or 8.5)
             if wh >= 1.0 and wh <= 24.0:
@@ -7382,11 +7384,14 @@ def _extra_working_per_hour_rate(emp, shift_hours, settings):
         amount = float(emp.get("basic") or 0)
     else:
         amount = float(emp.get("basic") or 0) + float(emp.get("hra") or 0) + float(emp.get("special_allowance") or 0)
-    days_divisor = float(settings.get("days_divisor") or 26) or 26
+    # Fixed 30-day month, same as the main payroll per-day-salary rule:
+    # rate/hr = (salary / 30) / shift working hours
+    FIXED_MONTH_DAYS = 30
     multiplier   = float(settings.get("multiplier") or 1.0)
     if shift_hours <= 0:
         shift_hours = 8.5
-    return round((amount / days_divisor / shift_hours) * multiplier, 2)
+    per_day_salary = amount / FIXED_MONTH_DAYS
+    return round((per_day_salary / shift_hours) * multiplier, 2)
 
 def _get_extra_working_lock(conn, m, y):
     row = conn.execute("SELECT * FROM extra_working_lock WHERE month=? AND year=?", (m, y)).fetchone()
@@ -7425,7 +7430,11 @@ def _compute_extra_working_live(conn, m, y, dept="", scheme_id="", search=""):
         net_min = max(0, net_min)  # short days can reduce the total but never go negative
         # Every active employee is shown, including those with zero extra
         # working hours this month (net_min == 0) — no skipping.
-        shift_hours = _emp_shift_hours(r["emp_code"], conn)
+        # Use the shift assigned to the employee for THIS month (mid-month
+        # date), so a roster-based shift change is reflected correctly
+        # instead of always resolving to today's/latest shift.
+        _shift_for_date = f"{y}-{m:02d}-15"
+        shift_hours = _emp_shift_hours(r["emp_code"], conn, for_date=_shift_for_date)
         per_hr_rate = _extra_working_per_hour_rate(r, shift_hours, settings)
         extra_hrs   = round(net_min / 60, 2)
         r["shortfall_hours"] = round((r["total_shortfall_min"] or 0) / 60, 2)
@@ -7542,7 +7551,10 @@ def extra_working_employee_detail(emp_code, m, y):
         ORDER BY att_date""", (emp_code, f"{m:02d}", str(y))).fetchall()
 
     settings = _get_extra_working_settings(conn)
-    shift_hours = _emp_shift_hours(emp_code, conn)
+    # Use the shift assigned to the employee for THIS month (mid-month date),
+    # so a roster-based shift change is reflected correctly instead of
+    # always resolving to today's/latest shift.
+    shift_hours = _emp_shift_hours(emp_code, conn, for_date=f"{y}-{m:02d}-15")
     per_hr_rate = _extra_working_per_hour_rate(emp, shift_hours, settings)
 
     days = []
