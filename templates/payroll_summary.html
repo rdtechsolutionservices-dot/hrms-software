@@ -611,12 +611,12 @@ async function showAttPopup(empCode, empName, month, year){
       {l:'WO',v:summary.wo||0,c:'#6b7280'},
       {l:'Leave',v:summary.leave||0,c:'#6366f1'},
       {l:'WOP',v:summary.wop||0,c:'#f59e0b'},
-      {l:'Half Day',v:summary.half||0,c:'#f59e0b'},
-      {l:'Late Marks',v:summary.late||0,c:'#f97316'},
-      {l:'OT (hrs)',v:summary.ot_hrs||0,c:'#8b5cf6'},
+      {l:'Extra Work',v:summary.ot_hrs||0,c:'#8b5cf6'},
+      {l:'Less Hrs',v:summary.short_hrs||0,c:'#ef4444'},
+      {l:'Net Extra Hrs',v:summary.net_extra_hrs||0,c:'#10b981'},
     ];
     sumItems.forEach(s=>{
-      if(s.v>0||s.l==='Working Days'||s.l==='Present')
+      if(s.v>0||s.l==='Working Days'||s.l==='Present'||s.l==='Extra Work'||s.l==='Less Hrs'||s.l==='Net Extra Hrs')
         sumHtml += `<div style="background:var(--surface);border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
           <div style="font-size:18px;font-weight:800;color:${s.c}">${s.v}</div>
           <div style="font-size:10px;color:var(--muted)">${s.l}</div></div>`;

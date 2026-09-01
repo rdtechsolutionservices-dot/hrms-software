@@ -2447,35 +2447,20 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         return r
 
     # ── Late coming ──────────────────────────────────────────────
-    # Shift-configurable half-day-on-late-arrival cutoff (blank = rule off).
-    hd_late_cutoff = shift.get("half_day_late_cutoff") if shift else None
-    hd_cutoff_min  = _m(hd_late_cutoff) if hd_late_cutoff else None
     if pin > sh_start + grace:
-        if hd_cutoff_min is not None and pin > hd_cutoff_min:
-            # IN time is past the shift's configured half-day cutoff →
-            # Half Day mark, NOT a late mark.
-            r["late_minutes"] = 0
-            r["is_half_day"] = 1
-            # Skip further half-day range check — already set
-        else:
-            r["late_minutes"] = pin - (sh_start + grace)
+        r["late_minutes"] = pin - (sh_start + grace)
 
     # ── Early going (short) ──────────────────────────────────────
     if pout < sh_end_adj:
         r["short_minutes"] = sh_end_adj - pout
 
-    # ── Half day check — Range based (fully shift-configurable) ──
-    hd_min = int(shift.get("half_day_min_minutes") or 180) if shift else 180
-    hd_max = int(shift.get("full_day_min_minutes") or 390) if shift else 390
-
-    if worked_net < hd_min:
-        # Below minimum → still counted present, marked half day
-        # (outright Absent is governed separately by min_present_minutes above)
-        r["is_half_day"] = 1
-    elif worked_net < hd_max:
-        # In half-day range
-        r["is_half_day"] = 1
-    # else: full day present (worked_net >= hd_max)
+    # Half-day marking is DISABLED: an employee who came in (has an IN
+    # punch) is always given a full Present day in payroll, regardless of
+    # how many hours short of the shift they worked. Whatever hours are
+    # short of the shift duration are captured below as shortfall_minutes
+    # and deducted from that month's Extra Working balance instead — the
+    # only place a shortfall now costs the employee anything.
+    r["is_half_day"] = 0
 
     # ── OT / Extra Working Calculation ───────────────────────────
     # extra_work_paid (Shift Master toggle) is the SINGLE, explicit switch
@@ -4532,7 +4517,8 @@ def att_detail_api(emp_code, month, year):
     conn = get_db()
     try:
         rows = conn.execute("""SELECT att_date,status,in_time,out_time,
-            working_minutes,late_minutes,late_waived,ot_minutes,is_half_day
+            working_minutes,late_minutes,late_waived,ot_minutes,is_half_day,
+            COALESCE(shortfall_minutes,0) as shortfall_minutes
             FROM attendance WHERE emp_code=?
             AND strftime('%m',att_date)=? AND strftime('%Y',att_date)=?
             ORDER BY att_date""", (emp_code,f"{month:02d}",str(year))).fetchall()
@@ -4540,18 +4526,20 @@ def att_detail_api(emp_code, month, year):
                            (emp_code,)).fetchone()
         conn.close()
         _days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
-        records=[]; present=absent=wo=leave=wop=half=late_c=ot_tot=0
+        records=[]; present=absent=wo=leave=wop=half=late_c=ot_tot=short_tot=0
         for r in rows:
             dt=date.fromisoformat(r["att_date"])
             wm=r["working_minutes"] or 0; ot=r["ot_minutes"] or 0
             lm=r["late_minutes"] or 0; lw=r["late_waived"] or 0
+            sh=r["shortfall_minutes"] or 0
             st=r["status"] or "—"
             # If waived, show as 0 late
             display_late = 0 if lw else lm
             records.append({"date":dt.strftime("%d %b"),"day_name":_days[dt.weekday()],
                 "status":st,"in_time":r["in_time"] or "","out_time":r["out_time"] or "",
                 "duration":f"{wm//60}:{wm%60:02d}" if wm>0 else "—",
-                "late_min":display_late,"late_waived":lw,"ot_hrs":round(ot/60,2) if ot else 0})
+                "late_min":display_late,"late_waived":lw,"ot_hrs":round(ot/60,2) if ot else 0,
+                "short_hrs":round(sh/60,2) if sh else 0})
             if st in ("Present","WOP","HP"): present+=1
             elif st=="Absent": absent+=1
             elif st=="WO": wo+=1
@@ -4559,15 +4547,19 @@ def att_detail_api(emp_code, month, year):
             if r["is_half_day"]: half+=1
             if lm>0 and not lw: late_c+=1  # Only count non-waived late
             ot_tot+=ot
+            short_tot+=sh
         from calendar import monthrange as _mr
         _wo_map2={"Monday":0,"Tuesday":1,"Wednesday":2,"Thursday":3,"Friday":4,"Saturday":5,"Sunday":6}
         wo_day=_wo_map2.get((emp["weekly_off"] if emp and emp["weekly_off"] else "Sunday"),6)
         _,dim=_mr(year,month)
         wd=sum(1 for d in range(1,dim+1) if date(year,month,d).weekday()!=wo_day)
+        net_extra_min = max(0, ot_tot - short_tot)
         return jsonify({"success":True,"records":records,
             "summary":{"working_days":wd,"present":present,"absent":absent,
                 "wo":wo,"leave":leave,"wop":wop,"half":half,
-                "late":late_c,"ot_hrs":round(ot_tot/60,1)}})
+                "late":late_c,"ot_hrs":round(ot_tot/60,1),
+                "short_hrs":round(short_tot/60,1),
+                "net_extra_hrs":round(net_extra_min/60,1)}})
     except Exception as e:
         try: conn.close()
         except: pass
@@ -7535,8 +7527,6 @@ def extra_working_settings_save():
     finally:
         conn.close()
 
-@app.route("/extra-working/employee-detail/<emp_code>/<int:m>/<int:y>")
-@amgr
 def _extra_working_employee_data(conn, emp_code, m, y):
     """Shared computation for one employee's day-by-day attendance + Extra
     Working figures for a month — used by both the JSON detail endpoint
