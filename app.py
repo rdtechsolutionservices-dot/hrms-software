@@ -6053,8 +6053,11 @@ def attendance_add_punch():
     punch_type = str(d.get("punch_type","IN")).strip().upper()  # IN or OUT
     remarks    = str(d.get("remarks","")).strip()
     extra_out  = str(d.get("out_time","") or "").strip()  # optional OUT with IN
+    is_clear   = (not punch_time and not extra_out)  # both IN & OUT left blank → remove wrong entry
 
-    if not emp_code or not punch_date or not punch_time:
+    if not emp_code or not punch_date:
+        return jsonify({"success":False,"error":"Employee and date are required."})
+    if not is_clear and not punch_time:
         return jsonify({"success":False,"error":"Employee, date and time are required."})
 
     conn = get_db()
@@ -6063,6 +6066,23 @@ def attendance_add_punch():
         if not emp:
             conn.close()
             return jsonify({"success":False,"error":f"Employee {emp_code} not found."})
+
+        # ── Clear entry: both IN & OUT submitted blank ──────────────
+        # Used to undo a wrongly-added manual punch — wipes IN/OUT for
+        # this date and marks the employee Absent that day.
+        if is_clear:
+            save_att_row(conn, emp_code, punch_date, None, None,
+                         emp["category"], status="Absent", status_override=None)
+            conn.execute("""UPDATE attendance SET
+                is_manual=1,
+                remarks=?
+                WHERE emp_code=? AND att_date=?""",
+                (f"Manual entry cleared: {remarks}" if remarks else "Manual entry cleared — marked Absent",
+                 emp_code, punch_date))
+            conn.commit()
+            conn.close()
+            msg = f"Entry cleared for {emp['emp_name']} on {punch_date} — marked Absent."
+            return jsonify({"success":True,"message":msg})
 
         punch_datetime_str = f"{punch_date} {punch_time}"
 

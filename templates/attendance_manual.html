@@ -243,15 +243,20 @@ async function addPunch(){
   const tm    = document.getElementById("s_time").value;
   const ptype = document.getElementById("s_punch_type").value;
   const rmk   = document.getElementById("s_remarks_sel").value;
+  const outTm = document.getElementById("s_out_time") ? document.getElementById("s_out_time").value : "";
 
   if(!ec)  { showToast("Please select an employee","error"); return; }
   if(!dt)  { showToast("Please select a date","error"); return; }
-  if(!tm)  { showToast("Please enter the punch time","error"); return; }
+
+  if(!tm && !outTm){
+    // Both IN Time and OUT Time left blank → remove a wrong entry for this date
+    if(!confirm("IN aur OUT Time dono khali hain — is date ki entry clear hokar employee Absent mark ho jayega. Continue?")) return;
+  } else if(!tm){
+    showToast("Please enter the punch time","error"); return;
+  }
 
   const div = document.getElementById("sResult");
-  div.innerHTML = `<div class="alert alert-warning">Adding ${ptype} punch and running cascade...</div>`;
-
-  const outTm = document.getElementById("s_out_time") ? document.getElementById("s_out_time").value : "";
+  div.innerHTML = `<div class="alert alert-warning">${tm ? `Adding ${ptype} punch and running cascade...` : "Clearing entry and marking Absent..."}</div>`;
   const r = await api("/attendance/add-punch","POST",{
     emp_code: ec, punch_date: dt, punch_time: tm,
     punch_type: ptype, remarks: rmk,
