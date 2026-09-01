@@ -2392,10 +2392,9 @@ def calc_att(emp_code, in_t, out_t, category, shift=None, status_override=None):
         if pout is not None:
             if pout < pin: pout += 24*60  # cross midnight
             worked = min(pout - pin, 24*60)
-            # Deduct 30 min break for WOP/Holiday
-            worked_after_break = max(0, worked - 30)
+            # Full worked duration counts as Extra Working — no break deduction
             r["working_minutes"] = worked
-            r["ot_minutes"]      = worked_after_break  # 30 min break deducted
+            r["ot_minutes"]      = worked
         return r
 
     # ── No OUT punch handling ────────────────────────────────────
