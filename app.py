@@ -2617,13 +2617,24 @@ def save_att_row(conn, emp_code, att_date, in_t, out_t, category, status="Presen
                 "SELECT in_time, out_time FROM attendance WHERE emp_code=? AND att_date=?",
                 (emp_code, att_date)).fetchone()
             if existing_att:
-                # Caller's value wins; fall back to stored only if caller sent nothing
-                final_in  = in_t  if in_t  else (existing_att["in_time"]  or "")
-                final_out = out_t if out_t else (existing_att["out_time"] or "")
+                if status != "Present":
+                    # Explicit non-Present status (Absent/Leave/WO/WOP/Holiday)
+                    # was requested by the caller — e.g. the "clear wrong
+                    # entry" action. Honour exactly what was given instead of
+                    # falling back to the old stored punch times, otherwise a
+                    # blank-IN/blank-OUT "clear" request would silently keep
+                    # the previous wrong punches and never reach Attendance/Payroll.
+                    final_in  = in_t or ""
+                    final_out = out_t or ""
+                    c2 = c
+                else:
+                    # Caller's value wins; fall back to stored only if caller sent nothing
+                    final_in  = in_t  if in_t  else (existing_att["in_time"]  or "")
+                    final_out = out_t if out_t else (existing_att["out_time"] or "")
 
-                # Recalculate with the resolved in/out
-                c2 = calc_att(emp_code, final_in or None, final_out or None,
-                              category, shift=shift)
+                    # Recalculate with the resolved in/out
+                    c2 = calc_att(emp_code, final_in or None, final_out or None,
+                                  category, shift=shift)
 
                 conn.execute("""UPDATE attendance SET
                     in_time=?, out_time=?,
