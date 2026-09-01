@@ -14,6 +14,7 @@
     <option value="">All Departments</option>
     {% for d in departments %}<option value="{{ d }}" {% if d==f_dept %}selected{% endif %}>{{ d }}</option>{% endfor %}
   </select>
+  <button type="button" class="btn btn-sm" style="background:rgba(0,150,220,.15);color:#0096dc;border:1px solid rgba(0,150,220,.3);" onclick="ssReload()">Refresh</button>
 </div>
 
 {% if not (payroll_locked and ew_locked) %}

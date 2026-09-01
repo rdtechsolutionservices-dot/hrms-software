@@ -21096,7 +21096,7 @@ def payslip_salary_sheet():
     conn = get_db()
 
     payroll_locked = conn.execute(
-        "SELECT COUNT(*) FROM salary_records WHERE month=? AND year=? AND locked=1", (m, y)).fetchone()[0] > 0
+        "SELECT COUNT(*) FROM payroll_locks WHERE month=? AND year=?", (m, y)).fetchone()[0] > 0
     ew_lock = conn.execute(
         "SELECT is_locked FROM extra_working_lock WHERE month=? AND year=?", (m, y)).fetchone()
     ew_locked = bool(ew_lock and ew_lock["is_locked"])
@@ -21104,8 +21104,10 @@ def payslip_salary_sheet():
     rows = []
     if payroll_locked and ew_locked:
         sql = """SELECT s.emp_code, s.net_salary, e.emp_name, e.department, e.designation
-            FROM salary_records s JOIN employees e ON s.emp_code=e.emp_code
-            WHERE s.month=? AND s.year=? AND s.locked=1"""
+            FROM salary_records s
+            JOIN employees e ON s.emp_code=e.emp_code
+            JOIN payroll_locks pl ON pl.month=s.month AND pl.year=s.year
+            WHERE s.month=? AND s.year=?"""
         params = [m, y]
         if dept:
             sql += " AND e.department=?"; params.append(dept)
@@ -21127,12 +21129,18 @@ def payslip_salary_sheet_view(emp_code, month, year):
         conn.close()
         return "Not authorized", 403
 
+    payroll_locked = conn.execute(
+        "SELECT COUNT(*) FROM payroll_locks WHERE month=? AND year=?", (month, year)).fetchone()[0] > 0
+    if not payroll_locked:
+        conn.close()
+        return "This month's payroll is not locked yet — the Salary Sheet is not available until it is.", 400
+
     sr = conn.execute("""SELECT s.*, e.emp_name, e.department, e.designation, e.basic, e.hra, e.special_allowance
         FROM salary_records s JOIN employees e ON s.emp_code=e.emp_code
         WHERE s.emp_code=? AND s.month=? AND s.year=?""", (emp_code, month, year)).fetchone()
-    if not sr or not sr["locked"]:
+    if not sr:
         conn.close()
-        return "This month's payroll is not locked yet — the Salary Sheet is not available until it is.", 400
+        return "No salary record found for this employee for this month.", 400
     ew_lock = conn.execute("SELECT is_locked FROM extra_working_lock WHERE month=? AND year=?", (month, year)).fetchone()
     if not (ew_lock and ew_lock["is_locked"]):
         conn.close()
