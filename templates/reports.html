@@ -138,6 +138,7 @@
       <button onclick="expF('salary')" class="btn btn-primary btn-sm">Salary Register (.xlsx)</button>
       <button onclick="expF('attendance')" class="btn btn-ghost btn-sm">Attendance Summary (.xlsx)</button>
       <button onclick="expF('attendance_detail_all')" class="btn btn-ghost btn-sm" style="background:rgba(245,158,11,.15);color:#f59e0b;">Attendance Detail All — Single Sheet</button>
+      <button onclick="expF('attendance_extra_working')" class="btn btn-ghost btn-sm" style="background:rgba(0,150,220,.15);color:#0096dc;">Attendance With Extra Working Report</button>
       <a href="/reports/yearly-attendance?year={{ cur_year }}" class="btn btn-ghost btn-sm" style="background:rgba(16,185,129,.15);color:#10b981;">Yearly Attendance Count</a>
       <button onclick="expF('ot')" class="btn btn-warning btn-sm">OT Report (.xlsx)</button>
       <button onclick="expF('bank')" class="btn btn-success btn-sm">Bank Transfer (.xlsx)</button>
@@ -465,6 +466,7 @@ function expF(type){
     salary:               "/export/salary/"           + m + "/" + y + p,
     attendance:           "/export/attendance/"        + m + "/" + y + p,
     attendance_detail_all:"/export/attendance-detail-all/" + m + "/" + y + p,
+    attendance_extra_working:"/export/attendance-extra-working/" + m + "/" + y + p,
     ot:                   "/export/ot/"               + m + "/" + y + p,
     bank:                 "/export/bank/"              + m + "/" + y + p,
     pf:                   "/export/pf/"               + m + "/" + y + p

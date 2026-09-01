@@ -3543,6 +3543,7 @@ def amgr(f):
             ("/salary",                 ["payroll_view"]),
             # Exports — specific first
             ("/export/attendance-detail-all", ["reports_att", "att_register"]),
+            ("/export/attendance-extra-working", ["reports_att", "reports_salary", "reports_payroll"]),
             ("/export/attendance-employee",   ["reports_att", "att_register"]),
             ("/export/attendance-range",      ["reports_att", "att_register"]),
             ("/export/attendance",      ["reports_att", "att_register"]),
@@ -7536,12 +7537,14 @@ def extra_working_settings_save():
 
 @app.route("/extra-working/employee-detail/<emp_code>/<int:m>/<int:y>")
 @amgr
-def extra_working_employee_detail(emp_code, m, y):
-    conn = get_db()
+def _extra_working_employee_data(conn, emp_code, m, y):
+    """Shared computation for one employee's day-by-day attendance + Extra
+    Working figures for a month — used by both the JSON detail endpoint
+    (popup) and the Attendance With Extra Working Report export, so the
+    two always agree."""
     emp = conn.execute("SELECT emp_code, emp_name, department, basic, hra, special_allowance FROM employees WHERE emp_code=?", (emp_code,)).fetchone()
     if not emp:
-        conn.close()
-        return jsonify({"success": False, "error": "Employee not found"})
+        return None
     emp = dict(emp)
 
     att_rows = conn.execute("""SELECT att_date, in_time, out_time, working_minutes, ot_minutes,
@@ -7580,9 +7583,7 @@ def extra_working_employee_detail(emp_code, m, y):
         })
 
     net_min = max(0, total_extra_min - total_shortfall_min)
-    conn.close()
-    return jsonify({
-        "success": True,
+    return {
         "emp_code": emp["emp_code"],
         "emp_name": emp["emp_name"],
         "department": emp.get("department"),
@@ -7596,7 +7597,17 @@ def extra_working_employee_detail(emp_code, m, y):
         "total_shortfall_min": total_shortfall_min,
         "net_extra_min": net_min,
         "days": days
-    })
+    }
+
+@app.route("/extra-working/employee-detail/<emp_code>/<int:m>/<int:y>")
+@amgr
+def extra_working_employee_detail(emp_code, m, y):
+    conn = get_db()
+    data = _extra_working_employee_data(conn, emp_code, m, y)
+    conn.close()
+    if not data:
+        return jsonify({"success": False, "error": "Employee not found"})
+    return jsonify({"success": True, **data})
 
 @app.route("/extra-working/sync", methods=["POST"])
 @amgr
@@ -7738,6 +7749,114 @@ def extra_working_export(m, y):
         ws.column_dimensions[chr(64+i)].width = w
 
     return xlresp(wb, f"Extra_Working_{MONTHS[m-1]}_{y}.xlsx")
+
+
+@app.route("/export/attendance-extra-working/<int:m>/<int:y>")
+@amgr
+def export_attendance_extra_working(m, y):
+    """Attendance With Extra Working Report — day-by-day attendance plus
+    Extra Working figures for one employee (or every employee matching the
+    filters, stacked in one sheet), in the same format shown in the Extra
+    Working module's own employee detail popup: a summary line (Shift
+    Hours, Per Hr Rate, Gross Extra, Short Deduction, Net Extra, Total
+    Amount) followed by a Date/In/Out/Worked/Extra/Short/Status table."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    emp_code = request.args.get("emp_code", "").strip()
+    dept     = request.args.get("dept", "").strip()
+    cat      = request.args.get("cat", "").strip()
+    scheme   = request.args.get("scheme", "").strip()
+
+    conn = get_db()
+    if emp_code:
+        emps = conn.execute("SELECT emp_code FROM employees WHERE emp_code=?", (emp_code,)).fetchall()
+    else:
+        sql = "SELECT emp_code FROM employees WHERE status='Active'"
+        params = []
+        if cat == "Staff":      sql += " AND category='Staff'"
+        elif cat == "NonStaff": sql += " AND category!='Staff'"
+        if dept: sql += " AND department=?"; params.append(dept)
+        if scheme:
+            sc = conn.execute("SELECT id FROM employee_schemes WHERE scheme_name=? AND is_active=1", (scheme,)).fetchone()
+            if sc: sql += " AND scheme_id=?"; params.append(sc["id"])
+        sql += " ORDER BY CAST(emp_code AS INTEGER) ASC"
+        emps = conn.execute(sql, params).fetchall()
+
+    def hhmm(mins):
+        mins = max(0, round(mins or 0))
+        return f"{mins//60:02d}:{mins%60:02d}"
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{MONTHS[m-1]} {y}"[:31]
+
+    thin = Border(*(Side(style="thin", color="CCCCCC"),) * 4)
+    F_TITLE = PatternFill("solid", fgColor="0052CC")
+    F_INFO  = PatternFill("solid", fgColor="243B55")
+    F_HDR   = PatternFill("solid", fgColor="0096DC")
+    headers = ["Date", "In", "Out", "Worked Hrs", "Extra Hrs", "Short Hrs", "Status"]
+    widths  = [14, 10, 10, 12, 12, 12, 14]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[chr(64 + i)].width = w
+
+    cur_row = 1
+    any_emp = False
+    for e in emps:
+        data = _extra_working_employee_data(conn, e["emp_code"], m, y)
+        if not data:
+            continue
+        any_emp = True
+
+        ws.merge_cells(f"A{cur_row}:G{cur_row}")
+        c = ws[f"A{cur_row}"]
+        c.value = f"{data['emp_name']} ({data['emp_code']})"
+        c.font = Font(bold=True, size=13, color="FFFFFF")
+        c.fill = F_TITLE
+        c.alignment = Alignment(horizontal="left", vertical="center")
+        ws.row_dimensions[cur_row].height = 20
+        cur_row += 1
+
+        ws.merge_cells(f"A{cur_row}:G{cur_row}")
+        c = ws[f"A{cur_row}"]
+        c.value = (f"Shift Hours: {data['shift_hours']}  |  Per Hr Rate: \u20b9{data['per_hr_rate']}  |  "
+                   f"Gross Extra: {hhmm(data['total_extra_min'])}  |  Short Deduction: -{hhmm(data['total_shortfall_min'])}  |  "
+                   f"Net Extra: {hhmm(data['net_extra_min'])}  |  Total Amount: \u20b9{data['total_extra_amount']}")
+        c.font = Font(bold=False, size=10, color="FFFFFF")
+        c.fill = F_INFO
+        c.alignment = Alignment(horizontal="left", vertical="center")
+        ws.row_dimensions[cur_row].height = 16
+        cur_row += 1
+
+        for i, h in enumerate(headers, 1):
+            cell = ws.cell(row=cur_row, column=i, value=h)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = F_HDR
+            cell.border = thin
+            cell.alignment = Alignment(horizontal="center")
+        cur_row += 1
+
+        for d in data["days"]:
+            ws.cell(cur_row, 1, d["date"]).border = thin
+            ws.cell(cur_row, 2, d["in_time"]).border = thin
+            ws.cell(cur_row, 3, d["out_time"]).border = thin
+            ws.cell(cur_row, 4, hhmm(d["working_min"])).border = thin
+            ws.cell(cur_row, 5, hhmm(d["extra_min"])).border = thin
+            ws.cell(cur_row, 6, (f"-{hhmm(d['shortfall_min'])}" if d["shortfall_min"] > 0 else "-")).border = thin
+            ws.cell(cur_row, 7, d["status"]).border = thin
+            for col in range(1, 8):
+                ws.cell(cur_row, col).alignment = Alignment(horizontal="center")
+            cur_row += 1
+
+        cur_row += 1  # blank separator row before next employee's block
+
+    conn.close()
+    if not any_emp:
+        ws.cell(1, 1, "No attendance data found for the selected filters.")
+
+    fname = f"Attendance_With_Extra_Working_{MONTHS[m-1]}_{y}"
+    fname += f"_{emp_code}" if emp_code else ""
+    return xlresp(wb, f"{fname}.xlsx")
 
 
 # ════════════════════════════════════════════════════════════
