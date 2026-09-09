@@ -5,7 +5,7 @@
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
   <div style="font-size:12px;color:var(--muted);max-width:560px;">
-    Submit fuel, hotel, food, or other trip costs from company travel here. Your claim goes to your department
+    Submit your vehicle travel expense based on odometer readings. Your claim goes to your department
     head for approval, then to Payroll for payout processing.
   </div>
   <button class="btn btn-primary" onclick="openModal('teApplyModal')">+ New Claim</button>
@@ -16,8 +16,8 @@
   <table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="border-bottom:2px solid var(--border);">
       <th style="text-align:left;padding:8px 12px;">Purpose</th>
-      <th style="text-align:left;padding:8px;">Travel</th>
-      <th style="text-align:left;padding:8px;">Dates</th>
+      <th style="text-align:left;padding:8px;">Date</th>
+      <th style="text-align:right;padding:8px;">KM</th>
       <th style="text-align:right;padding:8px;">Amount</th>
       <th style="text-align:center;padding:8px;">Status</th>
       <th style="text-align:left;padding:8px 12px;">Remarks</th>
@@ -28,12 +28,12 @@
       <tr style="border-bottom:1px solid var(--border);" id="claim_{{ c.id }}">
         <td style="padding:8px 12px;">
           <div style="font-weight:600;">{{ c.purpose or 'Travel Expense Claim' }}</div>
-          <div style="font-size:10px;color:var(--muted);">
-            {% for it in c.line_items %}{{ it.category }}: ₹{{ '%.2f'|format(it.amount) }}{% if it.has_receipt %} <a href="/my-travel-expense/receipt/{{ it.id }}" target="_blank" style="color:#0096dc;">Receipt</a>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
-          </div>
+          {% if c.meter_reading_from is not none and c.meter_reading_to is not none %}
+          <div style="font-size:10px;color:var(--muted);">{{ '%g'|format(c.meter_reading_from) }} → {{ '%g'|format(c.meter_reading_to) }}</div>
+          {% endif %}
         </td>
-        <td style="padding:8px;">{{ c.travel_from or '—' }} → {{ c.travel_to or '—' }}</td>
-        <td style="padding:8px;">{{ c.from_date or '—' }}{% if c.to_date and c.to_date != c.from_date %} to {{ c.to_date }}{% endif %}</td>
+        <td style="padding:8px;">{{ c.from_date or '—' }}</td>
+        <td style="text-align:right;padding:8px;">{{ '%.1f'|format(c.total_km or 0) }}</td>
         <td style="text-align:right;padding:8px;font-weight:800;">₹{{ '%.2f'|format(c.total_amount or 0) }}</td>
         <td style="text-align:center;padding:8px;">
           {% if c.status == 'Pending' %}<span style="color:#f59e0b;">Pending</span>
@@ -61,46 +61,66 @@
 
 <!-- Apply Modal -->
 <div class="modal-overlay" id="teApplyModal">
-  <div class="modal" style="width:640px;max-width:94vw;max-height:88vh;overflow:auto;">
-    <div class="modal-header">
-      <span class="modal-title">New Travel Expense Claim</span>
-      <button class="modal-close" onclick="closeModal('teApplyModal')"></button>
+  <div class="modal" style="width:520px;max-width:94vw;max-height:88vh;overflow:auto;padding:0;">
+
+    <!-- Banner header -->
+    <div style="background:linear-gradient(135deg,#3b82f6,#2563eb);border-top-left-radius:18px;border-top-right-radius:18px;
+                padding:22px 24px;color:#fff;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-10px;top:-10px;font-size:70px;opacity:.18;line-height:1;">📍</div>
+      <div style="display:flex;align-items:center;gap:14px;position:relative;">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🚗</div>
+        <div>
+          <div style="font-weight:800;font-size:18px;font-family:Syne,sans-serif;">New Travel Expense Claim</div>
+          <div style="font-size:12px;opacity:.9;margin-top:2px;">Fill in the travel details to claim your expense</div>
+        </div>
+      </div>
+      <button type="button" class="modal-close" onclick="closeModal('teApplyModal')"
+        style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);color:#fff;"></button>
     </div>
-    <form id="teApplyForm" enctype="multipart/form-data">
+
+    <form id="teApplyForm">
       <div class="modal-body">
-        <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label">Purpose</label>
-          <input class="form-control" type="text" name="purpose" placeholder="e.g. Client visit to Pune" required>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Purpose <span style="color:#ef4444;">*</span></label>
+          <input class="form-control" type="text" id="te_purpose" name="purpose" placeholder="e.g. Client visit to Pune" required>
         </div>
-        <div style="display:flex;gap:10px;margin-bottom:12px;">
-          <div class="form-group" style="flex:1;margin:0;">
-            <label class="form-label">Travel From</label>
-            <input class="form-control" type="text" name="travel_from" placeholder="City / Location">
-          </div>
-          <div class="form-group" style="flex:1;margin:0;">
-            <label class="form-label">Travel To</label>
-            <input class="form-control" type="text" name="travel_to" placeholder="City / Location">
-          </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Date <span style="color:#ef4444;">*</span></label>
+          <input class="form-control" type="date" id="te_date" name="claim_date" value="{{ today }}" required>
         </div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;">
+
+        <div style="display:flex;gap:12px;margin-bottom:16px;">
           <div class="form-group" style="flex:1;margin:0;">
-            <label class="form-label">From Date</label>
-            <input class="form-control" type="date" name="from_date" value="{{ today }}">
+            <label class="form-label">Vehicle Meter Reading From <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="number" step="0.1" min="0" id="te_meter_from" name="meter_from"
+              placeholder="e.g. 12500" required oninput="teUpdateTotal()">
           </div>
           <div class="form-group" style="flex:1;margin:0;">
-            <label class="form-label">To Date</label>
-            <input class="form-control" type="date" name="to_date" value="{{ today }}">
+            <label class="form-label">Vehicle Meter Reading To <span style="color:#ef4444;">*</span></label>
+            <input class="form-control" type="number" step="0.1" min="0" id="te_meter_to" name="meter_to"
+              placeholder="e.g. 12750" required oninput="teUpdateTotal()">
           </div>
         </div>
 
-        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Expense Items</div>
-        <div id="teItemsBody"></div>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="teAddItem()" style="margin-top:6px;">+ Add Item</button>
-
-        <div style="text-align:right;margin-top:14px;font-weight:800;font-size:14px;">
-          Total: ₹<span id="teTotal">0.00</span>
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:26px;">🛣️</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#2563eb;">Total KM</div>
+              <div style="font-size:22px;font-weight:800;color:#1d4ed8;" id="teTotalKm">0</div>
+            </div>
+          </div>
+          <div style="flex:1;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:26px;">💰</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#059669;">Total Amount</div>
+              <div style="font-size:22px;font-weight:800;color:#047857;">₹<span id="teTotalAmount">0.00</span></div>
+            </div>
+          </div>
         </div>
-        <div id="teApplyError" style="color:#ef4444;font-size:12px;margin-top:8px;display:none;"></div>
+
+        <div id="teApplyError" style="color:#ef4444;font-size:12px;margin-top:12px;display:none;"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" onclick="closeModal('teApplyModal')">Cancel</button>
@@ -113,42 +133,29 @@
 {% endblock %}
 {% block scripts %}
 <script>
-const TE_CATEGORIES = {{ categories|tojson }};
-let teItemIdx = 0;
+const TE_FUEL_RATE = {{ fuel_rate }};
 
-function teItemRow(){
-  const opts = TE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
-  const idx = teItemIdx++;
-  const row = document.createElement('div');
-  row.className = 'te-item-row';
-  row.dataset.idx = idx;
-  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;';
-  row.innerHTML = `
-    <select class="form-control" name="item_category[]" style="width:150px;">${opts}</select>
-    <input class="form-control" type="date" name="item_date[]" style="width:140px;" value="{{ today }}">
-    <input class="form-control" type="text" name="item_description[]" placeholder="Description" style="flex:1;min-width:120px;">
-    <input class="form-control te-amount" type="number" step="0.01" min="0" name="item_amount[]" placeholder="Amount" style="width:100px;" oninput="teUpdateTotal()">
-    <input class="form-control" type="number" step="0.1" min="0" name="item_km[]" placeholder="KM (fuel)" style="width:90px;">
-    <input type="file" name="item_receipt[]" accept="image/*,.pdf" style="width:130px;font-size:11px;">
-    <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.te-item-row').remove(); teUpdateTotal();" style="color:#ef4444;">✕</button>
-  `;
-  return row;
-}
-function teAddItem(){
-  document.getElementById('teItemsBody').appendChild(teItemRow());
-}
 function teUpdateTotal(){
-  let total = 0;
-  document.querySelectorAll('.te-amount').forEach(inp => { total += parseFloat(inp.value || 0); });
-  document.getElementById('teTotal').textContent = total.toFixed(2);
+  const from = parseFloat(document.getElementById('te_meter_from').value || 0);
+  const to   = parseFloat(document.getElementById('te_meter_to').value || 0);
+  const km   = (to > from) ? (to - from) : 0;
+  document.getElementById('teTotalKm').textContent = km ? km.toFixed(km % 1 === 0 ? 0 : 1) : '0';
+  document.getElementById('teTotalAmount').textContent = (km * TE_FUEL_RATE).toFixed(2);
 }
-// Start with one row
-document.addEventListener('DOMContentLoaded', teAddItem);
 
 document.getElementById('teApplyForm').addEventListener('submit', function(e){
   e.preventDefault();
   const errEl = document.getElementById('teApplyError');
   errEl.style.display = 'none';
+
+  const from = parseFloat(document.getElementById('te_meter_from').value || 0);
+  const to   = parseFloat(document.getElementById('te_meter_to').value || 0);
+  if (to <= from){
+    errEl.textContent = 'Meter Reading To must be greater than Meter Reading From';
+    errEl.style.display = 'block';
+    return;
+  }
+
   const fd = new FormData(this);
   fetch('/my-travel-expense/apply', {method:'POST', body: fd})
     .then(r => r.json())
