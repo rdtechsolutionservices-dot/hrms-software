@@ -257,6 +257,7 @@ async function addPunch(){
 
   const div = document.getElementById("sResult");
   div.innerHTML = `<div class="alert alert-warning">${tm ? `Adding ${ptype} punch and running cascade...` : "Clearing entry and marking Absent..."}</div>`;
+
   const r = await api("/attendance/add-punch","POST",{
     emp_code: ec, punch_date: dt, punch_time: tm,
     punch_type: ptype, remarks: rmk,

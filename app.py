@@ -325,16 +325,10 @@ def init_db():
         amount REAL DEFAULT 0,
         receipt_data BLOB,
         receipt_filename TEXT)""")
-    # distance_km — optional, mainly for Fuel items; feeds the "Total KM Run" line
+    # distance_km — optional, mainly for Fuel items; feeds the "Petrol (KM)" line
     # on the Salary Sheet payslip. Added via ALTER for installs where the table
     # already existed before this column was introduced.
     try: c.execute("ALTER TABLE travel_expense_items ADD COLUMN distance_km REAL DEFAULT 0")
-    except: pass
-    # Vehicle odometer readings for the simplified (Fuel-only) claim form —
-    # claim amount/KM are derived from these two readings.
-    try: c.execute("ALTER TABLE travel_expense_claims ADD COLUMN meter_reading_from REAL")
-    except: pass
-    try: c.execute("ALTER TABLE travel_expense_claims ADD COLUMN meter_reading_to REAL")
     except: pass
 
     # ── Imprest — company advance issued to an employee for company work,
@@ -3412,6 +3406,7 @@ PERMISSION_TREE = [
     ("letter_admin",        "Letters — Generator Admin (Header/Footer/Seal/Signatures/Templates)", None, 1),
     # Reports (additional)
     ("yearly_att",         "Reports — Yearly Attendance",       None,  1),
+    ("report_recalculate", "Reports — Recalculate Attendance",  None,  1),
     # Admin
     ("users",               "Admin — User Management",          None,  1),
     # Self-service (always available to employees)
@@ -3466,7 +3461,7 @@ def amgr(f):
             ("/attendance/punch-log",   ["manual_entry"]),
             ("/attendance/reimport-employee", ["manual_entry"]),
             ("/attendance/machines",    ["machines"]),
-            ("/attendance/recalculate", ["att_register"]),
+            ("/attendance/recalculate", ["att_register", "report_recalculate"]),
             ("/attendance/fix-weekly-off", ["att_register"]),
             ("/attendance",             ["att_register", "manual_entry"]),
             ("/shift-roster",           ["shift_roster"]),
@@ -7690,8 +7685,10 @@ def export_attendance_extra_working(m, y):
     F_TITLE = PatternFill("solid", fgColor="0052CC")
     F_INFO  = PatternFill("solid", fgColor="243B55")
     F_HDR   = PatternFill("solid", fgColor="0096DC")
-    headers = ["Date", "In", "Out", "Worked Hrs", "Extra Hrs", "Short Hrs", "Status"]
-    widths  = [14, 10, 10, 12, 12, 12, 14]
+    headers = ["Date", "In", "Out", "Worked Hrs", "Extra Hrs", "Short Hrs", "Status",
+               "Meter Reading Start", "Meter Reading End", "Total KM Run", "Purpose"]
+    widths  = [14, 10, 10, 12, 12, 12, 14, 16, 16, 14, 24]
+    last_col_letter = chr(64 + len(headers))  # "K"
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[chr(64 + i)].width = w
 
@@ -7703,7 +7700,33 @@ def export_attendance_extra_working(m, y):
             continue
         any_emp = True
 
-        ws.merge_cells(f"A{cur_row}:G{cur_row}")
+        # Travel Expense (approved) data for this employee/month, day-wise \u2014
+        # feeds the Meter Reading Start/End, Total KM Run and Purpose columns.
+        # Sourced from claims that have cleared department-head Approval
+        # (Approved/Processed/Paid), keyed by the claim's date.
+        travel_rows = conn.execute("""
+            SELECT c.from_date, c.meter_reading_from, c.meter_reading_to, c.purpose,
+                   COALESCE((SELECT SUM(i.distance_km) FROM travel_expense_items i
+                             WHERE i.claim_id=c.id), 0) as km
+            FROM travel_expense_claims c
+            WHERE c.emp_code=? AND c.status IN ('Approved','Processed','Paid')
+              AND strftime('%m',c.from_date)=? AND strftime('%Y',c.from_date)=?
+            ORDER BY c.from_date""", (e["emp_code"], f"{m:02d}", str(y))).fetchall()
+        travel_by_date = {}
+        emp_total_km = 0.0
+        for tr in travel_rows:
+            slot = travel_by_date.setdefault(tr["from_date"],
+                {"meter_from": None, "meter_to": None, "km": 0.0, "purposes": []})
+            if tr["meter_reading_from"] is not None:
+                slot["meter_from"] = tr["meter_reading_from"] if slot["meter_from"] is None else min(slot["meter_from"], tr["meter_reading_from"])
+            if tr["meter_reading_to"] is not None:
+                slot["meter_to"] = tr["meter_reading_to"] if slot["meter_to"] is None else max(slot["meter_to"], tr["meter_reading_to"])
+            slot["km"] += tr["km"] or 0
+            emp_total_km += tr["km"] or 0
+            if tr["purpose"]:
+                slot["purposes"].append(tr["purpose"])
+
+        ws.merge_cells(f"A{cur_row}:{last_col_letter}{cur_row}")
         c = ws[f"A{cur_row}"]
         c.value = f"{data['emp_name']} ({data['emp_code']})"
         c.font = Font(bold=True, size=13, color="FFFFFF")
@@ -7712,12 +7735,13 @@ def export_attendance_extra_working(m, y):
         ws.row_dimensions[cur_row].height = 20
         cur_row += 1
 
-        ws.merge_cells(f"A{cur_row}:G{cur_row}")
+        ws.merge_cells(f"A{cur_row}:{last_col_letter}{cur_row}")
         c = ws[f"A{cur_row}"]
         c.value = (f"Shift Hours: {data['shift_hours']}  |  Per Hr Rate: \u20b9{data['per_hr_rate']}  |  "
                    f"Gross Extra: {hhmm(data['total_extra_min'])}  |  Short Deduction: -{hhmm(data['total_shortfall_min'])}  |  "
                    f"Net Extra: {hhmm_signed(data['net_extra_min'])}  |  Total Amount: "
-                   f"{'-' if data['total_extra_amount'] < 0 else ''}\u20b9{abs(data['total_extra_amount'])}")
+                   f"{'-' if data['total_extra_amount'] < 0 else ''}\u20b9{abs(data['total_extra_amount'])}  |  "
+                   f"Total KM Run: {emp_total_km:g}")
         c.font = Font(bold=False, size=10, color="FFFFFF")
         c.fill = F_INFO
         c.alignment = Alignment(horizontal="left", vertical="center")
@@ -7733,6 +7757,12 @@ def export_attendance_extra_working(m, y):
         cur_row += 1
 
         for d in data["days"]:
+            tinfo = travel_by_date.get(d["date"])
+            meter_start = f"{tinfo['meter_from']:g}" if tinfo and tinfo["meter_from"] is not None else ""
+            meter_end   = f"{tinfo['meter_to']:g}"   if tinfo and tinfo["meter_to"]   is not None else ""
+            day_km      = f"{tinfo['km']:g}" if tinfo and tinfo["km"] else ""
+            day_purpose = ", ".join(tinfo["purposes"]) if tinfo and tinfo["purposes"] else ""
+
             ws.cell(cur_row, 1, d["date"]).border = thin
             ws.cell(cur_row, 2, d["in_time"]).border = thin
             ws.cell(cur_row, 3, d["out_time"]).border = thin
@@ -7740,7 +7770,11 @@ def export_attendance_extra_working(m, y):
             ws.cell(cur_row, 5, hhmm(d["extra_min"])).border = thin
             ws.cell(cur_row, 6, (f"-{hhmm(d['shortfall_min'])}" if d["shortfall_min"] > 0 else "-")).border = thin
             ws.cell(cur_row, 7, d["status"]).border = thin
-            for col in range(1, 8):
+            ws.cell(cur_row, 8, meter_start).border = thin
+            ws.cell(cur_row, 9, meter_end).border = thin
+            ws.cell(cur_row, 10, day_km).border = thin
+            ws.cell(cur_row, 11, day_purpose).border = thin
+            for col in range(1, len(headers) + 1):
                 ws.cell(cur_row, col).alignment = Alignment(horizontal="center")
             cur_row += 1
 
@@ -20676,15 +20710,12 @@ def dept_head_outside_attendance_action(req_id):
 
 # ─────────────────────────────────────────────────────
 #  TRAVEL EXPENSE CLAIMS
-#  Employee applies with vehicle odometer readings (From/To) -> Total KM and
-#  Total Amount are auto-calculated (KM × per-KM fuel rate) -> their
-#  Department Head approves or rejects it -> once Approved, it lands in
-#  Payroll/Finance's "Process Payout" queue (Processed -> Paid). Once
-#  Processed for a payout month, the claim's amount/KM flow into that
-#  employee's Salary Sheet for that month as "Fuel Expenses (Add)" /
-#  "Total KM Run".
+#  Employee applies (itemised: Fuel/Hotel/Food/Local Conveyance/Other,
+#  with optional receipt per item) -> their Department Head approves or
+#  rejects it -> once Approved, Payroll/Finance processes it for payout
+#  (Processed -> Paid), and it feeds the Payroll Insights "Expense" metric.
 # ─────────────────────────────────────────────────────
-FUEL_RATE_PER_KM = 3.5  # ₹ per KM used to auto-calculate the claim amount
+TRAVEL_EXPENSE_CATEGORIES = ["Fuel", "Hotel/Lodging", "Food", "Local Conveyance", "Toll/Parking", "Other"]
 
 def _current_emp_code():
     """emp_code of the logged-in self-service employee, or None for admin/HR users."""
@@ -20701,12 +20732,13 @@ def my_travel_expense():
         WHERE emp_code=? ORDER BY submitted_on DESC""", (emp_code,)).fetchall()
     claims = [dict(c) for c in claims]
     for c in claims:
-        km_row = conn.execute("""SELECT COALESCE(SUM(distance_km),0) as km
-            FROM travel_expense_items WHERE claim_id=?""", (c["id"],)).fetchone()
-        c["total_km"] = km_row["km"] or 0
+        items = conn.execute("""SELECT id, category, expense_date, description, amount,
+            CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
+            FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
+        c["line_items"] = [dict(i) for i in items]
     conn.close()
     return render_template("my_travel_expense.html", claims=claims,
-        fuel_rate=FUEL_RATE_PER_KM, today=date.today().strftime("%Y-%m-%d"))
+        categories=TRAVEL_EXPENSE_CATEGORIES, today=date.today().strftime("%Y-%m-%d"))
 
 @app.route("/my-travel-expense/apply", methods=["POST"])
 @amgr
@@ -20720,51 +20752,65 @@ def my_travel_expense_apply():
         department = emp["department"] if emp else None
 
         purpose      = (request.form.get("purpose") or "").strip()
-        claim_date   = (request.form.get("claim_date") or "").strip()
+        from_date    = (request.form.get("from_date") or "").strip()
+        to_date      = (request.form.get("to_date") or "").strip()
+        travel_from  = (request.form.get("travel_from") or "").strip()
+        travel_to    = (request.form.get("travel_to") or "").strip()
 
-        try:
-            meter_from = float(request.form.get("meter_from") or 0)
-        except ValueError:
-            meter_from = None
-        try:
-            meter_to = float(request.form.get("meter_to") or 0)
-        except ValueError:
-            meter_to = None
+        categories    = request.form.getlist("item_category[]")
+        exp_dates     = request.form.getlist("item_date[]")
+        descriptions  = request.form.getlist("item_description[]")
+        amounts       = request.form.getlist("item_amount[]")
+        kms           = request.form.getlist("item_km[]")
+        receipt_files = request.files.getlist("item_receipt[]")
 
-        if not purpose:
+        if not categories:
             conn.close()
-            return jsonify({"success": False, "error": "Purpose is required"})
-        if not claim_date:
-            conn.close()
-            return jsonify({"success": False, "error": "Date is required"})
-        if meter_from is None or meter_to is None:
-            conn.close()
-            return jsonify({"success": False, "error": "Vehicle meter reading From/To are required"})
-        if meter_to <= meter_from:
-            conn.close()
-            return jsonify({"success": False, "error": "Meter Reading To must be greater than Meter Reading From"})
-
-        total_km = round(meter_to - meter_from, 1)
-        total = round(total_km * FUEL_RATE_PER_KM, 2)
+            return jsonify({"success": False, "error": "Add at least one expense line item"})
 
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         cur = conn.execute("""INSERT INTO travel_expense_claims
-            (emp_code, department, purpose, from_date, to_date,
-             meter_reading_from, meter_reading_to, total_amount, status, submitted_on)
-            VALUES (?,?,?,?,?,?,?,?,'Pending',?)""",
-            (emp_code, department, purpose, claim_date, claim_date,
-             meter_from, meter_to, total, now_str))
+            (emp_code, department, purpose, from_date, to_date, travel_from, travel_to,
+             total_amount, status, submitted_on)
+            VALUES (?,?,?,?,?,?,?,0,'Pending',?)""",
+            (emp_code, department, purpose, from_date or None, to_date or None,
+             travel_from, travel_to, now_str))
         claim_id = cur.lastrowid
 
-        conn.execute("""INSERT INTO travel_expense_items
-            (claim_id, category, expense_date, description, amount, distance_km)
-            VALUES (?,?,?,?,?,?)""",
-            (claim_id, "Fuel", claim_date,
-             f"Vehicle meter reading: {meter_from:g} → {meter_to:g}", total, total_km))
+        total = 0.0
+        for i in range(len(categories)):
+            try:
+                amt = float(amounts[i] or 0)
+            except (ValueError, IndexError):
+                amt = 0.0
+            if amt <= 0:
+                continue
+            total += amt
+            try:
+                km = float(kms[i]) if i < len(kms) and kms[i] else 0
+            except ValueError:
+                km = 0
+            receipt_data = None; receipt_filename = None
+            f = receipt_files[i] if i < len(receipt_files) else None
+            if f and f.filename:
+                receipt_data = f.read()
+                receipt_filename = secure_filename(f.filename)
+            conn.execute("""INSERT INTO travel_expense_items
+                (claim_id, category, expense_date, description, amount, receipt_data, receipt_filename, distance_km)
+                VALUES (?,?,?,?,?,?,?,?)""",
+                (claim_id, categories[i], exp_dates[i] if i < len(exp_dates) else None,
+                 descriptions[i] if i < len(descriptions) else "", amt,
+                 receipt_data, receipt_filename, km))
 
+        if total <= 0:
+            conn.rollback()
+            conn.close()
+            return jsonify({"success": False, "error": "Total claim amount must be greater than zero"})
+
+        conn.execute("UPDATE travel_expense_claims SET total_amount=? WHERE id=?", (total, claim_id))
         conn.commit()
         conn.close()
-        return jsonify({"success": True, "message": f"Claim submitted for ₹{total:.2f} ({total_km:g} KM) — sent to your department head for approval."})
+        return jsonify({"success": True, "message": f"Claim submitted for ₹{total:.2f} — sent to your department head for approval."})
     except Exception as e:
         conn.close()
         return jsonify({"success": False, "error": str(e)})
