@@ -33,7 +33,7 @@
       <th style="text-align:left;padding:8px 12px;">Employee</th>
       <th style="text-align:left;padding:8px;">Department</th>
       <th style="text-align:left;padding:8px;">Designation</th>
-      <th style="text-align:right;padding:8px;">Net Payable (Original Payslip)</th>
+      <th style="text-align:right;padding:8px;">NET PAYABLE</th>
       <th style="text-align:center;padding:8px 12px;"></th>
     </tr></thead>
     <tbody>
@@ -42,7 +42,7 @@
         <td style="padding:8px 12px;font-weight:700;">{{ r.emp_name }} <span style="color:var(--muted);font-weight:400;">({{ r.emp_code }})</span></td>
         <td style="padding:8px;color:var(--muted);">{{ r.department or '—' }}</td>
         <td style="padding:8px;color:var(--muted);">{{ r.designation or '—' }}</td>
-        <td style="text-align:right;padding:8px;">₹{{ '%.2f'|format(r.net_salary or 0) }}</td>
+        <td style="text-align:right;padding:8px;">₹{{ '%.2f'|format(r.net_payable if r.net_payable is defined else (r.net_salary or 0)) }}</td>
         <td style="text-align:center;padding:8px 12px;">
           <a href="/payslip/salary-sheet/view/{{ r.emp_code }}/{{ month }}/{{ year }}" target="_blank"
             class="btn btn-sm btn-primary">View Salary Sheet</a>

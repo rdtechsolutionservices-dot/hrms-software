@@ -152,7 +152,7 @@
 <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
     <div style="font-weight:800;font-size:13px;font-family:Syne,sans-serif;">Attendance — {{ month_name }} {{ year }}</div>
-    {% if is_admin or 'report_recalculate' in perms %}
+    {% if is_admin or 'report_recalculate' in perms or 'report_recalculate_edit' in perms %}
     <label style="cursor:pointer;display:flex;align-items:center;gap:6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:5px 10px;">
       <input type="checkbox" id="recalcCheck" onchange="toggleRecalc()">
       <span style="font-size:11px;font-weight:700;color:var(--yellow);">Recalculate</span>

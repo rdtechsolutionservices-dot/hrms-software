@@ -330,6 +330,12 @@ def init_db():
     # already existed before this column was introduced.
     try: c.execute("ALTER TABLE travel_expense_items ADD COLUMN distance_km REAL DEFAULT 0")
     except: pass
+    # Vehicle odometer readings for the simplified (Fuel-only) claim form —
+    # claim amount/KM are derived from these two readings.
+    try: c.execute("ALTER TABLE travel_expense_claims ADD COLUMN meter_reading_from REAL")
+    except: pass
+    try: c.execute("ALTER TABLE travel_expense_claims ADD COLUMN meter_reading_to REAL")
+    except: pass
 
     # ── Imprest — company advance issued to an employee for company work,
     # reconciled against their actual spend each month; the difference feeds
@@ -3406,7 +3412,8 @@ PERMISSION_TREE = [
     ("letter_admin",        "Letters — Generator Admin (Header/Footer/Seal/Signatures/Templates)", None, 1),
     # Reports (additional)
     ("yearly_att",         "Reports — Yearly Attendance",       None,  1),
-    ("report_recalculate", "Reports — Recalculate Attendance",  None,  1),
+    ("report_recalculate",      "Reports — Recalculate Attendance (View)", None,  1),
+    ("report_recalculate_edit", "Reports — Recalculate Attendance (Use/Edit)", None,  1),
     # Admin
     ("users",               "Admin — User Management",          None,  1),
     # Self-service (always available to employees)
@@ -3461,7 +3468,7 @@ def amgr(f):
             ("/attendance/punch-log",   ["manual_entry"]),
             ("/attendance/reimport-employee", ["manual_entry"]),
             ("/attendance/machines",    ["machines"]),
-            ("/attendance/recalculate", ["att_register", "report_recalculate"]),
+            ("/attendance/recalculate", ["att_register", "report_recalculate_edit"]),
             ("/attendance/fix-weekly-off", ["att_register"]),
             ("/attendance",             ["att_register", "manual_entry"]),
             ("/shift-roster",           ["shift_roster"]),
@@ -20710,12 +20717,15 @@ def dept_head_outside_attendance_action(req_id):
 
 # ─────────────────────────────────────────────────────
 #  TRAVEL EXPENSE CLAIMS
-#  Employee applies (itemised: Fuel/Hotel/Food/Local Conveyance/Other,
-#  with optional receipt per item) -> their Department Head approves or
-#  rejects it -> once Approved, Payroll/Finance processes it for payout
-#  (Processed -> Paid), and it feeds the Payroll Insights "Expense" metric.
+#  Employee applies with vehicle odometer readings (From/To) -> Total KM and
+#  Total Amount are auto-calculated (KM × per-KM fuel rate) -> their
+#  Department Head approves or rejects it -> once Approved, it lands in
+#  Payroll/Finance's "Process Payout" queue (Processed -> Paid). Once
+#  Processed for a payout month, the claim's amount/KM flow into that
+#  employee's Salary Sheet for that month as "Fuel Expenses (Add)" /
+#  "Total KM Run".
 # ─────────────────────────────────────────────────────
-TRAVEL_EXPENSE_CATEGORIES = ["Fuel", "Hotel/Lodging", "Food", "Local Conveyance", "Toll/Parking", "Other"]
+FUEL_RATE_PER_KM = 3.5  # ₹ per KM used to auto-calculate the claim amount
 
 def _current_emp_code():
     """emp_code of the logged-in self-service employee, or None for admin/HR users."""
@@ -20732,13 +20742,12 @@ def my_travel_expense():
         WHERE emp_code=? ORDER BY submitted_on DESC""", (emp_code,)).fetchall()
     claims = [dict(c) for c in claims]
     for c in claims:
-        items = conn.execute("""SELECT id, category, expense_date, description, amount,
-            CASE WHEN receipt_data IS NOT NULL THEN 1 ELSE 0 END as has_receipt
-            FROM travel_expense_items WHERE claim_id=? ORDER BY id""", (c["id"],)).fetchall()
-        c["line_items"] = [dict(i) for i in items]
+        km_row = conn.execute("""SELECT COALESCE(SUM(distance_km),0) as km
+            FROM travel_expense_items WHERE claim_id=?""", (c["id"],)).fetchone()
+        c["total_km"] = km_row["km"] or 0
     conn.close()
     return render_template("my_travel_expense.html", claims=claims,
-        categories=TRAVEL_EXPENSE_CATEGORIES, today=date.today().strftime("%Y-%m-%d"))
+        fuel_rate=FUEL_RATE_PER_KM, today=date.today().strftime("%Y-%m-%d"))
 
 @app.route("/my-travel-expense/apply", methods=["POST"])
 @amgr
@@ -20752,65 +20761,51 @@ def my_travel_expense_apply():
         department = emp["department"] if emp else None
 
         purpose      = (request.form.get("purpose") or "").strip()
-        from_date    = (request.form.get("from_date") or "").strip()
-        to_date      = (request.form.get("to_date") or "").strip()
-        travel_from  = (request.form.get("travel_from") or "").strip()
-        travel_to    = (request.form.get("travel_to") or "").strip()
+        claim_date   = (request.form.get("claim_date") or "").strip()
 
-        categories    = request.form.getlist("item_category[]")
-        exp_dates     = request.form.getlist("item_date[]")
-        descriptions  = request.form.getlist("item_description[]")
-        amounts       = request.form.getlist("item_amount[]")
-        kms           = request.form.getlist("item_km[]")
-        receipt_files = request.files.getlist("item_receipt[]")
+        try:
+            meter_from = float(request.form.get("meter_from") or 0)
+        except ValueError:
+            meter_from = None
+        try:
+            meter_to = float(request.form.get("meter_to") or 0)
+        except ValueError:
+            meter_to = None
 
-        if not categories:
+        if not purpose:
             conn.close()
-            return jsonify({"success": False, "error": "Add at least one expense line item"})
+            return jsonify({"success": False, "error": "Purpose is required"})
+        if not claim_date:
+            conn.close()
+            return jsonify({"success": False, "error": "Date is required"})
+        if meter_from is None or meter_to is None:
+            conn.close()
+            return jsonify({"success": False, "error": "Vehicle meter reading From/To are required"})
+        if meter_to <= meter_from:
+            conn.close()
+            return jsonify({"success": False, "error": "Meter Reading To must be greater than Meter Reading From"})
+
+        total_km = round(meter_to - meter_from, 1)
+        total = round(total_km * FUEL_RATE_PER_KM, 2)
 
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         cur = conn.execute("""INSERT INTO travel_expense_claims
-            (emp_code, department, purpose, from_date, to_date, travel_from, travel_to,
-             total_amount, status, submitted_on)
-            VALUES (?,?,?,?,?,?,?,0,'Pending',?)""",
-            (emp_code, department, purpose, from_date or None, to_date or None,
-             travel_from, travel_to, now_str))
+            (emp_code, department, purpose, from_date, to_date,
+             meter_reading_from, meter_reading_to, total_amount, status, submitted_on)
+            VALUES (?,?,?,?,?,?,?,?,'Pending',?)""",
+            (emp_code, department, purpose, claim_date, claim_date,
+             meter_from, meter_to, total, now_str))
         claim_id = cur.lastrowid
 
-        total = 0.0
-        for i in range(len(categories)):
-            try:
-                amt = float(amounts[i] or 0)
-            except (ValueError, IndexError):
-                amt = 0.0
-            if amt <= 0:
-                continue
-            total += amt
-            try:
-                km = float(kms[i]) if i < len(kms) and kms[i] else 0
-            except ValueError:
-                km = 0
-            receipt_data = None; receipt_filename = None
-            f = receipt_files[i] if i < len(receipt_files) else None
-            if f and f.filename:
-                receipt_data = f.read()
-                receipt_filename = secure_filename(f.filename)
-            conn.execute("""INSERT INTO travel_expense_items
-                (claim_id, category, expense_date, description, amount, receipt_data, receipt_filename, distance_km)
-                VALUES (?,?,?,?,?,?,?,?)""",
-                (claim_id, categories[i], exp_dates[i] if i < len(exp_dates) else None,
-                 descriptions[i] if i < len(descriptions) else "", amt,
-                 receipt_data, receipt_filename, km))
+        conn.execute("""INSERT INTO travel_expense_items
+            (claim_id, category, expense_date, description, amount, distance_km)
+            VALUES (?,?,?,?,?,?)""",
+            (claim_id, "Fuel", claim_date,
+             f"Vehicle meter reading: {meter_from:g} → {meter_to:g}", total, total_km))
 
-        if total <= 0:
-            conn.rollback()
-            conn.close()
-            return jsonify({"success": False, "error": "Total claim amount must be greater than zero"})
-
-        conn.execute("UPDATE travel_expense_claims SET total_amount=? WHERE id=?", (total, claim_id))
         conn.commit()
         conn.close()
-        return jsonify({"success": True, "message": f"Claim submitted for ₹{total:.2f} — sent to your department head for approval."})
+        return jsonify({"success": True, "message": f"Claim submitted for ₹{total:.2f} ({total_km:g} KM) — sent to your department head for approval."})
     except Exception as e:
         conn.close()
         return jsonify({"success": False, "error": str(e)})
@@ -21152,7 +21147,9 @@ def payslip_salary_sheet():
 
     rows = []
     if payroll_locked and ew_locked:
-        sql = """SELECT s.emp_code, s.net_salary, e.emp_name, e.department, e.designation
+        sql = """SELECT s.emp_code, s.net_salary, e.basic, e.hra, e.special_allowance,
+                s.absent_days, s.per_day_salary, s.advance_deduction,
+                e.emp_name, e.department, e.designation
             FROM salary_records s
             JOIN employees e ON s.emp_code=e.emp_code
             JOIN payroll_locks pl ON pl.month=s.month AND pl.year=s.year
@@ -21162,6 +21159,31 @@ def payslip_salary_sheet():
             sql += " AND e.department=?"; params.append(dept)
         sql += " ORDER BY e.department, e.emp_name"
         rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+        # Same Net Payable formula as the individual Salary Sheet
+        # (payslip_salary_sheet_view) — Salary + Extra Working + Petrol −
+        # Leave, minus Imprest remaining and Advance — so the figure shown
+        # here in the list always matches what opens in "View Salary Sheet".
+        for r in rows:
+            ew = conn.execute("""SELECT extra_amount FROM extra_working_snapshot
+                WHERE emp_code=? AND month=? AND year=?""", (r["emp_code"], m, y)).fetchone()
+            extra_amount = (ew["extra_amount"] if ew else 0) or 0
+
+            petrol_row = conn.execute("""SELECT COALESCE(SUM(c.total_amount),0) as amt
+                FROM travel_expense_claims c
+                WHERE c.emp_code=? AND c.payout_month=? AND c.payout_year=? AND c.status IN ('Processed','Paid')""",
+                (r["emp_code"], m, y)).fetchone()
+            petrol_amount = petrol_row["amt"] or 0
+
+            imp = conn.execute("SELECT imprest_amount, actual_expense FROM imprest_records WHERE emp_code=? AND month=? AND year=?",
+                (r["emp_code"], m, y)).fetchone()
+            remaining = round(((imp["imprest_amount"] if imp else 0) or 0) - ((imp["actual_expense"] if imp else 0) or 0), 2)
+
+            salary = float(r["basic"] or 0) + float(r["hra"] or 0) + float(r["special_allowance"] or 0)
+            leave_amount = round(float(r["absent_days"] or 0) * float(r["per_day_salary"] or 0), 2)
+            total_earn = round(salary + extra_amount + petrol_amount - leave_amount, 2)
+            advance = float(r["advance_deduction"] or 0)
+            r["net_payable"] = round(total_earn - remaining - advance, 2)
 
     depts = [d["department"] for d in conn.execute(
         "SELECT DISTINCT department FROM employees WHERE status='Active' AND department IS NOT NULL ORDER BY department").fetchall()]
