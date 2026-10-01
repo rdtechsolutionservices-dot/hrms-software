@@ -325,8 +325,8 @@
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Imprest Management</td>
-              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="imprest_manage" style="width:15px;height:15px;cursor:pointer;"></td>
-              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="imprest_manage" style="width:15px;height:15px;cursor:pointer;"></td>
+              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="imprest_manage" id="cb_imprest_manage" onchange="syncEdit('imprest_manage','imprest_manage_edit')" style="width:15px;height:15px;cursor:pointer;"></td>
+              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="imprest_manage_edit" id="cb_imprest_manage_edit" onchange="syncView('imprest_manage_edit','imprest_manage')" style="width:15px;height:15px;cursor:pointer;"></td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">CTC Report</td>
@@ -345,8 +345,8 @@
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Extra Working Hours</td>
-              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="extra_working" style="width:15px;height:15px;cursor:pointer;"></td>
-              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="extra_working" style="width:15px;height:15px;cursor:pointer;"></td>
+              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="extra_working" id="cb_extra_working" onchange="syncEdit('extra_working','extra_working_edit')" style="width:15px;height:15px;cursor:pointer;"></td>
+              <td style="text-align:center;"><input type="checkbox" class="perm-cb" value="extra_working_edit" id="cb_extra_working_edit" onchange="syncView('extra_working_edit','extra_working')" style="width:15px;height:15px;cursor:pointer;"></td>
             </tr>
             <tr style="border-bottom:1px solid var(--border);">
               <td style="padding:7px 12px;">Working Days Settings</td>
