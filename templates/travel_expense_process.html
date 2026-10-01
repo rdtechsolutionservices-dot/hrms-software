@@ -28,6 +28,7 @@
       <th style="text-align:right;padding:8px;">Amount</th>
       <th style="text-align:center;padding:8px;">Approved On</th>
       {% if status_filter == 'Approved' %}<th style="text-align:center;padding:8px;">Payout Month</th>{% endif %}
+      {% if status_filter == 'Processed' %}<th style="text-align:center;padding:8px;">Payout Month</th>{% endif %}
       <th style="text-align:center;padding:8px 12px;">Action</th>
     </tr></thead>
     <tbody>
@@ -53,6 +54,9 @@
           </select>
         </td>
         {% endif %}
+        {% if status_filter == 'Processed' %}
+        <td style="text-align:center;padding:8px;">{{ months[c.payout_month-1] if c.payout_month else '—' }} {{ c.payout_year or '' }}</td>
+        {% endif %}
         <td style="text-align:center;padding:8px 12px;">
           {% if status_filter == 'Approved' %}
           <button class="btn btn-sm" style="background:rgba(0,150,220,.15);color:#0096dc;border:1px solid rgba(0,150,220,.3);"
@@ -60,6 +64,10 @@
           {% elif status_filter == 'Processed' %}
           <button class="btn btn-sm" style="background:rgba(124,58,237,.15);color:#7c3aed;border:1px solid rgba(124,58,237,.3);"
             onclick="tePaid({{ c.id }})">Mark Paid</button>
+          {% if is_admin %}
+          <button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);"
+            onclick="teReverse({{ c.id }})" title="Reverse back to Approved — e.g. if the wrong payout month was selected">Reverse</button>
+          {% endif %}
           {% else %}
           <span style="color:var(--muted);">Paid on {{ c.processed_on[:16] if c.processed_on else '—' }}</span>
           {% endif %}
@@ -94,6 +102,15 @@ function tePaid(id){
   fetch(`/travel-expense/process/action/${id}`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({action:'paid'})
+  }).then(r=>r.json()).then(d=>{
+    if (d.success){ const el=document.getElementById(`claim_${id}`); if(el) el.remove(); }
+    else alert(d.error || 'Action failed');
+  }).catch(()=>alert('Action failed'));
+}
+function teReverse(id){
+  if (!confirm('Reverse this claim back to Approved? Use this if the wrong payout month was selected — you can then re-process it correctly.')) return;
+  fetch(`/travel-expense/process/reverse/${id}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'}
   }).then(r=>r.json()).then(d=>{
     if (d.success){ const el=document.getElementById(`claim_${id}`); if(el) el.remove(); }
     else alert(d.error || 'Action failed');

@@ -3572,8 +3572,8 @@ def amgr(f):
             ("/dept-head/attendance-requests", ["outside_att_approve", "dept_head_approve"]),
             ("/dept-head/travel-expense", ["travel_expense_approve", "dept_head_approve"]),
             ("/my-attendance/punch",    ["my_attendance_punch", "my_attendance"]),
-            ("/travel-expense/export-pdf", ["travel_expense_process", "travel_expense_approve", "dept_head_approve", "travel_expense"]),
-            ("/travel-expense/process", ["travel_expense_process", "payroll_process", "payroll_view"]),
+            ("/travel-expense/export-pdf", ["travel_expense_process", "travel_expense_approve", "dept_head_approve", "travel_expense", "payroll_process", "payroll_view", "payroll_mark_paid"]),
+            ("/travel-expense/process", ["travel_expense_process", "payroll_process", "payroll_view", "payroll_mark_paid"]),
             ("/travel-expense/receipt", ["travel_expense_process", "travel_expense_approve", "payroll_process"]),
             ("/dept-head/",             ["dept_head_approve"]),
             ("/leaves/manage",          ["leave_approve"]),
@@ -20974,8 +20974,15 @@ def travel_expense_export_pdf(claim_id):
         conn.close()
         return "This claim has not been approved yet — nothing to export.", 400
 
-    # Employee-role users may only export their own claims
-    if session.get("role") == "employee" and session.get("emp_id") != claim["emp_code"]:
+    # Self-service-only users may only export their own claims. A user with
+    # an elevated permission (Process Payout, Dept Head Approval, Payroll)
+    # is legitimately exporting OTHER employees' claims as part of their job,
+    # so the ownership restriction only applies when none of those are held.
+    _staff_perms = {"travel_expense_process", "travel_expense_approve", "dept_head_approve",
+                     "payroll_process", "payroll_view", "payroll_mark_paid"}
+    _has_staff_access = bool(_staff_perms & set(session.get("permissions", []) or []))
+    if (session.get("role") == "employee" and not _has_staff_access
+            and session.get("emp_id") != claim["emp_code"]):
         conn.close()
         return "Not authorized", 403
 
@@ -21038,6 +21045,32 @@ def travel_expense_process_action(claim_id):
                 (processor, now_str, claim_id))
         conn.commit()
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    finally:
+        conn.close()
+
+@app.route("/travel-expense/process/reverse/<int:claim_id>", methods=["POST"])
+@amgr
+def travel_expense_process_reverse(claim_id):
+    """Admin-only: reverse a Processed claim back to Approved — e.g. when the
+    wrong payout month/year was selected, so it can be corrected and
+    re-processed. Clears the payout month/year and processed-by/on fields.
+    Does not apply to Paid claims (money has already gone out by then)."""
+    if session.get("role") != "admin":
+        return jsonify({"success": False, "error": "Only Admin can reverse a processed claim"}), 403
+    conn = get_db()
+    try:
+        claim = conn.execute("SELECT status FROM travel_expense_claims WHERE id=?", (claim_id,)).fetchone()
+        if not claim:
+            return jsonify({"success": False, "error": "Claim not found"})
+        if claim["status"] != "Processed":
+            return jsonify({"success": False, "error": f"Only Processed claims can be reversed (current: {claim['status']})"})
+        conn.execute("""UPDATE travel_expense_claims SET
+            status='Approved', processed_by=NULL, processed_on=NULL,
+            payout_month=NULL, payout_year=NULL WHERE id=?""", (claim_id,))
+        conn.commit()
+        return jsonify({"success": True, "message": "Claim reversed to Approved — you can now re-process it with the correct payout month."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     finally:
